@@ -485,11 +485,16 @@
             <div class="section">
                 <h3>Area Selection</h3>
                 <p style="font-size: 0.85rem; color: #8b949e; margin-bottom: 1rem;">
-                    Use the rectangle tool to define analysis area
+                    Use rectangle or polygon tools to define analysis area
                 </p>
-                <button id="clear-btn" class="btn btn-warning" onclick="clearDrawings()">
-                    Clear Selection
-                </button>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <button id="clear-btn" class="btn btn-warning" onclick="clearDrawings()">
+                        Clear Selection
+                    </button>
+                    <button id="save-site-btn" class="btn" onclick="showSaveSiteModal()" disabled>
+                        Save as Site
+                    </button>
+                </div>
             </div>
             
             <div class="section">
@@ -542,6 +547,42 @@
         </div>
     </div>
     
+    <!-- Save Site Modal -->
+    <div id="saveSiteModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(13, 17, 23, 0.95); border: 1px solid rgba(88, 166, 255, 0.3); border-radius: 8px; padding: 2rem; width: 400px; max-width: 90vw;">
+            <h3 style="color: #58a6ff; margin-bottom: 1.5rem; font-family: 'Exo 2', sans-serif;">Save Site</h3>
+            
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; color: #8b949e; margin-bottom: 0.5rem; font-size: 0.9rem;">Site Name</label>
+                <input type="text" id="siteNameInput" style="width: 100%; padding: 0.75rem; background: rgba(30, 36, 61, 0.6); border: 1px solid rgba(88, 166, 255, 0.15); border-radius: 6px; color: #c9d1d9; font-family: 'Exo 2', sans-serif;" placeholder="Enter site name...">
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; color: #8b949e; margin-bottom: 0.5rem; font-size: 0.9rem;">Description (Optional)</label>
+                <textarea id="siteDescInput" style="width: 100%; padding: 0.75rem; background: rgba(30, 36, 61, 0.6); border: 1px solid rgba(88, 166, 255, 0.15); border-radius: 6px; color: #c9d1d9; font-family: 'Exo 2', sans-serif; resize: vertical; height: 80px;" placeholder="Description, crops, notes..."></textarea>
+            </div>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; color: #8b949e; margin-bottom: 0.5rem; font-size: 0.9rem;">Alert Thresholds</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <div>
+                        <label style="font-size: 0.8rem; color: #6e7681;">Low NDVI Alert</label>
+                        <input type="number" id="lowNdviAlert" step="0.1" min="0" max="1" value="0.3" style="width: 100%; padding: 0.5rem; background: rgba(30, 36, 61, 0.6); border: 1px solid rgba(88, 166, 255, 0.15); border-radius: 4px; color: #c9d1d9; font-size: 0.85rem;">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; color: #6e7681;">High NDVI Target</label>
+                        <input type="number" id="highNdviAlert" step="0.1" min="0" max="1" value="0.7" style="width: 100%; padding: 0.5rem; background: rgba(30, 36, 61, 0.6); border: 1px solid rgba(88, 166, 255, 0.15); border-radius: 4px; color: #c9d1d9; font-size: 0.85rem;">
+                    </div>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                <button onclick="closeSaveSiteModal()" style="padding: 0.75rem 1rem; background: #30363d; color: #8b949e; border: none; border-radius: 6px; cursor: pointer; font-family: 'Exo 2', sans-serif;">Cancel</button>
+                <button onclick="saveSite()" style="padding: 0.75rem 1rem; background: #58a6ff; color: #0d1117; border: none; border-radius: 6px; cursor: pointer; font-family: 'Exo 2', sans-serif; font-weight: 500;">Save Site</button>
+            </div>
+        </div>
+    </div>
+    
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
@@ -550,6 +591,8 @@
         let map;
         let drawnItems;
         let currentBounds = null;
+        let currentLayer = null;
+        let areaUnit = 'acres'; // Default to acres for US business
         
         // Initialize map
         function initMap() {
@@ -569,14 +612,20 @@
                     featureGroup: drawnItems
                 },
                 draw: {
-                    polygon: false,
+                    polygon: {
+                        shapeOptions: {
+                            color: '#58a6ff',
+                            weight: 2,
+                            fillOpacity: 0.1
+                        }
+                    },
                     polyline: false,
                     circle: false,
                     marker: false,
                     circlemarker: false,
                     rectangle: {
                         shapeOptions: {
-                            color: '#667eea',
+                            color: '#58a6ff',
                             weight: 2,
                             fillOpacity: 0.1
                         }
@@ -589,17 +638,29 @@
             map.on('draw:created', function (e) {
                 drawnItems.clearLayers();
                 drawnItems.addLayer(e.layer);
-                updateBounds(e.layer.getBounds());
+                currentLayer = e.layer;
+                
+                if (e.layerType === 'polygon') {
+                    updatePolygon(e.layer);
+                } else {
+                    updateBounds(e.layer.getBounds());
+                }
             });
             
             map.on('draw:edited', function (e) {
                 e.layers.eachLayer(function (layer) {
-                    updateBounds(layer.getBounds());
+                    currentLayer = layer;
+                    if (layer instanceof L.Polygon) {
+                        updatePolygon(layer);
+                    } else {
+                        updateBounds(layer.getBounds());
+                    }
                 });
             });
             
             map.on('draw:deleted', function (e) {
                 currentBounds = null;
+                currentLayer = null;
                 updateCoordinatesDisplay();
                 document.getElementById('analyze-btn').disabled = true;
             });
@@ -609,25 +670,94 @@
             currentBounds = bounds;
             updateCoordinatesDisplay();
             document.getElementById('analyze-btn').disabled = false;
+            document.getElementById('save-site-btn').disabled = false;
+        }
+        
+        function updatePolygon(layer) {
+            // For polygons, calculate bounding box and area
+            currentBounds = layer.getBounds();
+            updateCoordinatesDisplay();
+            document.getElementById('analyze-btn').disabled = false;
+            document.getElementById('save-site-btn').disabled = false;
         }
         
         function updateCoordinatesDisplay() {
             const display = document.getElementById('coordinates-display');
-            if (currentBounds) {
+            if (currentLayer) {
+                let area;
+                if (currentLayer instanceof L.Polygon) {
+                    area = calculatePolygonArea(currentLayer.getLatLngs()[0]);
+                } else {
+                    area = calculateRectangleArea(currentBounds);
+                }
+                
                 const bbox = [
                     currentBounds.getWest().toFixed(6),
                     currentBounds.getSouth().toFixed(6),
                     currentBounds.getEast().toFixed(6),
                     currentBounds.getNorth().toFixed(6)
                 ];
+                
                 display.innerHTML = `
                     <strong>Coordinates:</strong><br>
                     [${bbox.join(', ')}]<br><br>
                     <strong>Area:</strong><br>
-                    ${calculateAreaKm2(currentBounds).toFixed(2)} km²
+                    ${formatArea(area)}
                 `;
             } else {
                 display.textContent = 'No area selected';
+            }
+        }
+        
+        function calculatePolygonArea(latLngs) {
+            // Calculate area using shoelace formula and convert to square meters
+            let area = 0;
+            const n = latLngs.length;
+            
+            for (let i = 0; i < n; i++) {
+                const j = (i + 1) % n;
+                const lat1 = latLngs[i].lat * Math.PI / 180;
+                const lng1 = latLngs[i].lng * Math.PI / 180;
+                const lat2 = latLngs[j].lat * Math.PI / 180;
+                const lng2 = latLngs[j].lng * Math.PI / 180;
+                
+                area += (lng2 - lng1) * (2 + Math.sin(lat1) + Math.sin(lat2));
+            }
+            
+            area = Math.abs(area) * 6378137 * 6378137 / 2; // Convert to square meters
+            return area;
+        }
+        
+        function calculateRectangleArea(bounds) {
+            // Calculate rectangle area in square meters
+            const lat1 = bounds.getSouth() * Math.PI / 180;
+            const lat2 = bounds.getNorth() * Math.PI / 180;
+            const deltaLat = (bounds.getNorth() - bounds.getSouth()) * Math.PI / 180;
+            const deltaLng = (bounds.getEast() - bounds.getWest()) * Math.PI / 180;
+            
+            const width = 6378137 * deltaLng * Math.cos((lat1 + lat2) / 2);
+            const height = 6378137 * deltaLat;
+            
+            return Math.abs(width * height);
+        }
+        
+        function formatArea(areaSqMeters) {
+            if (areaUnit === 'acres') {
+                const acres = areaSqMeters * 0.000247105;
+                if (acres >= 640) { // 640 acres = 1 square mile
+                    const sqMiles = acres / 640;
+                    return `${sqMiles.toFixed(2)} sq mi (${acres.toFixed(1)} acres)`;
+                } else {
+                    return `${acres.toFixed(2)} acres`;
+                }
+            } else {
+                const hectares = areaSqMeters / 10000;
+                const sqKm = areaSqMeters / 1000000;
+                if (sqKm >= 1) {
+                    return `${sqKm.toFixed(2)} km² (${hectares.toFixed(1)} ha)`;
+                } else {
+                    return `${hectares.toFixed(2)} hectares`;
+                }
             }
         }
         
@@ -718,9 +848,73 @@
         function clearDrawings() {
             drawnItems.clearLayers();
             currentBounds = null;
+            currentLayer = null;
             updateCoordinatesDisplay();
             document.getElementById('analyze-btn').disabled = true;
+            document.getElementById('save-site-btn').disabled = true;
             document.getElementById('result-section').style.display = 'none';
+        }
+        
+        function showSaveSiteModal() {
+            if (!currentLayer || !currentBounds) {
+                alert('Please select an area first');
+                return;
+            }
+            document.getElementById('saveSiteModal').style.display = 'block';
+            document.getElementById('siteNameInput').focus();
+        }
+        
+        function closeSaveSiteModal() {
+            document.getElementById('saveSiteModal').style.display = 'none';
+            document.getElementById('siteNameInput').value = '';
+            document.getElementById('siteDescInput').value = '';
+        }
+        
+        function saveSite() {
+            const siteName = document.getElementById('siteNameInput').value.trim();
+            if (!siteName) {
+                alert('Please enter a site name');
+                return;
+            }
+            
+            if (!currentLayer || !currentBounds) {
+                alert('No area selected');
+                return;
+            }
+            
+            const siteData = {
+                name: siteName,
+                description: document.getElementById('siteDescInput').value.trim(),
+                geometry: currentLayer.toGeoJSON(),
+                bounds: {
+                    north: currentBounds.getNorth(),
+                    south: currentBounds.getSouth(),
+                    east: currentBounds.getEast(),
+                    west: currentBounds.getWest()
+                },
+                alerts: {
+                    lowNdvi: parseFloat(document.getElementById('lowNdviAlert').value),
+                    highNdvi: parseFloat(document.getElementById('highNdviAlert').value)
+                },
+                area: currentLayer instanceof L.Polygon ? 
+                    calculatePolygonArea(currentLayer.getLatLngs()[0]) :
+                    calculateRectangleArea(currentBounds),
+                created: new Date().toISOString()
+            };
+            
+            // Save to localStorage for now (could be extended to server storage)
+            let savedSites = JSON.parse(localStorage.getItem('savedSites') || '[]');
+            siteData.id = Date.now().toString();
+            savedSites.push(siteData);
+            localStorage.setItem('savedSites', JSON.stringify(savedSites));
+            
+            closeSaveSiteModal();
+            alert(`Site "${siteName}" saved successfully!`);
+            
+            // Refresh saved sites display if on dashboard
+            if (typeof loadSavedSites === 'function') {
+                loadSavedSites();
+            }
         }
         
         async function analyzeNDVI() {
