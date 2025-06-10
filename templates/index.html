@@ -680,6 +680,38 @@
             });
             map.addControl(drawControl);
             
+            // Add NDVI Legend Control
+            const legend = L.control({position: 'bottomleft'});
+            legend.onAdd = function (map) {
+                const div = L.DomUtil.create('div', 'info legend');
+                div.style.cssText = `
+                    background: rgba(13, 17, 23, 0.95);
+                    border: 1px solid rgba(88, 166, 255, 0.3);
+                    border-radius: 6px;
+                    padding: 0.75rem;
+                    font-family: 'Exo 2', sans-serif;
+                    color: #c9d1d9;
+                    font-size: 0.75rem;
+                    line-height: 1.2;
+                    max-width: 200px;
+                `;
+                
+                div.innerHTML = `
+                    <h4 style="color: #58a6ff; margin: 0 0 0.5rem 0; font-size: 0.8rem; font-weight: 600;">CROP HEALTH MONITOR</h4>
+                    <div style="margin-bottom: 0.25rem;"><span style="background: #ff3333; width: 12px; height: 8px; display: inline-block; margin-right: 4px;"></span>Critical stress/dying</div>
+                    <div style="margin-bottom: 0.25rem;"><span style="background: #ff6633; width: 12px; height: 8px; display: inline-block; margin-right: 4px;"></span>Severe stress</div>
+                    <div style="margin-bottom: 0.25rem;"><span style="background: #ff9933; width: 12px; height: 8px; display: inline-block; margin-right: 4px;"></span>Moderate stress</div>
+                    <div style="margin-bottom: 0.25rem;"><span style="background: #ffcc33; width: 12px; height: 8px; display: inline-block; margin-right: 4px;"></span>Mild stress</div>
+                    <div style="margin-bottom: 0.25rem;"><span style="background: #ffff33; width: 12px; height: 8px; display: inline-block; margin-right: 4px;"></span>Early stress</div>
+                    <div style="margin-bottom: 0.25rem;"><span style="background: #66cc19; width: 12px; height: 8px; display: inline-block; margin-right: 4px;"></span>Good health</div>
+                    <div style="margin-bottom: 0.25rem;"><span style="background: #199919; width: 12px; height: 8px; display: inline-block; margin-right: 4px;"></span>Excellent health</div>
+                    <div style="margin-bottom: 0.25rem;"><span style="background: #0d660d; width: 12px; height: 8px; display: inline-block; margin-right: 4px;"></span>Peak health</div>
+                `;
+                
+                return div;
+            };
+            legend.addTo(map);
+            
             // Handle drawing events
             map.on('draw:created', function (e) {
                 drawnItems.clearLayers();
