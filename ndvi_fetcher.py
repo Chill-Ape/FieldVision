@@ -56,18 +56,21 @@ function evaluatePixel(sample) {
         return [0.4, 0.4, 0.4]; // Dark gray for masked pixels
     }
     
-    // Enhanced color mapping with higher contrast and more gradations
+    // Agricultural stress detection color mapping
     if (ndvi < -0.3) return [0.2, 0.2, 0.4]; // Deep water - dark blue
     if (ndvi < -0.1) return [0.4, 0.4, 0.6]; // Shallow water - blue
     if (ndvi < 0.05) return [0.8, 0.7, 0.6]; // Bare soil/sand - tan
-    if (ndvi < 0.15) return [0.9, 0.8, 0.6]; // Very sparse vegetation - light tan
-    if (ndvi < 0.25) return [1.0, 0.9, 0.4]; // Sparse vegetation - yellow
-    if (ndvi < 0.35) return [0.8, 1.0, 0.2]; // Low vegetation - light green
-    if (ndvi < 0.45) return [0.6, 0.9, 0.1]; // Moderate vegetation - green
-    if (ndvi < 0.55) return [0.4, 0.8, 0.1]; // Good vegetation - darker green
-    if (ndvi < 0.65) return [0.2, 0.7, 0.1]; // Dense vegetation - dark green
-    if (ndvi < 0.75) return [0.1, 0.6, 0.1]; // Very dense vegetation - very dark green
-    return [0.05, 0.4, 0.05]; // Extremely dense vegetation - deepest green
+    if (ndvi < 0.1) return [1.0, 0.2, 0.2]; // Critical stress/dying vegetation - bright red
+    if (ndvi < 0.15) return [1.0, 0.4, 0.2]; // Severe stress - red-orange
+    if (ndvi < 0.2) return [1.0, 0.6, 0.2]; // Moderate stress - orange
+    if (ndvi < 0.25) return [1.0, 0.8, 0.2]; // Mild stress - yellow-orange
+    if (ndvi < 0.3) return [1.0, 1.0, 0.2]; // Early stress - yellow
+    if (ndvi < 0.35) return [0.8, 1.0, 0.2]; // Recovery/low vigor - light green
+    if (ndvi < 0.45) return [0.6, 0.9, 0.1]; // Moderate health - green
+    if (ndvi < 0.55) return [0.4, 0.8, 0.1]; // Good health - darker green
+    if (ndvi < 0.65) return [0.2, 0.7, 0.1]; // Very healthy - dark green
+    if (ndvi < 0.75) return [0.1, 0.6, 0.1]; // Excellent health - very dark green
+    return [0.05, 0.4, 0.05]; // Peak health - deepest green
 }
 """
     
