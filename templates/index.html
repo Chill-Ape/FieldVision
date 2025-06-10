@@ -89,6 +89,39 @@
             font-weight: 400;
         }
         
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .nav-link {
+            color: #8b949e;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+        
+        .nav-link:hover {
+            color: #58a6ff;
+            background: rgba(88, 166, 255, 0.1);
+        }
+        
+        .nav-link.active {
+            color: #58a6ff;
+            background: rgba(88, 166, 255, 0.15);
+        }
+        
         @keyframes pulse {
             0% { opacity: 0.6; }
             100% { opacity: 1; }
@@ -444,10 +477,17 @@
 </head>
 <body>
     <div class="header">
-        <h1>
-            <div class="header-icon">📡</div>
-            Satellite Intelligence
-        </h1>
+        <div class="header-content">
+            <h1>
+                <div class="header-icon">📡</div>
+                Satellite Intelligence
+            </h1>
+            <nav class="nav-links">
+                <a href="/" class="nav-link active">Analysis</a>
+                <a href="/sites" class="nav-link">My Sites</a>
+                <a href="/dashboard" class="nav-link">Reports</a>
+            </nav>
+        </div>
         <p>Professional vegetation health analysis using Sentinel-2 satellite data</p>
     </div>
     
@@ -1076,7 +1116,7 @@
                             </div>
                         </div>
                         <p style="font-size: 0.9rem; color: #8b949e; margin-top: 0.5rem;">
-                            Ultra-high resolution NDVI analysis at 5000x5000 pixels<br>
+                            Maximum resolution NDVI analysis at 2500x2500 pixels<br>
                             ${currentLayer instanceof L.Polygon ? 
                                 'Polygon area analyzed - area outside shape shows context' : 
                                 'Rectangle area analyzed'}

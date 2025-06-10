@@ -74,7 +74,7 @@ function evaluatePixel(sample) {
 }
 """
     
-    def create_request_payload(self, bbox: List[float], width: int = 5000, height: int = 5000) -> dict:
+    def create_request_payload(self, bbox: List[float], width: int = 2500, height: int = 2500) -> dict:
         """
         Create the request payload for Sentinel Hub Process API
         
@@ -122,7 +122,7 @@ function evaluatePixel(sample) {
             "evalscript": self.get_ndvi_evalscript()
         }
     
-    def fetch_ndvi_image(self, bbox: List[float], width: int = 5000, height: int = 5000, geometry: Optional[dict] = None) -> Optional[bytes]:
+    def fetch_ndvi_image(self, bbox: List[float], width: int = 2500, height: int = 2500, geometry: Optional[dict] = None) -> Optional[bytes]:
         """
         Fetch NDVI image for the given bounding box at maximum resolution
         
