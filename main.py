@@ -195,14 +195,16 @@ def get_ndvi_image():
         PNG image response or error message
     """
     try:
-        # Determine bounding box
+        # Determine bounding box and geometry
         if request.method == 'POST':
             data = request.get_json()
             if not data or 'bbox' not in data:
                 return jsonify({"error": "Missing 'bbox' in request JSON"}), 400
             bbox = data['bbox']
+            geometry = data.get('geometry')  # Optional polygon geometry
         else:
             bbox = DEFAULT_BBOX
+            geometry = None
         
         # Validate bounding box
         if not ndvi_fetcher.validate_bbox(bbox):
@@ -218,7 +220,7 @@ def get_ndvi_image():
             }), 503
         
         # Fetch NDVI image
-        image_data = ndvi_fetcher.fetch_ndvi_image(bbox)
+        image_data = ndvi_fetcher.fetch_ndvi_image(bbox, geometry=geometry)
         
         if image_data:
             return Response(

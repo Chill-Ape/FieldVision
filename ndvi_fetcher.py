@@ -74,7 +74,7 @@ function evaluatePixel(sample) {
 }
 """
     
-    def create_request_payload(self, bbox: List[float], width: int = 2500, height: int = 2500) -> dict:
+    def create_request_payload(self, bbox: List[float], width: int = 5000, height: int = 5000) -> dict:
         """
         Create the request payload for Sentinel Hub Process API
         
@@ -122,14 +122,15 @@ function evaluatePixel(sample) {
             "evalscript": self.get_ndvi_evalscript()
         }
     
-    def fetch_ndvi_image(self, bbox: List[float], width: int = 2500, height: int = 2500) -> Optional[bytes]:
+    def fetch_ndvi_image(self, bbox: List[float], width: int = 5000, height: int = 5000, geometry: Optional[dict] = None) -> Optional[bytes]:
         """
         Fetch NDVI image for the given bounding box at maximum resolution
         
         Args:
             bbox: Bounding box coordinates [min_lng, min_lat, max_lng, max_lat] in EPSG:4326
-            width: Output image width in pixels (default 2500 for max detail)
-            height: Output image height in pixels (default 2500 for max detail)
+            width: Output image width in pixels (default 5000 for ultra-high detail)
+            height: Output image height in pixels (default 5000 for ultra-high detail)
+            geometry: Optional GeoJSON geometry for polygon masking
             
         Returns:
             PNG image bytes or None if request fails
