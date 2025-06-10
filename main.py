@@ -4,7 +4,7 @@ Provides endpoints for fetching and displaying NDVI data from Sentinel Hub
 """
 
 import logging
-from flask import Flask, render_template_string, Response, jsonify, request
+from flask import Flask, render_template, render_template_string, Response, jsonify, request
 from auth import SentinelHubAuth
 from ndvi_fetcher import NDVIFetcher
 
@@ -26,7 +26,15 @@ DEFAULT_BBOX = [-122.5, 37.7, -122.3, 37.9]
 @app.route('/')
 def index():
     """
-    Main page with instructions and NDVI viewer button
+    Interactive map interface for NDVI analysis
+    Returns modern web interface with map drawing tools
+    """
+    return render_template('index.html')
+
+@app.route('/simple')
+def simple_page():
+    """
+    Simple page with instructions and NDVI viewer button
     Returns basic HTML page for testing the NDVI endpoint
     """
     html_template = """

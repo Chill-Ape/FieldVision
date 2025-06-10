@@ -1,195 +1,535 @@
-{% extends "base.html" %}
-
-{% block title %}New Field - FieldVision AI{% endblock %}
-
-{% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <!-- Map Container -->
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-map-marked-alt me-2"></i>
-                        Draw Your Field Boundary
-                    </h5>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NDVI Satellite Imagery Service</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2rem;
+            font-weight: 300;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .header p {
+            color: #7f8c8d;
+            margin-top: 0.5rem;
+        }
+        
+        .container {
+            display: flex;
+            height: calc(100vh - 100px);
+            gap: 1rem;
+            padding: 1rem;
+        }
+        
+        .sidebar {
+            width: 350px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+        
+        .map-container {
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .section {
+            margin-bottom: 2rem;
+        }
+        
+        .section h3 {
+            color: #2c3e50;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .status-success {
+            background: rgba(46, 204, 113, 0.1);
+            color: #27ae60;
+            border: 1px solid rgba(46, 204, 113, 0.3);
+        }
+        
+        .status-warning {
+            background: rgba(243, 156, 18, 0.1);
+            color: #f39c12;
+            border: 1px solid rgba(243, 156, 18, 0.3);
+        }
+        
+        .coordinates-display {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #495057;
+            margin-bottom: 1rem;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .ndvi-result {
+            margin-top: 1rem;
+            text-align: center;
+        }
+        
+        .ndvi-image {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+        }
+        
+        .legend {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 15px;
+            border-radius: 3px;
+            border: 1px solid #ddd;
+        }
+        
+        .quick-locations {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .quick-location-btn {
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .quick-location-btn:hover {
+            background: rgba(102, 126, 234, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛰️ NDVI Satellite Imagery</h1>
+        <p>Draw an area on the map to analyze vegetation health using real satellite data</p>
+    </div>
+    
+    <div class="container">
+        <div class="sidebar">
+            <div class="section">
+                <div id="status-indicator" class="status-indicator status-success">
+                    <span>🟢</span>
+                    <span>Sentinel Hub API Connected</span>
                 </div>
-                <div class="card-body p-0">
-                    <div id="map" style="height: 600px;"></div>
+            </div>
+            
+            <div class="section">
+                <h3>🗺️ Quick Locations</h3>
+                <div class="quick-locations">
+                    <button class="quick-location-btn" onclick="flyToLocation('sf')">San Francisco</button>
+                    <button class="quick-location-btn" onclick="flyToLocation('central_valley')">Central Valley</button>
+                    <button class="quick-location-btn" onclick="flyToLocation('napa')">Napa Valley</button>
+                    <button class="quick-location-btn" onclick="flyToLocation('salinas')">Salinas Valley</button>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3>📐 Draw Area</h3>
+                <p style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">
+                    Use the rectangle tool in the map to select an area for NDVI analysis.
+                </p>
+                <button id="clear-btn" class="btn btn-warning" onclick="clearDrawings()">
+                    🗑️ Clear Drawings
+                </button>
+            </div>
+            
+            <div class="section">
+                <h3>📍 Selected Coordinates</h3>
+                <div id="coordinates-display" class="coordinates-display">
+                    No area selected. Draw a rectangle on the map.
+                </div>
+                <button id="analyze-btn" class="btn" onclick="analyzeNDVI()" disabled>
+                    🌱 Analyze NDVI
+                </button>
+            </div>
+            
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Fetching satellite data...</p>
+            </div>
+            
+            <div id="result-section" class="section" style="display: none;">
+                <h3>📊 NDVI Result</h3>
+                <div id="ndvi-result" class="ndvi-result"></div>
+            </div>
+            
+            <div class="legend">
+                <h4 style="margin-bottom: 0.75rem; color: #2c3e50;">NDVI Color Legend</h4>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #2d5a27;"></div>
+                    <span>Dense vegetation (0.6-1.0)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #65b54a;"></div>
+                    <span>Healthy vegetation (0.4-0.6)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f5e942;"></div>
+                    <span>Moderate vegetation (0.2-0.4)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #dcdc8b;"></div>
+                    <span>Sparse vegetation (0.1-0.2)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #cccccc;"></div>
+                    <span>Water/bare soil (-0.2-0.1)</span>
                 </div>
             </div>
         </div>
         
-        <!-- Controls Panel -->
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-cog me-2"></i>
-                        Field Configuration
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <!-- Address Search -->
-                    <div class="mb-3">
-                        <label for="addressSearch" class="form-label">Find Location</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="addressSearch" 
-                                   placeholder="Enter address, city, or coordinates">
-                            <button class="btn btn-outline-primary" type="button" id="searchButton">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </div>
-                        <div class="form-text">Search for your field location</div>
-                    </div>
-                    
-                    <!-- Field Name Input -->
-                    <div class="mb-3">
-                        <label for="fieldName" class="form-label">Field Name</label>
-                        <input type="text" class="form-control" id="fieldName" 
-                               placeholder="e.g., North Pasture, Corn Field A">
-                        <div class="form-text">Give your field a memorable name</div>
-                    </div>
-                    
-                    <!-- Drawing Instructions -->
-                    <div class="alert alert-info">
-                        <h6><i class="fas fa-info-circle me-2"></i>Drawing Instructions</h6>
-                        <ul class="mb-0 small">
-                            <li>Use the polygon tool to draw your field boundary</li>
-                            <li>Click to add points, double-click to finish</li>
-                            <li>You can edit points after drawing</li>
-                            <li>Minimum 3 points required</li>
-                        </ul>
-                    </div>
-                    
-                    <!-- Action Buttons -->
-                    <div class="d-grid gap-2">
-                        <button type="button" class="btn btn-success" id="saveField" disabled>
-                            <i class="fas fa-save me-2"></i>
-                            Save Field
-                        </button>
-                        <button type="button" class="btn btn-outline-warning" id="clearDrawing">
-                            <i class="fas fa-trash me-2"></i>
-                            Clear Drawing
-                        </button>
-                    </div>
-                    
-                    <!-- Field Statistics -->
-                    <div id="fieldStats" class="mt-4" style="display: none;">
-                        <h6>Field Statistics</h6>
-                        <div class="row">
-                            <div class="col-6">
-                                <div class="text-center">
-                                    <div class="fw-bold text-primary" id="fieldArea">-</div>
-                                    <small class="text-muted" id="areaUnit">Area (acres)</small>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="text-center">
-                                    <div class="fw-bold text-info" id="fieldPerimeter">-</div>
-                                    <small class="text-muted">Perimeter (km)</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Settings -->
-            <div class="card mt-3">
-                <div class="card-header">
-                    <h6 class="card-title mb-0">
-                        <i class="fas fa-cog me-2"></i>
-                        Settings
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label small">Area Units</label>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="areaUnit" id="unitAcres" value="acres" checked>
-                            <label class="form-check-label small" for="unitAcres">
-                                Acres (US)
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="areaUnit" id="unitHectares" value="hectares">
-                            <label class="form-check-label small" for="unitHectares">
-                                Hectares (Metric)
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Quick Tips -->
-            <div class="card mt-3">
-                <div class="card-header">
-                    <h6 class="card-title mb-0">
-                        <i class="fas fa-lightbulb me-2"></i>
-                        Quick Tips
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <div class="small">
-                        <div class="mb-2">
-                            <i class="fas fa-check-circle text-success me-2"></i>
-                            Draw accurate boundaries for better analysis
-                        </div>
-                        <div class="mb-2">
-                            <i class="fas fa-check-circle text-success me-2"></i>
-                            Larger fields provide more detailed insights
-                        </div>
-                        <div class="mb-2">
-                            <i class="fas fa-check-circle text-success me-2"></i>
-                            Save multiple fields for comparison
-                        </div>
-                        <div>
-                            <i class="fas fa-check-circle text-success me-2"></i>
-                            Analysis works best with cloud-free imagery
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="map-container">
+            <div id="map"></div>
         </div>
     </div>
-</div>
-
-<!-- Success Modal -->
-<div class="modal fade" id="successModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-check-circle text-success me-2"></i>
-                    Field Saved Successfully
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Your field has been saved and is ready for analysis.</p>
-                <p class="mb-0">What would you like to do next?</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    Draw Another Field
-                </button>
-                <a href="{{ url_for('dashboard') }}" class="btn btn-primary">
-                    <i class="fas fa-tachometer-alt me-2"></i>
-                    Go to Dashboard
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_scripts %}
-<script src="{{ url_for('static', filename='js/map.js') }}"></script>
-<script>
-    // Initialize the map when page loads
-    document.addEventListener('DOMContentLoaded', function() {
-        initializeMap();
-    });
-</script>
-{% endblock %}
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+    
+    <script>
+        let map;
+        let drawnItems;
+        let currentBounds = null;
+        
+        // Initialize map
+        function initMap() {
+            map = L.map('map').setView([37.7749, -122.4194], 10);
+            
+            // Add tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            // Initialize draw controls
+            drawnItems = new L.FeatureGroup();
+            map.addLayer(drawnItems);
+            
+            const drawControl = new L.Control.Draw({
+                edit: {
+                    featureGroup: drawnItems
+                },
+                draw: {
+                    polygon: false,
+                    polyline: false,
+                    circle: false,
+                    marker: false,
+                    circlemarker: false,
+                    rectangle: {
+                        shapeOptions: {
+                            color: '#667eea',
+                            weight: 2,
+                            fillOpacity: 0.1
+                        }
+                    }
+                }
+            });
+            map.addControl(drawControl);
+            
+            // Handle drawing events
+            map.on('draw:created', function (e) {
+                drawnItems.clearLayers();
+                drawnItems.addLayer(e.layer);
+                updateBounds(e.layer.getBounds());
+            });
+            
+            map.on('draw:edited', function (e) {
+                e.layers.eachLayer(function (layer) {
+                    updateBounds(layer.getBounds());
+                });
+            });
+            
+            map.on('draw:deleted', function (e) {
+                currentBounds = null;
+                updateCoordinatesDisplay();
+                document.getElementById('analyze-btn').disabled = true;
+            });
+        }
+        
+        function updateBounds(bounds) {
+            currentBounds = bounds;
+            updateCoordinatesDisplay();
+            document.getElementById('analyze-btn').disabled = false;
+        }
+        
+        function updateCoordinatesDisplay() {
+            const display = document.getElementById('coordinates-display');
+            if (currentBounds) {
+                const bbox = [
+                    currentBounds.getWest().toFixed(6),
+                    currentBounds.getSouth().toFixed(6),
+                    currentBounds.getEast().toFixed(6),
+                    currentBounds.getNorth().toFixed(6)
+                ];
+                display.innerHTML = `
+                    <strong>Bounding Box (EPSG:4326):</strong><br>
+                    [${bbox.join(', ')}]<br><br>
+                    <strong>Area:</strong><br>
+                    ~${calculateAreaKm2(currentBounds).toFixed(2)} km²
+                `;
+            } else {
+                display.textContent = 'No area selected. Draw a rectangle on the map.';
+            }
+        }
+        
+        function calculateAreaKm2(bounds) {
+            const R = 6371; // Earth's radius in km
+            const lat1 = bounds.getSouth() * Math.PI / 180;
+            const lat2 = bounds.getNorth() * Math.PI / 180;
+            const deltaLat = (bounds.getNorth() - bounds.getSouth()) * Math.PI / 180;
+            const deltaLng = (bounds.getEast() - bounds.getWest()) * Math.PI / 180;
+            
+            const a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) +
+                    Math.cos(lat1) * Math.cos(lat2) *
+                    Math.sin(deltaLng/2) * Math.sin(deltaLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            
+            const width = R * deltaLng * Math.cos((lat1 + lat2) / 2);
+            const height = R * deltaLat;
+            
+            return Math.abs(width * height);
+        }
+        
+        function flyToLocation(location) {
+            const locations = {
+                'sf': [37.7749, -122.4194, 11],
+                'central_valley': [36.7783, -119.4179, 9],
+                'napa': [38.5025, -122.2654, 12],
+                'salinas': [36.6777, -121.6555, 11]
+            };
+            
+            if (locations[location]) {
+                const [lat, lng, zoom] = locations[location];
+                map.setView([lat, lng], zoom);
+            }
+        }
+        
+        function clearDrawings() {
+            drawnItems.clearLayers();
+            currentBounds = null;
+            updateCoordinatesDisplay();
+            document.getElementById('analyze-btn').disabled = true;
+            document.getElementById('result-section').style.display = 'none';
+        }
+        
+        async function analyzeNDVI() {
+            if (!currentBounds) {
+                alert('Please draw an area on the map first.');
+                return;
+            }
+            
+            const bbox = [
+                currentBounds.getWest(),
+                currentBounds.getSouth(),
+                currentBounds.getEast(),
+                currentBounds.getNorth()
+            ];
+            
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('analyze-btn').disabled = true;
+            document.getElementById('result-section').style.display = 'none';
+            
+            try {
+                const response = await fetch('/ndvi', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ bbox: bbox })
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const imageUrl = URL.createObjectURL(blob);
+                    
+                    document.getElementById('ndvi-result').innerHTML = `
+                        <img src="${imageUrl}" alt="NDVI Analysis" class="ndvi-image">
+                        <p style="font-size: 0.9rem; color: #666;">
+                            Analysis complete! Colors represent vegetation health.
+                        </p>
+                    `;
+                    document.getElementById('result-section').style.display = 'block';
+                } else {
+                    const error = await response.json();
+                    document.getElementById('ndvi-result').innerHTML = `
+                        <div style="color: #e74c3c; padding: 1rem; background: #fdf2f2; border-radius: 8px;">
+                            <strong>Error:</strong> ${error.message || 'Failed to fetch NDVI data'}
+                        </div>
+                    `;
+                    document.getElementById('result-section').style.display = 'block';
+                }
+            } catch (error) {
+                document.getElementById('ndvi-result').innerHTML = `
+                    <div style="color: #e74c3c; padding: 1rem; background: #fdf2f2; border-radius: 8px;">
+                        <strong>Error:</strong> Network error occurred
+                    </div>
+                `;
+                document.getElementById('result-section').style.display = 'block';
+            }
+            
+            // Hide loading
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('analyze-btn').disabled = false;
+        }
+        
+        // Check API status on load
+        async function checkAPIStatus() {
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+                
+                const indicator = document.getElementById('status-indicator');
+                if (data.sentinel_hub_configured) {
+                    indicator.className = 'status-indicator status-success';
+                    indicator.innerHTML = '<span>🟢</span><span>Sentinel Hub API Connected</span>';
+                } else {
+                    indicator.className = 'status-indicator status-warning';
+                    indicator.innerHTML = '<span>🟡</span><span>API credentials needed</span>';
+                }
+            } catch (error) {
+                const indicator = document.getElementById('status-indicator');
+                indicator.className = 'status-indicator status-warning';
+                indicator.innerHTML = '<span>🔴</span><span>Service unavailable</span>';
+            }
+        }
+        
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            checkAPIStatus();
+        });
+    </script>
+</body>
+</html>
