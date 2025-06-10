@@ -58,55 +58,41 @@ def analyze_zone_health(zone_id, ndvi_value):
     else:
         zone_name = zone_id
     
-    # NDVI-based recommendations
-    if ndvi_value < 0.1:
+    # Only generate recommendations for zones that need attention
+    # Don't spam with too many recommendations
+    if ndvi_value < 0.2:
         recommendations.append({
             "type": "critical",
             "zone": zone_name,
-            "message": f"Critical vegetation stress detected in {zone_name}. Immediate irrigation and soil testing recommended.",
+            "message": f"Critical vegetation stress in {zone_name}. Immediate action required.",
             "priority": 1,
             "actions": [
-                "Increase irrigation frequency",
-                "Test soil pH and nutrients",
-                "Check for pest or disease issues",
-                "Consider replanting if necessary"
+                "Emergency irrigation needed",
+                "Soil testing recommended",
+                "Check for pest damage"
             ]
         })
-    elif ndvi_value < 0.3:
+    elif ndvi_value < 0.35:
         recommendations.append({
             "type": "warning",
             "zone": zone_name,
-            "message": f"Moderate vegetation stress in {zone_name}. Monitor closely and consider intervention.",
+            "message": f"Below-average vegetation health in {zone_name}.",
             "priority": 2,
             "actions": [
-                "Increase irrigation in this area",
-                "Monitor for signs of disease or pests",
-                "Consider fertilizer application",
-                "Check drainage conditions"
+                "Increase watering schedule",
+                "Monitor for disease signs",
+                "Consider fertilizer application"
             ]
         })
-    elif ndvi_value < 0.5:
-        recommendations.append({
-            "type": "info",
-            "zone": zone_name,
-            "message": f"Fair vegetation health in {zone_name}. Some improvement possible.",
-            "priority": 3,
-            "actions": [
-                "Monitor irrigation needs",
-                "Consider nutrient supplementation",
-                "Regular health monitoring"
-            ]
-        })
-    elif ndvi_value > 0.7:
+    elif ndvi_value > 0.75:
+        # Only show success for exceptionally healthy zones
         recommendations.append({
             "type": "success",
             "zone": zone_name,
-            "message": f"Excellent vegetation health in {zone_name}. Continue current management practices.",
+            "message": f"Excellent vegetation health in {zone_name}.",
             "priority": 4,
             "actions": [
-                "Maintain current irrigation schedule",
-                "Continue monitoring",
-                "Use as reference for other zones"
+                "Maintain current practices"
             ]
         })
     
@@ -133,52 +119,62 @@ def analyze_overall_field_health(ndvi_data):
     max_ndvi = max(values)
     ndvi_variance = calculate_variance(values)
     
-    # Overall field health assessment
-    if avg_ndvi < 0.3:
+    # Count problem zones to avoid redundant recommendations
+    critical_zones = sum(1 for v in values if v < 0.2)
+    warning_zones = sum(1 for v in values if 0.2 <= v < 0.35)
+    
+    # Overall field health assessment - only if significant issues
+    if avg_ndvi < 0.25 and critical_zones > 2:
         recommendations.append({
             "type": "critical",
-            "zone": "Overall Field",
-            "message": "Overall field health is poor. Comprehensive intervention needed.",
+            "zone": "Field Management",
+            "message": f"Multiple zones showing poor health (avg NDVI: {avg_ndvi:.2f}). Field-wide assessment needed.",
             "priority": 1,
             "actions": [
                 "Review irrigation system coverage",
-                "Conduct comprehensive soil analysis",
-                "Evaluate crop variety suitability",
-                "Consider consulting agricultural specialist"
-            ]
-        })
-    elif avg_ndvi > 0.6:
-        recommendations.append({
-            "type": "success",
-            "zone": "Overall Field",
-            "message": "Overall field health is excellent. Maintain current practices.",
-            "priority": 5,
-            "actions": [
-                "Continue current management",
-                "Document successful practices",
-                "Monitor for seasonal changes"
+                "Conduct soil analysis",
+                "Check for pest or disease issues"
             ]
         })
     
-    # Uniformity analysis
-    if ndvi_variance > 0.1:
+    # Uniformity analysis - only if really uneven
+    if ndvi_variance > 0.15 and (max_ndvi - min_ndvi) > 0.4:
         recommendations.append({
             "type": "warning",
             "zone": "Field Uniformity",
-            "message": "Significant variation in vegetation health across field zones.",
+            "message": "Uneven vegetation health across field zones detected.",
             "priority": 2,
             "actions": [
                 "Check irrigation system uniformity",
                 "Evaluate soil conditions across field",
-                "Consider variable rate application of inputs",
-                "Address drainage issues if present"
+                "Consider variable rate fertilizer application"
             ]
         })
     
-    # Seasonal recommendations
+    # Add one general seasonal recommendation only
     current_month = datetime.now().month
-    seasonal_recs = get_seasonal_recommendations(current_month, avg_ndvi)
-    recommendations.extend(seasonal_recs)
+    if current_month in [6, 7, 8]:  # Summer
+        recommendations.append({
+            "type": "info",
+            "zone": "Seasonal Care",
+            "message": "Peak growing season - monitor water stress closely.",
+            "priority": 3,
+            "actions": [
+                "Increase irrigation monitoring",
+                "Watch for heat stress signs"
+            ]
+        })
+    elif current_month in [3, 4, 5]:  # Spring
+        recommendations.append({
+            "type": "info",
+            "zone": "Seasonal Care",
+            "message": "Spring growth period - optimize nutrition and water.",
+            "priority": 3,
+            "actions": [
+                "Consider fertilizer application",
+                "Ensure adequate soil moisture"
+            ]
+        })
     
     return recommendations
 

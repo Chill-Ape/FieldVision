@@ -158,6 +158,18 @@ function setupUIHandlers() {
     document.getElementById('fieldName').addEventListener('input', function() {
         validateForm();
     });
+    
+    // Address search functionality
+    document.getElementById('searchButton').addEventListener('click', function() {
+        searchAddress();
+    });
+    
+    // Enter key support for address search
+    document.getElementById('addressSearch').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            searchAddress();
+        }
+    });
 }
 
 function validateForm() {
@@ -332,10 +344,71 @@ function loadFieldPolygon(coordinates, fieldName) {
     return polygon;
 }
 
+function searchAddress() {
+    const address = document.getElementById('addressSearch').value.trim();
+    
+    if (!address) {
+        alert('Please enter an address to search');
+        return;
+    }
+    
+    const searchButton = document.getElementById('searchButton');
+    const originalHTML = searchButton.innerHTML;
+    searchButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    searchButton.disabled = true;
+    
+    // Use Nominatim (OpenStreetMap) geocoding service
+    const geocodeUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
+    
+    fetch(geocodeUrl)
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.length > 0) {
+                const result = data[0];
+                const lat = parseFloat(result.lat);
+                const lng = parseFloat(result.lon);
+                
+                // Move map to the location
+                map.setView([lat, lng], 15);
+                
+                // Add a temporary marker
+                if (window.searchMarker) {
+                    map.removeLayer(window.searchMarker);
+                }
+                
+                window.searchMarker = L.marker([lat, lng])
+                    .addTo(map)
+                    .bindPopup(`<strong>${result.display_name}</strong><br><small>Click to remove marker</small>`)
+                    .openPopup();
+                
+                // Remove marker when clicked
+                window.searchMarker.on('click', function() {
+                    map.removeLayer(window.searchMarker);
+                    window.searchMarker = null;
+                });
+                
+                // Clear search input
+                document.getElementById('addressSearch').value = '';
+                
+            } else {
+                alert('Location not found. Please try a different address or be more specific.');
+            }
+        })
+        .catch(error => {
+            console.error('Geocoding error:', error);
+            alert('Error searching for location. Please check your internet connection and try again.');
+        })
+        .finally(() => {
+            searchButton.innerHTML = originalHTML;
+            searchButton.disabled = false;
+        });
+}
+
 // Export functions for use in other scripts
 window.mapUtils = {
     initializeMap,
     loadFieldPolygon,
     calculateDistance,
-    convertCoordinatesForAPI
+    convertCoordinatesForAPI,
+    searchAddress
 };

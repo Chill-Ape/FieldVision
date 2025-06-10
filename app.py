@@ -33,5 +33,13 @@ with app.app_context():
     import models
     db.create_all()
 
+# Add custom Jinja2 filter for JSON serialization
+import json
+
+def tojsonfilter(value):
+    return json.dumps(value)
+
+app.jinja_env.filters['tojsonfilter'] = tojsonfilter
+
 # Import routes after app initialization
 import routes

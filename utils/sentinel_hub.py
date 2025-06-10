@@ -205,23 +205,35 @@ def generate_demo_ndvi_image(coordinates):
         # Create a 512x512 image with simulated NDVI data
         width, height = 512, 512
         
-        # Generate realistic NDVI pattern
-        np.random.seed(42)  # For consistent demo data
+        # Generate realistic NDVI pattern with more variation
+        np.random.seed(None)  # Random seed for varied demo data
         
-        # Create base NDVI values (higher in center, lower at edges)
+        # Create base NDVI values with multiple patterns
         x = np.linspace(-1, 1, width)
         y = np.linspace(-1, 1, height)
         X, Y = np.meshgrid(x, y)
         
-        # Create a realistic field pattern
-        base_ndvi = 0.6 * np.exp(-(X**2 + Y**2) / 0.5)  # Gaussian distribution
+        # Create varied field patterns
+        # Main healthy area in center
+        center_health = 0.65 * np.exp(-(X**2 + Y**2) / 0.8)
         
-        # Add some variation and realistic patterns
-        noise = 0.1 * np.random.random((height, width))
-        strips = 0.05 * np.sin(X * 10)  # Field rows effect
+        # Add some problem areas (soil variations, drainage issues)
+        problem_spot1 = -0.2 * np.exp(-((X + 0.5)**2 + (Y - 0.3)**2) / 0.1)
+        problem_spot2 = -0.15 * np.exp(-((X - 0.3)**2 + (Y + 0.4)**2) / 0.15)
         
-        ndvi_array = base_ndvi + noise + strips
-        ndvi_array = np.clip(ndvi_array, 0, 1)  # Ensure valid range
+        # Add field management patterns (irrigation lines, equipment tracks)
+        irrigation_lines = 0.1 * np.sin(Y * 8) * np.exp(-X**2 / 0.5)
+        equipment_tracks = -0.05 * (np.abs(np.sin(X * 12)) > 0.8)
+        
+        # Combine all patterns
+        base_ndvi = center_health + problem_spot1 + problem_spot2 + irrigation_lines + equipment_tracks
+        
+        # Add realistic noise and edge effects
+        noise = 0.08 * np.random.random((height, width))
+        edge_effect = -0.1 * (np.abs(X) > 0.7) - 0.1 * (np.abs(Y) > 0.7)
+        
+        ndvi_array = base_ndvi + noise + edge_effect + 0.35  # Baseline shift
+        ndvi_array = np.clip(ndvi_array, 0, 0.9)  # Realistic NDVI range
         
         # Convert to 8-bit image
         image_array = (ndvi_array * 255).astype(np.uint8)
