@@ -1037,6 +1037,12 @@
                 currentBounds.getNorth()
             ];
             
+            // Prepare request data with geometry if polygon is selected
+            const requestData = { bbox: bbox };
+            if (currentLayer && currentLayer instanceof L.Polygon) {
+                requestData.geometry = currentLayer.toGeoJSON().geometry;
+            }
+            
             // Show loading
             document.getElementById('loading').style.display = 'block';
             document.getElementById('analyze-btn').disabled = true;
@@ -1048,17 +1054,32 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ bbox: bbox })
+                    body: JSON.stringify(requestData)
                 });
                 
                 if (response.ok) {
                     const blob = await response.blob();
                     const imageUrl = URL.createObjectURL(blob);
                     
+                    const shapeType = currentLayer instanceof L.Polygon ? 'polygon' : 'rectangle';
+                    const areaInfo = currentLayer ? formatArea(
+                        currentLayer instanceof L.Polygon ? 
+                            calculatePolygonArea(currentLayer.getLatLngs()[0]) :
+                            calculateRectangleArea(currentBounds)
+                    ) : '';
+                    
                     document.getElementById('ndvi-result').innerHTML = `
-                        <img src="${imageUrl}" alt="NDVI Analysis" class="ndvi-image">
-                        <p style="font-size: 0.9rem; color: #666;">
-                            Analysis complete! Colors represent vegetation health.
+                        <div style="position: relative; display: inline-block;">
+                            <img src="${imageUrl}" alt="NDVI Analysis" class="ndvi-image">
+                            <div style="position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.8); color: white; padding: 0.5rem; border-radius: 4px; font-size: 0.75rem;">
+                                📍 ${shapeType.toUpperCase()}: ${areaInfo}
+                            </div>
+                        </div>
+                        <p style="font-size: 0.9rem; color: #8b949e; margin-top: 0.5rem;">
+                            Ultra-high resolution NDVI analysis at 5000x5000 pixels<br>
+                            ${currentLayer instanceof L.Polygon ? 
+                                'Polygon area analyzed - area outside shape shows context' : 
+                                'Rectangle area analyzed'}
                         </p>
                     `;
                     document.getElementById('result-section').style.display = 'block';
