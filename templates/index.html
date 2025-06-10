@@ -592,7 +592,7 @@
         let drawnItems;
         let currentBounds = null;
         let currentLayer = null;
-        let areaUnit = 'acres'; // Default to acres for US business
+        let areaUnit = localStorage.getItem('areaUnit') || 'acres'; // Default to acres for US business
         
         // Initialize map
         function initMap() {
@@ -1003,7 +1003,62 @@
         document.addEventListener('DOMContentLoaded', function() {
             initMap();
             checkAPIStatus();
+            
+            // Check for selected site from dashboard
+            const selectedSite = localStorage.getItem('selectedSite');
+            if (selectedSite) {
+                const site = JSON.parse(selectedSite);
+                loadSiteOnMap(site);
+                localStorage.removeItem('selectedSite');
+                
+                // Auto-analyze if requested
+                const autoAnalyze = localStorage.getItem('autoAnalyze');
+                if (autoAnalyze === 'true') {
+                    localStorage.removeItem('autoAnalyze');
+                    setTimeout(() => analyzeNDVI(), 1000);
+                }
+            }
         });
+        
+        function loadSiteOnMap(site) {
+            // Clear existing drawings
+            drawnItems.clearLayers();
+            
+            // Create layer from GeoJSON
+            const layer = L.geoJSON(site.geometry).getLayers()[0];
+            drawnItems.addLayer(layer);
+            currentLayer = layer;
+            currentBounds = layer.getBounds();
+            
+            // Fit map to site bounds
+            map.fitBounds(currentBounds, { padding: [20, 20] });
+            
+            // Update display
+            updateCoordinatesDisplay();
+            document.getElementById('analyze-btn').disabled = false;
+            document.getElementById('save-site-btn').disabled = false;
+            
+            // Show site info
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: rgba(88, 166, 255, 0.9);
+                color: #0d1117;
+                padding: 1rem;
+                border-radius: 6px;
+                font-weight: 500;
+                z-index: 10000;
+                max-width: 300px;
+            `;
+            notification.textContent = `Loaded site: ${site.name}`;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
     </script>
 </body>
 </html>

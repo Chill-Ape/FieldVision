@@ -31,6 +31,14 @@ def index():
     """
     return render_template('index.html')
 
+@app.route('/sites')
+def sites_dashboard():
+    """
+    Sites management dashboard
+    Returns interface for managing saved sites and projects
+    """
+    return render_template('sites.html')
+
 @app.route('/simple')
 def simple_page():
     """
