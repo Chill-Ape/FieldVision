@@ -56,7 +56,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="fw-bold">{{ "%.1f"|format((fields|map(attribute='get_polygon_coordinates')|map('length')|sum) * 1.0) }}</h4>
+                            <h4 class="fw-bold">{{ "%.1f"|format(fields|sum(attribute='calculate_area_acres')) }}</h4>
                             <p class="mb-0">Total Acres</p>
                         </div>
                         <div class="align-self-center">
@@ -115,7 +115,7 @@
                         <div class="row text-center mb-3">
                             <div class="col-4">
                                 <div class="metric-item">
-                                    <div class="fw-bold text-primary h5">{{ "%.1f"|format(field.get_polygon_coordinates()|length * 1.2) }}</div>
+                                    <div class="fw-bold text-primary h5">{{ "%.1f"|format(field.calculate_area_acres()) }}</div>
                                     <small class="text-muted">Acres</small>
                                 </div>
                             </div>

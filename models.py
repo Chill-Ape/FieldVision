@@ -21,6 +21,30 @@ class Field(db.Model):
     def set_polygon_coordinates(self, coordinates):
         """Set polygon coordinates from a list of [lat, lng] pairs"""
         self.polygon_data = json.dumps(coordinates)
+    
+    def calculate_area_acres(self):
+        """Calculate field area in acres using Shoelace formula"""
+        coords = self.get_polygon_coordinates()
+        if len(coords) < 3:
+            return 0.0
+        
+        # Convert to radians and calculate area using spherical excess
+        import math
+        total_area = 0.0
+        n = len(coords)
+        
+        for i in range(n):
+            j = (i + 1) % n
+            lat1, lng1 = math.radians(coords[i][0]), math.radians(coords[i][1])
+            lat2, lng2 = math.radians(coords[j][0]), math.radians(coords[j][1])
+            
+            # Simple approximation for small areas
+            total_area += (lng2 - lng1) * (2 + math.sin(lat1) + math.sin(lat2))
+        
+        # Convert to acres (rough approximation)
+        area_sq_meters = abs(total_area) * 6378137 * 6378137 / 2
+        area_acres = area_sq_meters * 0.000247105  # Convert sq meters to acres
+        return area_acres
 
 class FieldAnalysis(db.Model):
     id = db.Column(db.Integer, primary_key=True)
