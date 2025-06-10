@@ -704,13 +704,13 @@
                     currentBounds.getNorth().toFixed(6)
                 ];
                 display.innerHTML = `
-                    <strong>Bounding Box (EPSG:4326):</strong><br>
+                    <strong>TARGET ACQUIRED:</strong><br>
                     [${bbox.join(', ')}]<br><br>
-                    <strong>Area:</strong><br>
-                    ~${calculateAreaKm2(currentBounds).toFixed(2)} km²
+                    <strong>SCAN AREA:</strong><br>
+                    ${calculateAreaKm2(currentBounds).toFixed(2)} km²
                 `;
             } else {
-                display.textContent = 'No area selected. Draw a rectangle on the map.';
+                display.textContent = 'NO TARGET ACQUIRED';
             }
         }
         
