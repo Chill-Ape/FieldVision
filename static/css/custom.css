@@ -234,6 +234,42 @@
     box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 }
 
+/* Dashboard Metrics */
+.metric-item {
+    padding: 0.5rem;
+}
+
+/* NDVI Preview Grid */
+.ndvi-preview {
+    display: grid;
+    grid-template-rows: repeat(3, 1fr);
+    gap: 2px;
+    aspect-ratio: 1;
+    height: 80px;
+    border-radius: 0.375rem;
+    overflow: hidden;
+    border: 1px solid var(--bs-border-color);
+}
+
+.ndvi-preview-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+}
+
+.ndvi-preview-cell {
+    min-height: 100%;
+    transition: transform 0.2s ease;
+    cursor: pointer;
+}
+
+.ndvi-preview-cell:hover {
+    transform: scale(1.1);
+    z-index: 10;
+    position: relative;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.3);
+}
+
 /* Map Controls Styling */
 .map-controls {
     position: absolute;

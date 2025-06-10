@@ -1,0 +1,101 @@
+🌾 FarmSight AI – Dashboard UX Design
+🧭 Top-Level Navigation (Sticky Header Bar)
+Logo (left)
+
+Dashboard | Fields | Weather | Alerts | Settings | Log Out
+(Mobile: collapses into hamburger menu)
+
+🖥️ MAIN DASHBOARD VIEW (Default: "Dashboard" Tab)
+🔹 1. Field Overview Map (Top Section – 70% width)
+Component: Full-width interactive map (Leaflet.js or Mapbox)
+
+Draw field boundaries (GeoJSON polygon)
+
+Upload KML/CSV shapefile (optional)
+
+Select saved field from dropdown
+
+Overlay:
+
+Color-coded NDVI zones (Green = healthy, Yellow = moderate, Red = stressed)
+
+Weather layer toggle (rainfall, temperature, cloud cover)
+
+Tooltips on zones: e.g., “NDVI: 0.35 – Low. Action: Water this zone.”
+
+Buttons (above map):
+
+🛰️ “Fetch NDVI”
+
+💧 “Check Irrigation”
+
+📤 “Upload Drone Image” (optional, Phase 2)
+
+🔹 2. Recommendations Panel (Right Sidebar – 30% width)
+Section Title: "🧠 AI Recommendations"
+
+List of zone-specific tips like:
+
+🔺 Zone 3B: “Dry soil detected. Increase irrigation.”
+
+🐛 Zone 2A: “Vegetation drop detected. Check for pest infestation.”
+
+🌱 Zone 1C: “Healthy crop. No action needed.”
+
+Each item includes:
+
+Mini NDVI thumbnail
+
+Suggested action
+
+Confidence score (Low/Med/High)
+
+🔹 3. Field Stats Summary (Below Map – full width)
+A set of info cards showing:
+
+📊 Avg NDVI: 0.62 (Healthy)
+
+🚰 Irrigation Need: Medium
+
+☀️ Last Rainfall: 3 days ago
+
+🌾 Forecast Yield: Expected: 3.2 tons
+
+🌦️ Weather Tab
+7-day weather forecast for selected field
+
+Rainfall, temperature, wind speed
+
+Soil moisture level (if available from API)
+
+🚨 Alerts Tab
+Log of AI-generated alerts over time
+
+Filters: “By field,” “By type” (Irrigation, Disease, Yield Risk)
+
+Option to mark alerts as resolved or snooze
+
+📁 Fields Tab
+List view of all user-saved fields
+
+Name, location, size (acres/hectares), crop type
+
+Add New Field (+)
+
+Edit/Delete options
+
+⚙️ Settings Tab
+API keys
+
+Notification preferences (email, SMS)
+
+Crop preferences
+
+Subscription status
+
+✅ UX Priorities
+Feature	UX Notes
+Speed	Lazy load NDVI layer to avoid long wait
+Mobile support	Map collapses, recommendations show below
+Clarity	Use color-coded cards and symbols (🔥 = high risk, 🌧️ = rain)
+Actionable insights	Always tell user what to do, not just what’s wrong

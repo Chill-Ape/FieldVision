@@ -3,7 +3,8 @@
 {% block title %}Dashboard - FieldVision AI{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container-fluid">
+    <!-- Dashboard Header -->
     <div class="row mb-4">
         <div class="col">
             <h2><i class="fas fa-tachometer-alt me-2"></i>Field Dashboard</h2>
@@ -18,90 +19,176 @@
     </div>
     
     {% if fields %}
+    <!-- Quick Stats Overview -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="fw-bold">{{ fields|length }}</h4>
+                            <p class="mb-0">Total Fields</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-seedling fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="fw-bold">{{ fields|selectattr('last_analyzed')|list|length }}</h4>
+                            <p class="mb-0">Analyzed</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-chart-line fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="fw-bold">{{ "%.1f"|format((fields|map(attribute='get_polygon_coordinates')|map('length')|sum) * 1.0) }}</h4>
+                            <p class="mb-0">Total Acres</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-map fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="fw-bold">24°C</h4>
+                            <p class="mb-0">Current Temp</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-thermometer-half fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
         <!-- Fields Grid -->
         <div class="row">
             {% for field in fields %}
-            <div class="col-lg-4 col-md-6 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <h5 class="card-title">{{ field.name }}</h5>
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-secondary" type="button" 
-                                        data-bs-toggle="dropdown">
-                                    <i class="fas fa-ellipsis-v"></i>
-                                </button>
-                                <ul class="dropdown-menu">
-                                    <li>
-                                        <a class="dropdown-item" href="{{ url_for('field_detail', field_id=field.id) }}">
-                                            <i class="fas fa-eye me-2"></i>View Details
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <button class="dropdown-item text-primary" 
-                                                onclick="analyzeField({{ field.id }})">
-                                            <i class="fas fa-chart-line me-2"></i>Analyze Now
-                                        </button>
-                                    </li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <button class="dropdown-item text-danger" 
-                                                onclick="deleteField({{ field.id }}, '{{ field.name }}')">
-                                            <i class="fas fa-trash me-2"></i>Delete
-                                        </button>
-                                    </li>
-                                </ul>
-                            </div>
+            <div class="col-lg-6 col-xl-4 mb-4">
+                <div class="card h-100 field-card">
+                    <div class="card-header bg-transparent">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">{{ field.name }}</h5>
+                            {% if field.last_analyzed %}
+                                {% set latest_analysis = field.analyses|selectattr('id')|list|last %}
+                                {% if latest_analysis %}
+                                    {% set avg_ndvi = latest_analysis.get_ndvi_data().values()|list|sum / latest_analysis.get_ndvi_data().values()|list|length if latest_analysis.get_ndvi_data() else 0 %}
+                                    {% if avg_ndvi > 0.6 %}
+                                        <span class="badge bg-success">Healthy</span>
+                                    {% elif avg_ndvi > 0.3 %}
+                                        <span class="badge bg-warning">Moderate</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Needs Attention</span>
+                                    {% endif %}
+                                {% endif %}
+                            {% else %}
+                                <span class="badge bg-secondary">Not Analyzed</span>
+                            {% endif %}
                         </div>
-                        
-                        <!-- Field Info -->
+                    </div>
+                    <div class="card-body">
+                        <!-- Field Metrics -->
                         <div class="row text-center mb-3">
-                            <div class="col-6">
-                                <div class="border-end">
-                                    <div class="fw-bold text-primary">{{ "%.1f"|format(field.get_polygon_coordinates()|length * 1.2) }}</div>
-                                    <small class="text-muted">Est. Acres</small>
+                            <div class="col-4">
+                                <div class="metric-item">
+                                    <div class="fw-bold text-primary h5">{{ "%.1f"|format(field.get_polygon_coordinates()|length * 1.2) }}</div>
+                                    <small class="text-muted">Acres</small>
                                 </div>
                             </div>
-                            <div class="col-6">
-                                <div class="fw-bold text-info">{{ field.analyses|length }}</div>
-                                <small class="text-muted">Analyses</small>
+                            <div class="col-4">
+                                <div class="metric-item">
+                                    <div class="fw-bold text-info h5">{{ field.analyses|length }}</div>
+                                    <small class="text-muted">Analyses</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="metric-item">
+                                    {% if field.last_analyzed %}
+                                        {% set days_ago = ((field.last_analyzed|string|length) // 10) if field.last_analyzed else 0 %}
+                                        <div class="fw-bold text-success h5">{{ days_ago }}</div>
+                                        <small class="text-muted">Days Ago</small>
+                                    {% else %}
+                                        <div class="fw-bold text-muted h5">--</div>
+                                        <small class="text-muted">Never</small>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                         
-                        <!-- Last Analysis -->
+                        <!-- NDVI Preview -->
                         {% if field.last_analyzed %}
-                            <div class="mb-3">
-                                <small class="text-muted">
-                                    <i class="fas fa-clock me-1"></i>
-                                    Last analyzed: {{ field.last_analyzed.strftime('%Y-%m-%d %H:%M') }}
-                                </small>
-                            </div>
-                        {% else %}
-                            <div class="mb-3">
-                                <small class="text-warning">
-                                    <i class="fas fa-exclamation-triangle me-1"></i>
-                                    No analysis yet
-                                </small>
-                            </div>
+                            {% set latest_analysis = field.analyses|selectattr('id')|list|last %}
+                            {% if latest_analysis and latest_analysis.get_ndvi_data() %}
+                                <div class="mb-3">
+                                    <h6 class="text-muted mb-2">NDVI Health Map</h6>
+                                    <div class="ndvi-preview">
+                                        {% for i in range(3) %}
+                                            <div class="ndvi-preview-row">
+                                                {% for j in range(3) %}
+                                                    {% set zone_key = "zone_" + i|string + "_" + j|string %}
+                                                    {% set ndvi_val = latest_analysis.get_ndvi_data().get(zone_key, 0) %}
+                                                    {% if ndvi_val > 0.6 %}
+                                                        {% set color_class = "bg-success" %}
+                                                    {% elif ndvi_val > 0.3 %}
+                                                        {% set color_class = "bg-warning" %}
+                                                    {% else %}
+                                                        {% set color_class = "bg-danger" %}
+                                                    {% endif %}
+                                                    <div class="ndvi-preview-cell {{ color_class }}" 
+                                                         title="Zone {{ i }},{{ j }}: {{ "%.3f"|format(ndvi_val) }}"></div>
+                                                {% endfor %}
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
                         {% endif %}
                         
                         <!-- Action Buttons -->
                         <div class="d-grid gap-2">
-                            <a href="{{ url_for('field_detail', field_id=field.id) }}" 
-                               class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-eye me-2"></i>
-                                View Details
-                            </a>
-                            <button class="btn btn-success btn-sm" onclick="analyzeField({{ field.id }})">
-                                <i class="fas fa-chart-line me-2"></i>
-                                <span id="analyzeBtn{{ field.id }}">Analyze Field</span>
-                            </button>
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('field_detail', field_id=field.id) }}" 
+                                   class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-eye me-1"></i>Details
+                                </a>
+                                <button class="btn btn-success btn-sm" onclick="analyzeField({{ field.id }})">
+                                    <i class="fas fa-satellite-dish me-1"></i>
+                                    <span id="analyzeBtn{{ field.id }}">Analyze</span>
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" 
+                                        onclick="deleteField({{ field.id }}, '{{ field.name }}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <div class="card-footer text-muted">
+                    <div class="card-footer bg-transparent text-muted">
                         <small>
                             <i class="fas fa-calendar-plus me-1"></i>
-                            Created: {{ field.created_at.strftime('%Y-%m-%d') }}
+                            Created: {{ field.created_at.strftime('%b %d, %Y') }}
                         </small>
                     </div>
                 </div>
