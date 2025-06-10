@@ -1,0 +1,470 @@
+{% extends "base.html" %}
+
+{% block title %}{{ field.name }} - FieldVision AI{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Field Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                    </li>
+                    <li class="breadcrumb-item active">{{ field.name }}</li>
+                </ol>
+            </nav>
+            <h2><i class="fas fa-seedling me-2"></i>{{ field.name }}</h2>
+            <p class="text-muted">Detailed field analysis and monitoring</p>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-success" onclick="analyzeField({{ field.id }})">
+                <i class="fas fa-chart-line me-2"></i>
+                Run New Analysis
+            </button>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Field Map -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-map me-2"></i>
+                        Field Overview
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div id="fieldMap" style="height: 400px;"></div>
+                </div>
+            </div>
+            
+            {% if analysis %}
+            <!-- Analysis Results -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            Latest Analysis Results
+                        </h5>
+                        <small class="text-muted">
+                            {{ analysis.analysis_date.strftime('%Y-%m-%d %H:%M') }}
+                        </small>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- NDVI Heatmap -->
+                    <div class="row mb-4">
+                        <div class="col">
+                            <h6>Vegetation Health Zones</h6>
+                            <div id="ndviHeatmap" class="border rounded p-3 text-center bg-light">
+                                <!-- NDVI heatmap will be rendered here -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Health Scores -->
+                    <div class="row mb-4">
+                        <div class="col">
+                            <h6>Zone Health Summary</h6>
+                            <div class="row" id="healthScores">
+                                <!-- Health scores will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Field Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Field Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center mb-3">
+                        <div class="col-6">
+                            <div class="border-end">
+                                <div class="fw-bold text-primary">{{ "%.1f"|format(field.get_polygon_coordinates()|length * 0.4) }}</div>
+                                <small class="text-muted">Est. Hectares</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="fw-bold text-info">{{ field.analyses|length }}</div>
+                            <small class="text-muted">Total Analyses</small>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="small">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Created:</span>
+                            <span>{{ field.created_at.strftime('%Y-%m-%d') }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Center Coordinates:</span>
+                            <span>{{ "%.4f"|format(field.center_lat) }}, {{ "%.4f"|format(field.center_lng) }}</span>
+                        </div>
+                        {% if field.last_analyzed %}
+                        <div class="d-flex justify-content-between">
+                            <span>Last Analyzed:</span>
+                            <span>{{ field.last_analyzed.strftime('%Y-%m-%d') }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            {% if analysis and analysis.get_recommendations() %}
+            <!-- AI Recommendations -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        AI Recommendations
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% for rec in analysis.get_recommendations() %}
+                        {% set loop_index = loop.index %}
+                        {% if loop_index <= 5 %}
+                            {% set alert_class = 'info' %}
+                            {% if rec.type == 'critical' %}
+                                {% set alert_class = 'danger' %}
+                            {% elif rec.type == 'warning' %}
+                                {% set alert_class = 'warning' %}
+                            {% elif rec.type == 'success' %}
+                                {% set alert_class = 'success' %}
+                            {% endif %}
+                            
+                            <div class="alert alert-{{ alert_class }} py-2 mb-2">
+                                <small>
+                                    <strong>{{ rec.zone or 'General' }}:</strong><br>
+                                    {{ rec.message }}
+                                </small>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if analysis.get_recommendations()|length > 5 %}
+                        <button class="btn btn-sm btn-outline-primary w-100" 
+                                onclick="showAllRecommendations()">
+                            View All {{ analysis.get_recommendations()|length }} Recommendations
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if analysis and analysis.get_weather_data() %}
+            <!-- Weather Information -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-cloud-sun me-2"></i>
+                        Weather Conditions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% set weather = analysis.get_weather_data() %}
+                    {% if weather.current %}
+                        <div class="row text-center mb-3">
+                            <div class="col-6">
+                                <div class="fw-bold text-primary">{{ weather.current.temperature }}°C</div>
+                                <small class="text-muted">Temperature</small>
+                            </div>
+                            <div class="col-6">
+                                <div class="fw-bold text-info">{{ weather.current.humidity }}%</div>
+                                <small class="text-muted">Humidity</small>
+                            </div>
+                        </div>
+                        
+                        <div class="small">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Conditions:</span>
+                                <span class="text-capitalize">{{ weather.current.description }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Wind Speed:</span>
+                                <span>{{ weather.current.wind_speed }} m/s</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Rainfall:</span>
+                                <span>{{ weather.current.rainfall }} mm</span>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Analysis Modal -->
+<div class="modal fade" id="analysisModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Field Analysis</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="analysisLoading" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div class="mt-3">
+                        <h6>Analyzing Field...</h6>
+                        <p class="text-muted">Fetching satellite imagery and processing data</p>
+                    </div>
+                </div>
+                <div id="analysisResults" style="display: none;">
+                    <!-- Results will be populated here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="location.reload()">
+                    Refresh Page
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let fieldMap;
+const fieldData = {
+    id: {{ field.id }},
+    name: "{{ field.name }}",
+    coordinates: {{ field.get_polygon_coordinates() | tojsonfilter }},
+    center: [{{ field.center_lat }}, {{ field.center_lng }}]
+};
+
+// Initialize field map
+document.addEventListener('DOMContentLoaded', function() {
+    initializeFieldMap();
+    
+    {% if analysis %}
+        displayAnalysisData();
+    {% endif %}
+});
+
+function initializeFieldMap() {
+    // Create map centered on field
+    fieldMap = L.map('fieldMap').setView(fieldData.center, 15);
+    
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(fieldMap);
+    
+    // Add field boundary
+    const fieldPolygon = L.polygon(fieldData.coordinates, {
+        color: '#28a745',
+        fillColor: '#28a745',
+        fillOpacity: 0.2,
+        weight: 2
+    }).addTo(fieldMap);
+    
+    // Fit map to field bounds
+    fieldMap.fitBounds(fieldPolygon.getBounds(), { padding: [20, 20] });
+    
+    // Add field center marker
+    L.marker(fieldData.center)
+        .addTo(fieldMap)
+        .bindPopup(`<strong>${fieldData.name}</strong><br>Field Center`)
+        .openPopup();
+}
+
+{% if analysis %}
+function displayAnalysisData() {
+    const ndviData = {{ analysis.get_ndvi_data() | tojsonfilter }};
+    const healthScores = {{ analysis.get_health_scores() | tojsonfilter }};
+    
+    // Display NDVI heatmap
+    displayNDVIHeatmap(ndviData);
+    
+    // Display health scores
+    displayHealthScores(healthScores, ndviData);
+}
+
+function displayNDVIHeatmap(ndviData) {
+    const heatmapContainer = document.getElementById('ndviHeatmap');
+    let html = '<div class="row g-1">';
+    
+    // Create 3x3 grid visualization
+    for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+            const zoneId = `zone_${row}_${col}`;
+            const ndviValue = ndviData[zoneId] || 0;
+            
+            // Color based on NDVI value
+            let bgColor = '#dc3545'; // red for poor
+            if (ndviValue > 0.6) bgColor = '#28a745'; // green for good
+            else if (ndviValue > 0.3) bgColor = '#ffc107'; // yellow for moderate
+            
+            html += `<div class="col-4">`;
+            html += `<div class="p-2 text-white text-center small" style="background-color: ${bgColor}; min-height: 60px;">`;
+            html += `<div class="fw-bold">${ndviValue.toFixed(3)}</div>`;
+            html += `<div style="font-size: 0.7em;">${zoneId.replace('_', ' ')}</div>`;
+            html += `</div>`;
+            html += `</div>`;
+        }
+    }
+    
+    html += '</div>';
+    html += '<div class="mt-2 text-center small text-muted">NDVI Values by Zone</div>';
+    
+    heatmapContainer.innerHTML = html;
+}
+
+function displayHealthScores(healthScores, ndviData) {
+    const container = document.getElementById('healthScores');
+    let html = '';
+    
+    const healthCounts = { healthy: 0, moderate: 0, stressed: 0 };
+    
+    for (const [zoneId, health] of Object.entries(healthScores)) {
+        healthCounts[health]++;
+        
+        let badgeClass = 'secondary';
+        let icon = 'fas fa-question';
+        
+        if (health === 'healthy') {
+            badgeClass = 'success';
+            icon = 'fas fa-check-circle';
+        } else if (health === 'moderate') {
+            badgeClass = 'warning';
+            icon = 'fas fa-exclamation-triangle';
+        } else if (health === 'stressed') {
+            badgeClass = 'danger';
+            icon = 'fas fa-times-circle';
+        }
+        
+        const ndviValue = ndviData[zoneId] || 0;
+        
+        html += `<div class="col-4 mb-2">`;
+        html += `<div class="card">`;
+        html += `<div class="card-body p-2 text-center">`;
+        html += `<i class="${icon} text-${badgeClass === 'warning' ? 'warning' : badgeClass} mb-1"></i>`;
+        html += `<div class="small fw-bold">${zoneId.replace('_', ' ').toUpperCase()}</div>`;
+        html += `<div class="small text-muted">${ndviValue.toFixed(3)}</div>`;
+        html += `<span class="badge bg-${badgeClass} small">${health}</span>`;
+        html += `</div>`;
+        html += `</div>`;
+        html += `</div>`;
+    }
+    
+    container.innerHTML = html;
+}
+{% endif %}
+
+function analyzeField(fieldId) {
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('analysisModal'));
+    modal.show();
+    
+    // Start analysis
+    fetch(`/api/analyze_field/${fieldId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayModalResults(data);
+        } else {
+            showModalError(data.error || 'Analysis failed');
+        }
+    })
+    .catch(error => {
+        console.error('Analysis error:', error);
+        showModalError('Network error occurred');
+    });
+}
+
+function displayModalResults(data) {
+    document.getElementById('analysisLoading').style.display = 'none';
+    document.getElementById('analysisResults').style.display = 'block';
+    
+    const resultsContainer = document.getElementById('analysisResults');
+    
+    let html = '<div class="alert alert-success">';
+    html += '<i class="fas fa-check-circle me-2"></i>';
+    html += '<strong>Analysis Complete!</strong> New data has been processed and saved.';
+    html += '</div>';
+    
+    html += '<div class="row">';
+    
+    // NDVI Summary
+    html += '<div class="col-md-6">';
+    html += '<h6><i class="fas fa-leaf me-2"></i>Updated Health Scores</h6>';
+    
+    for (const [zoneId, ndviValue] of Object.entries(data.ndvi_data)) {
+        const healthScore = data.health_scores[zoneId];
+        let badgeClass = 'secondary';
+        
+        if (healthScore === 'healthy') badgeClass = 'success';
+        else if (healthScore === 'moderate') badgeClass = 'warning';
+        else if (healthScore === 'stressed') badgeClass = 'danger';
+        
+        html += `<div class="d-flex justify-content-between mb-2">`;
+        html += `<span>${zoneId.replace('_', ' ').toUpperCase()}</span>`;
+        html += `<span class="badge bg-${badgeClass}">${ndviValue.toFixed(3)}</span>`;
+        html += `</div>`;
+    }
+    
+    html += '</div>';
+    
+    // Weather Info
+    html += '<div class="col-md-6">';
+    html += '<h6><i class="fas fa-cloud-sun me-2"></i>Current Weather</h6>';
+    
+    if (data.weather_data && data.weather_data.current) {
+        const weather = data.weather_data.current;
+        html += `<div class="small">`;
+        html += `<div>Temperature: ${weather.temperature}°C</div>`;
+        html += `<div>Humidity: ${weather.humidity}%</div>`;
+        html += `<div>Conditions: ${weather.description}</div>`;
+        html += `</div>`;
+    }
+    
+    html += '</div>';
+    html += '</div>';
+    
+    resultsContainer.innerHTML = html;
+}
+
+function showModalError(message) {
+    document.getElementById('analysisLoading').style.display = 'none';
+    document.getElementById('analysisResults').style.display = 'block';
+    document.getElementById('analysisResults').innerHTML = `
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Analysis Failed:</strong> ${message}
+        </div>
+    `;
+}
+
+function showAllRecommendations() {
+    // This would open a modal or page with all recommendations
+    alert('Full recommendations view would be implemented here');
+}
+</script>
+{% endblock %}

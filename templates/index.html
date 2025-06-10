@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}New Field - FieldVision AI{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Map Container -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-map-marked-alt me-2"></i>
+                        Draw Your Field Boundary
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div id="map" style="height: 600px;"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Controls Panel -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-cog me-2"></i>
+                        Field Configuration
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Field Name Input -->
+                    <div class="mb-3">
+                        <label for="fieldName" class="form-label">Field Name</label>
+                        <input type="text" class="form-control" id="fieldName" 
+                               placeholder="e.g., North Pasture, Corn Field A">
+                        <div class="form-text">Give your field a memorable name</div>
+                    </div>
+                    
+                    <!-- Drawing Instructions -->
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i>Drawing Instructions</h6>
+                        <ul class="mb-0 small">
+                            <li>Use the polygon tool to draw your field boundary</li>
+                            <li>Click to add points, double-click to finish</li>
+                            <li>You can edit points after drawing</li>
+                            <li>Minimum 3 points required</li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-success" id="saveField" disabled>
+                            <i class="fas fa-save me-2"></i>
+                            Save Field
+                        </button>
+                        <button type="button" class="btn btn-outline-warning" id="clearDrawing">
+                            <i class="fas fa-trash me-2"></i>
+                            Clear Drawing
+                        </button>
+                    </div>
+                    
+                    <!-- Field Statistics -->
+                    <div id="fieldStats" class="mt-4" style="display: none;">
+                        <h6>Field Statistics</h6>
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <div class="fw-bold text-primary" id="fieldArea">-</div>
+                                    <small class="text-muted">Area (hectares)</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <div class="fw-bold text-info" id="fieldPerimeter">-</div>
+                                    <small class="text-muted">Perimeter (km)</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Tips -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        Quick Tips
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="small">
+                        <div class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Draw accurate boundaries for better analysis
+                        </div>
+                        <div class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Larger fields provide more detailed insights
+                        </div>
+                        <div class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Save multiple fields for comparison
+                        </div>
+                        <div>
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Analysis works best with cloud-free imagery
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    Field Saved Successfully
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Your field has been saved and is ready for analysis.</p>
+                <p class="mb-0">What would you like to do next?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Draw Another Field
+                </button>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-primary">
+                    <i class="fas fa-tachometer-alt me-2"></i>
+                    Go to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+<script>
+    // Initialize the map when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeMap();
+    });
+</script>
+{% endblock %}

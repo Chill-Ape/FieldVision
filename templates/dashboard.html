@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - FieldVision AI{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-tachometer-alt me-2"></i>Field Dashboard</h2>
+            <p class="text-muted">Monitor and analyze all your saved fields</p>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('index') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>
+                Add New Field
+            </a>
+        </div>
+    </div>
+    
+    {% if fields %}
+        <!-- Fields Grid -->
+        <div class="row">
+            {% for field in fields %}
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h5 class="card-title">{{ field.name }}</h5>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary" type="button" 
+                                        data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('field_detail', field_id=field.id) }}">
+                                            <i class="fas fa-eye me-2"></i>View Details
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <button class="dropdown-item text-primary" 
+                                                onclick="analyzeField({{ field.id }})">
+                                            <i class="fas fa-chart-line me-2"></i>Analyze Now
+                                        </button>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <button class="dropdown-item text-danger" 
+                                                onclick="deleteField({{ field.id }}, '{{ field.name }}')">
+                                            <i class="fas fa-trash me-2"></i>Delete
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <!-- Field Info -->
+                        <div class="row text-center mb-3">
+                            <div class="col-6">
+                                <div class="border-end">
+                                    <div class="fw-bold text-primary">{{ "%.1f"|format(field.get_polygon_coordinates()|length * 0.5) }}</div>
+                                    <small class="text-muted">Est. Hectares</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="fw-bold text-info">{{ field.analyses|length }}</div>
+                                <small class="text-muted">Analyses</small>
+                            </div>
+                        </div>
+                        
+                        <!-- Last Analysis -->
+                        {% if field.last_analyzed %}
+                            <div class="mb-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-clock me-1"></i>
+                                    Last analyzed: {{ field.last_analyzed.strftime('%Y-%m-%d %H:%M') }}
+                                </small>
+                            </div>
+                        {% else %}
+                            <div class="mb-3">
+                                <small class="text-warning">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    No analysis yet
+                                </small>
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Action Buttons -->
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('field_detail', field_id=field.id) }}" 
+                               class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-eye me-2"></i>
+                                View Details
+                            </a>
+                            <button class="btn btn-success btn-sm" onclick="analyzeField({{ field.id }})">
+                                <i class="fas fa-chart-line me-2"></i>
+                                <span id="analyzeBtn{{ field.id }}">Analyze Field</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-footer text-muted">
+                        <small>
+                            <i class="fas fa-calendar-plus me-1"></i>
+                            Created: {{ field.created_at.strftime('%Y-%m-%d') }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-seedling fa-4x text-muted"></i>
+            </div>
+            <h4>No Fields Yet</h4>
+            <p class="text-muted mb-4">Start by adding your first field to begin monitoring crop health.</p>
+            <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-plus me-2"></i>
+                Add Your First Field
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Analysis Modal -->
+<div class="modal fade" id="analysisModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Field Analysis</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="analysisLoading" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div class="mt-3">
+                        <h6>Analyzing Field...</h6>
+                        <p class="text-muted">This may take a few moments</p>
+                    </div>
+                </div>
+                <div id="analysisResults" style="display: none;">
+                    <!-- Results will be populated here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Confirm Delete
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the field <strong id="deleteFieldName"></strong>?</p>
+                <p class="text-muted mb-0">This action cannot be undone and will remove all associated analysis data.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">
+                    <i class="fas fa-trash me-2"></i>
+                    Delete Field
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/field_analysis.js') }}"></script>
+<script>
+let currentFieldId = null;
+
+function analyzeField(fieldId) {
+    currentFieldId = fieldId;
+    const button = document.getElementById('analyzeBtn' + fieldId);
+    const originalText = button.textContent;
+    
+    // Show loading state
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Analyzing...';
+    button.disabled = true;
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('analysisModal'));
+    modal.show();
+    
+    // Start analysis
+    fetch(`/api/analyze_field/${fieldId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayAnalysisResults(data);
+        } else {
+            showAnalysisError(data.error || 'Analysis failed');
+        }
+    })
+    .catch(error => {
+        console.error('Analysis error:', error);
+        showAnalysisError('Network error occurred');
+    })
+    .finally(() => {
+        // Reset button
+        button.textContent = originalText;
+        button.disabled = false;
+    });
+}
+
+function displayAnalysisResults(data) {
+    document.getElementById('analysisLoading').style.display = 'none';
+    document.getElementById('analysisResults').style.display = 'block';
+    
+    const resultsContainer = document.getElementById('analysisResults');
+    
+    let html = '<div class="row">';
+    
+    // NDVI Summary
+    html += '<div class="col-md-6">';
+    html += '<h6><i class="fas fa-leaf me-2"></i>Vegetation Health</h6>';
+    
+    for (const [zoneId, ndviValue] of Object.entries(data.ndvi_data)) {
+        const healthScore = data.health_scores[zoneId];
+        let badgeClass = 'secondary';
+        
+        if (healthScore === 'healthy') badgeClass = 'success';
+        else if (healthScore === 'moderate') badgeClass = 'warning';
+        else if (healthScore === 'stressed') badgeClass = 'danger';
+        
+        html += `<div class="d-flex justify-content-between mb-2">`;
+        html += `<span>${zoneId.replace('_', ' ').toUpperCase()}</span>`;
+        html += `<span class="badge bg-${badgeClass}">${ndviValue.toFixed(3)}</span>`;
+        html += `</div>`;
+    }
+    
+    html += '</div>';
+    
+    // Weather Info
+    html += '<div class="col-md-6">';
+    html += '<h6><i class="fas fa-cloud-sun me-2"></i>Weather Conditions</h6>';
+    
+    if (data.weather_data && data.weather_data.current) {
+        const weather = data.weather_data.current;
+        html += `<div class="small">`;
+        html += `<div>Temperature: ${weather.temperature}°C</div>`;
+        html += `<div>Humidity: ${weather.humidity}%</div>`;
+        html += `<div>Conditions: ${weather.description}</div>`;
+        html += `<div>Wind: ${weather.wind_speed} m/s</div>`;
+        html += `</div>`;
+    }
+    
+    html += '</div>';
+    html += '</div>';
+    
+    // Recommendations
+    if (data.recommendations && data.recommendations.length > 0) {
+        html += '<hr><h6><i class="fas fa-lightbulb me-2"></i>AI Recommendations</h6>';
+        
+        for (const rec of data.recommendations) {
+            let alertClass = 'info';
+            if (rec.type === 'critical') alertClass = 'danger';
+            else if (rec.type === 'warning') alertClass = 'warning';
+            else if (rec.type === 'success') alertClass = 'success';
+            
+            html += `<div class="alert alert-${alertClass} py-2">`;
+            html += `<strong>${rec.zone || 'General'}:</strong> ${rec.message}`;
+            
+            if (rec.actions && rec.actions.length > 0) {
+                html += '<ul class="mb-0 mt-2">';
+                for (const action of rec.actions) {
+                    html += `<li class="small">${action}</li>`;
+                }
+                html += '</ul>';
+            }
+            
+            html += '</div>';
+        }
+    }
+    
+    resultsContainer.innerHTML = html;
+}
+
+function showAnalysisError(message) {
+    document.getElementById('analysisLoading').style.display = 'none';
+    document.getElementById('analysisResults').style.display = 'block';
+    document.getElementById('analysisResults').innerHTML = `
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Analysis Failed:</strong> ${message}
+        </div>
+    `;
+}
+
+function deleteField(fieldId, fieldName) {
+    document.getElementById('deleteFieldName').textContent = fieldName;
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+    
+    document.getElementById('confirmDelete').onclick = function() {
+        fetch(`/api/delete_field/${fieldId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to delete field: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Delete error:', error);
+            alert('Network error occurred while deleting field');
+        });
+        
+        modal.hide();
+    };
+}
+</script>
+{% endblock %}
