@@ -53,23 +53,25 @@ function evaluatePixel(sample) {
     // Mask clouds using Scene Classification Layer (SCL)
     if (sample.SCL == 3 || sample.SCL == 8 || sample.SCL == 9 || sample.SCL == 10 || sample.SCL == 11) {
         // Cloud shadows, medium/high probability clouds, thin cirrus, snow
-        return [0.5, 0.5, 0.5]; // Gray for masked pixels
+        return [0.4, 0.4, 0.4]; // Dark gray for masked pixels
     }
     
-    // Color mapping for NDVI visualization
-    if (ndvi < -0.2) return [0.8, 0.8, 0.8]; // Water/bare soil - light gray
-    if (ndvi < 0.1) return [0.86, 0.86, 0.86]; // Very sparse vegetation - lighter gray
-    if (ndvi < 0.2) return [1, 0.98, 0.8]; // Sparse vegetation - light yellow
-    if (ndvi < 0.3) return [0.93, 0.91, 0.71]; // Low vegetation - yellow
-    if (ndvi < 0.4) return [0.87, 0.9, 0.83]; // Moderate vegetation - light green
-    if (ndvi < 0.5) return [0.8, 0.9, 0.7]; // Good vegetation - green
-    if (ndvi < 0.6) return [0.65, 0.85, 0.47]; // Dense vegetation - darker green
-    if (ndvi < 0.7) return [0.4, 0.7, 0.38]; // Very dense vegetation - dark green
-    return [0.2, 0.5, 0.2]; // Extremely dense vegetation - very dark green
+    // Enhanced color mapping with higher contrast and more gradations
+    if (ndvi < -0.3) return [0.2, 0.2, 0.4]; // Deep water - dark blue
+    if (ndvi < -0.1) return [0.4, 0.4, 0.6]; // Shallow water - blue
+    if (ndvi < 0.05) return [0.8, 0.7, 0.6]; // Bare soil/sand - tan
+    if (ndvi < 0.15) return [0.9, 0.8, 0.6]; // Very sparse vegetation - light tan
+    if (ndvi < 0.25) return [1.0, 0.9, 0.4]; // Sparse vegetation - yellow
+    if (ndvi < 0.35) return [0.8, 1.0, 0.2]; // Low vegetation - light green
+    if (ndvi < 0.45) return [0.6, 0.9, 0.1]; // Moderate vegetation - green
+    if (ndvi < 0.55) return [0.4, 0.8, 0.1]; // Good vegetation - darker green
+    if (ndvi < 0.65) return [0.2, 0.7, 0.1]; // Dense vegetation - dark green
+    if (ndvi < 0.75) return [0.1, 0.6, 0.1]; // Very dense vegetation - very dark green
+    return [0.05, 0.4, 0.05]; // Extremely dense vegetation - deepest green
 }
 """
     
-    def create_request_payload(self, bbox: List[float], width: int = 512, height: int = 512) -> dict:
+    def create_request_payload(self, bbox: List[float], width: int = 2048, height: int = 2048) -> dict:
         """
         Create the request payload for Sentinel Hub Process API
         
@@ -117,7 +119,7 @@ function evaluatePixel(sample) {
             "evalscript": self.get_ndvi_evalscript()
         }
     
-    def fetch_ndvi_image(self, bbox: List[float], width: int = 512, height: int = 512) -> Optional[bytes]:
+    def fetch_ndvi_image(self, bbox: List[float], width: int = 2048, height: int = 2048) -> Optional[bytes]:
         """
         Fetch NDVI image for the given bounding box
         
