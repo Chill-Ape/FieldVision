@@ -119,13 +119,26 @@ function handleDrawDeleted(e) {
 function updateFieldStats(layer) {
     const latLngs = layer.getLatLngs()[0]; // Get first ring for polygon
     
-    // Calculate approximate area (this is a rough calculation)
-    const area = calculatePolygonArea(latLngs);
+    // Calculate approximate area and perimeter
+    const areaAcres = calculatePolygonArea(latLngs);
     const perimeter = calculatePolygonPerimeter(latLngs);
     
+    // Get selected unit
+    const selectedUnit = getSelectedAreaUnit();
+    let displayArea, unitText;
+    
+    if (selectedUnit === 'hectares') {
+        displayArea = areaAcres * 0.404686; // Convert acres to hectares
+        unitText = 'Area (hectares)';
+    } else {
+        displayArea = areaAcres;
+        unitText = 'Area (acres)';
+    }
+    
     // Update UI
-    document.getElementById('fieldArea').textContent = area.toFixed(2);
+    document.getElementById('fieldArea').textContent = displayArea.toFixed(2);
     document.getElementById('fieldPerimeter').textContent = perimeter.toFixed(2);
+    document.getElementById('areaUnit').textContent = unitText;
     document.getElementById('fieldStats').style.display = 'block';
 }
 
@@ -169,6 +182,16 @@ function setupUIHandlers() {
         if (e.key === 'Enter') {
             searchAddress();
         }
+    });
+    
+    // Unit change handlers
+    document.querySelectorAll('input[name="areaUnit"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            // Update display if polygon exists
+            if (currentPolygon) {
+                updateFieldStats(currentPolygon);
+            }
+        });
     });
 }
 
@@ -268,11 +291,12 @@ function calculatePolygonArea(latLngs) {
     
     area = Math.abs(area) / 2;
     
-    // Convert to approximate hectares (very rough conversion)
-    // 1 degree ≈ 111 km, so 1 degree² ≈ 12321 km² ≈ 1,232,100 hectares
-    const hectares = area * 1232100;
+    // Convert to approximate acres (more accurate conversion)
+    // 1 degree ≈ 111 km, so 1 degree² ≈ 12321 km² 
+    // 1 km² = 247.105 acres, so 1 degree² ≈ 3,044,067 acres
+    const acres = area * 3044067;
     
-    return hectares;
+    return acres;
 }
 
 function calculatePolygonPerimeter(latLngs) {
@@ -342,6 +366,11 @@ function loadFieldPolygon(coordinates, fieldName) {
     polygon.bindPopup(`<strong>${fieldName}</strong><br>Field Boundary`);
     
     return polygon;
+}
+
+function getSelectedAreaUnit() {
+    const selectedRadio = document.querySelector('input[name="areaUnit"]:checked');
+    return selectedRadio ? selectedRadio.value : 'acres';
 }
 
 function searchAddress() {
