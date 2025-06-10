@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
     
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;500;600;700&display=swap');
+        
         * {
             margin: 0;
             padding: 0;
@@ -17,56 +19,152 @@
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Exo 2', sans-serif;
+            background: #0a0e27;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(0, 174, 255, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 106, 0, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%);
             min-height: 100vh;
+            color: #e1e8f0;
+            overflow-x: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(0,174,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            pointer-events: none;
+            z-index: -1;
         }
         
         .header {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 1rem 2rem;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            background: rgba(10, 14, 39, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 174, 255, 0.3);
+            padding: 1.5rem 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #00aeff, #ff6a00, #7877c6);
+            animation: pulse 2s ease-in-out infinite alternate;
         }
         
         .header h1 {
-            color: #2c3e50;
-            font-size: 2rem;
-            font-weight: 300;
+            font-family: 'Orbitron', monospace;
+            color: #00aeff;
+            font-size: 2.5rem;
+            font-weight: 900;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 1rem;
+            text-shadow: 0 0 20px rgba(0, 174, 255, 0.5);
+            letter-spacing: 2px;
+        }
+        
+        .header-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(45deg, #00aeff, #ff6a00);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            animation: rotate 4s linear infinite;
+            box-shadow: 0 0 30px rgba(0, 174, 255, 0.4);
         }
         
         .header p {
-            color: #7f8c8d;
+            color: #a0b3c8;
             margin-top: 0.5rem;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
         
         .container {
             display: flex;
-            height: calc(100vh - 100px);
-            gap: 1rem;
-            padding: 1rem;
+            height: calc(100vh - 120px);
+            gap: 1.5rem;
+            padding: 1.5rem;
         }
         
         .sidebar {
-            width: 350px;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            width: 400px;
+            background: rgba(10, 14, 39, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 174, 255, 0.2);
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 
+                0 0 50px rgba(0, 174, 255, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
             overflow-y: auto;
+            position: relative;
+        }
+        
+        .sidebar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #00aeff, transparent);
         }
         
         .map-container {
             flex: 1;
-            background: white;
-            border-radius: 12px;
+            background: rgba(10, 14, 39, 0.85);
+            border: 1px solid rgba(0, 174, 255, 0.2);
+            border-radius: 15px;
             overflow: hidden;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            box-shadow: 
+                0 0 50px rgba(0, 174, 255, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
             position: relative;
+        }
+        
+        .map-container::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 80px;
+            height: 30px;
+            background: rgba(0, 174, 255, 0.2);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: #00aeff;
+            z-index: 1000;
+            font-family: 'Orbitron', monospace;
+            font-weight: bold;
+            border: 1px solid rgba(0, 174, 255, 0.4);
         }
         
         #map {
@@ -79,76 +177,172 @@
         }
         
         .section h3 {
-            color: #2c3e50;
-            font-size: 1.1rem;
-            margin-bottom: 1rem;
+            color: #00aeff;
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.75rem;
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(0, 174, 255, 0.2);
+            padding-bottom: 0.5rem;
         }
         
         .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #00aeff, #0088cc);
             color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
+            border: 1px solid rgba(0, 174, 255, 0.3);
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
             cursor: pointer;
-            font-weight: 500;
+            font-weight: 600;
+            font-family: 'Exo 2', sans-serif;
             transition: all 0.3s ease;
             width: 100%;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 15px rgba(0, 174, 255, 0.2);
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
         }
         
         .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 174, 255, 0.4);
+            background: linear-gradient(135deg, #0099ff, #00aeff);
         }
         
         .btn:disabled {
-            opacity: 0.6;
+            opacity: 0.4;
             cursor: not-allowed;
             transform: none;
+            background: rgba(100, 100, 100, 0.3);
         }
         
         .btn-success {
-            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            background: linear-gradient(135deg, #00ff88, #00cc66);
+            border-color: rgba(0, 255, 136, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.2);
+        }
+        
+        .btn-success:hover {
+            background: linear-gradient(135deg, #00ff99, #00ff88);
+            box-shadow: 0 8px 25px rgba(0, 255, 136, 0.4);
         }
         
         .btn-warning {
-            background: linear-gradient(135deg, #f39c12, #e67e22);
+            background: linear-gradient(135deg, #ff6a00, #e55a00);
+            border-color: rgba(255, 106, 0, 0.3);
+            box-shadow: 0 4px 15px rgba(255, 106, 0, 0.2);
+        }
+        
+        .btn-warning:hover {
+            background: linear-gradient(135deg, #ff7a10, #ff6a00);
+            box-shadow: 0 8px 25px rgba(255, 106, 0, 0.4);
         }
         
         .status-indicator {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.75rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            font-size: 0.9rem;
+            gap: 0.75rem;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+            border: 1px solid;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .status-indicator::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            animation: scan 3s ease-in-out infinite;
         }
         
         .status-success {
-            background: rgba(46, 204, 113, 0.1);
-            color: #27ae60;
-            border: 1px solid rgba(46, 204, 113, 0.3);
+            background: rgba(0, 255, 136, 0.1);
+            color: #00ff88;
+            border-color: rgba(0, 255, 136, 0.3);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.1);
         }
         
         .status-warning {
-            background: rgba(243, 156, 18, 0.1);
-            color: #f39c12;
-            border: 1px solid rgba(243, 156, 18, 0.3);
+            background: rgba(255, 106, 0, 0.1);
+            color: #ff6a00;
+            border-color: rgba(255, 106, 0, 0.3);
+            box-shadow: 0 0 20px rgba(255, 106, 0, 0.1);
         }
         
         .coordinates-display {
-            background: #f8f9fa;
+            background: rgba(0, 174, 255, 0.05);
+            border: 1px solid rgba(0, 174, 255, 0.2);
+            padding: 1.5rem;
+            border-radius: 10px;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.9rem;
+            color: #a0b3c8;
+            margin-bottom: 1.5rem;
+            box-shadow: inset 0 2px 10px rgba(0, 174, 255, 0.05);
+        }
+        
+        .search-container {
+            margin-bottom: 1.5rem;
+        }
+        
+        .search-input {
+            width: 100%;
             padding: 1rem;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 0.85rem;
-            color: #495057;
-            margin-bottom: 1rem;
+            background: rgba(0, 174, 255, 0.05);
+            border: 1px solid rgba(0, 174, 255, 0.2);
+            border-radius: 10px;
+            color: #e1e8f0;
+            font-family: 'Exo 2', sans-serif;
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #00aeff;
+            box-shadow: 0 0 20px rgba(0, 174, 255, 0.3);
+            background: rgba(0, 174, 255, 0.1);
+        }
+        
+        .search-input::placeholder {
+            color: #7a8ba0;
+        }
+        
+        @keyframes scan {
+            0% { left: -100%; }
+            50% { left: 100%; }
+            100% { left: -100%; }
         }
         
         .loading {
@@ -214,38 +408,155 @@
         }
         
         .quick-location-btn {
-            padding: 0.5rem;
-            font-size: 0.8rem;
-            background: rgba(102, 126, 234, 0.1);
-            color: #667eea;
-            border: 1px solid rgba(102, 126, 234, 0.3);
-            border-radius: 6px;
+            padding: 0.75rem;
+            font-size: 0.85rem;
+            background: rgba(0, 174, 255, 0.1);
+            color: #00aeff;
+            border: 1px solid rgba(0, 174, 255, 0.3);
+            border-radius: 8px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
+            font-family: 'Exo 2', sans-serif;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         .quick-location-btn:hover {
-            background: rgba(102, 126, 234, 0.2);
+            background: rgba(0, 174, 255, 0.2);
+            border-color: #00aeff;
+            box-shadow: 0 0 15px rgba(0, 174, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .legend {
+            background: rgba(0, 174, 255, 0.05);
+            border: 1px solid rgba(0, 174, 255, 0.2);
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-top: 2rem;
+            box-shadow: inset 0 2px 10px rgba(0, 174, 255, 0.05);
+        }
+        
+        .legend h4 {
+            margin-bottom: 1rem;
+            color: #00aeff;
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+            color: #a0b3c8;
+        }
+        
+        .legend-color {
+            width: 25px;
+            height: 18px;
+            border-radius: 4px;
+            border: 1px solid rgba(0, 174, 255, 0.3);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+            background: rgba(0, 174, 255, 0.05);
+            border: 1px solid rgba(0, 174, 255, 0.2);
+            border-radius: 10px;
+            margin: 1rem 0;
+        }
+        
+        .spinner {
+            border: 3px solid rgba(0, 174, 255, 0.2);
+            border-top: 3px solid #00aeff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        .loading p {
+            color: #00aeff;
+            font-family: 'Orbitron', monospace;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .ndvi-result {
+            margin-top: 1rem;
+            text-align: center;
+        }
+        
+        .ndvi-image {
+            max-width: 100%;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 174, 255, 0.3);
+            box-shadow: 0 8px 25px rgba(0, 174, 255, 0.2);
+            margin-bottom: 1rem;
+        }
+        
+        /* Custom scrollbar for sidebar */
+        .sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(0, 174, 255, 0.1);
+            border-radius: 4px;
+        }
+        
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(0, 174, 255, 0.4);
+            border-radius: 4px;
+        }
+        
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 174, 255, 0.6);
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>🛰️ NDVI Satellite Imagery</h1>
-        <p>Draw an area on the map to analyze vegetation health using real satellite data</p>
+        <h1>
+            <div class="header-icon">🛰️</div>
+            NDVI ANALYTICS
+        </h1>
+        <p>Advanced vegetation health monitoring using real-time satellite intelligence</p>
     </div>
     
     <div class="container">
         <div class="sidebar">
             <div class="section">
                 <div id="status-indicator" class="status-indicator status-success">
-                    <span>🟢</span>
-                    <span>Sentinel Hub API Connected</span>
+                    <span>⚡</span>
+                    <span>SENTINEL HUB ONLINE</span>
                 </div>
             </div>
             
             <div class="section">
-                <h3>🗺️ Quick Locations</h3>
+                <h3>🔍 Location Search</h3>
+                <div class="search-container">
+                    <input type="text" id="address-input" class="search-input" 
+                           placeholder="Enter address or coordinates..." 
+                           onkeypress="handleAddressKeyPress(event)">
+                    <button class="btn" onclick="searchAddress()">
+                        🎯 Search Location
+                    </button>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3>🗺️ Quick Access</h3>
                 <div class="quick-locations">
                     <button class="quick-location-btn" onclick="flyToLocation('sf')">San Francisco</button>
                     <button class="quick-location-btn" onclick="flyToLocation('central_valley')">Central Valley</button>
@@ -255,56 +566,56 @@
             </div>
             
             <div class="section">
-                <h3>📐 Draw Area</h3>
-                <p style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">
-                    Use the rectangle tool in the map to select an area for NDVI analysis.
+                <h3>📐 Target Selection</h3>
+                <p style="font-size: 0.9rem; color: #a0b3c8; margin-bottom: 1rem;">
+                    Deploy rectangle tool to define analysis perimeter
                 </p>
                 <button id="clear-btn" class="btn btn-warning" onclick="clearDrawings()">
-                    🗑️ Clear Drawings
+                    ⚡ Clear Target
                 </button>
             </div>
             
             <div class="section">
-                <h3>📍 Selected Coordinates</h3>
+                <h3>📍 Coordinates Lock</h3>
                 <div id="coordinates-display" class="coordinates-display">
-                    No area selected. Draw a rectangle on the map.
+                    NO TARGET ACQUIRED
                 </div>
-                <button id="analyze-btn" class="btn" onclick="analyzeNDVI()" disabled>
-                    🌱 Analyze NDVI
+                <button id="analyze-btn" class="btn btn-success" onclick="analyzeNDVI()" disabled>
+                    🚀 Launch Analysis
                 </button>
             </div>
             
             <div id="loading" class="loading">
                 <div class="spinner"></div>
-                <p>Fetching satellite data...</p>
+                <p>Accessing Satellite Network...</p>
             </div>
             
             <div id="result-section" class="section" style="display: none;">
-                <h3>📊 NDVI Result</h3>
+                <h3>📊 Analysis Results</h3>
                 <div id="ndvi-result" class="ndvi-result"></div>
             </div>
             
             <div class="legend">
-                <h4 style="margin-bottom: 0.75rem; color: #2c3e50;">NDVI Color Legend</h4>
+                <h4>NDVI Color Matrix</h4>
                 <div class="legend-item">
                     <div class="legend-color" style="background: #2d5a27;"></div>
-                    <span>Dense vegetation (0.6-1.0)</span>
+                    <span>DENSE VEGETATION (0.6-1.0)</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color" style="background: #65b54a;"></div>
-                    <span>Healthy vegetation (0.4-0.6)</span>
+                    <span>HEALTHY VEGETATION (0.4-0.6)</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color" style="background: #f5e942;"></div>
-                    <span>Moderate vegetation (0.2-0.4)</span>
+                    <span>MODERATE VEGETATION (0.2-0.4)</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color" style="background: #dcdc8b;"></div>
-                    <span>Sparse vegetation (0.1-0.2)</span>
+                    <span>SPARSE VEGETATION (0.1-0.2)</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color" style="background: #cccccc;"></div>
-                    <span>Water/bare soil (-0.2-0.1)</span>
+                    <span>WATER/BARE SOIL (-0.2-0.1)</span>
                 </div>
             </div>
         </div>
@@ -431,7 +742,59 @@
             
             if (locations[location]) {
                 const [lat, lng, zoom] = locations[location];
-                map.setView([lat, lng], zoom);
+                map.flyTo([lat, lng], zoom, {
+                    duration: 2,
+                    easeLinearity: 0.1
+                });
+            }
+        }
+        
+        async function searchAddress() {
+            const address = document.getElementById('address-input').value.trim();
+            if (!address) {
+                alert('Please enter an address');
+                return;
+            }
+            
+            try {
+                // Use Nominatim OpenStreetMap geocoding service
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`);
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                    const result = data[0];
+                    const lat = parseFloat(result.lat);
+                    const lng = parseFloat(result.lon);
+                    
+                    map.flyTo([lat, lng], 14, {
+                        duration: 2,
+                        easeLinearity: 0.1
+                    });
+                    
+                    // Add a temporary marker
+                    const marker = L.marker([lat, lng]).addTo(map)
+                        .bindPopup(`📍 ${result.display_name}`)
+                        .openPopup();
+                    
+                    // Remove marker after 5 seconds
+                    setTimeout(() => {
+                        map.removeLayer(marker);
+                    }, 5000);
+                    
+                    // Clear input
+                    document.getElementById('address-input').value = '';
+                } else {
+                    alert('Address not found. Please try a different search term.');
+                }
+            } catch (error) {
+                console.error('Geocoding error:', error);
+                alert('Error searching for address. Please check your connection.');
+            }
+        }
+        
+        function handleAddressKeyPress(event) {
+            if (event.key === 'Enter') {
+                searchAddress();
             }
         }
         
