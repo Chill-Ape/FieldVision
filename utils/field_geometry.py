@@ -244,9 +244,9 @@ def calculate_zone_ndvi_accurate(ndvi_array, zones, field_bbox):
                     norm_x = (sample_x - field_bbox[0]) / (field_bbox[2] - field_bbox[0])
                     norm_y = (sample_y - field_bbox[1]) / (field_bbox[3] - field_bbox[1])
                     
-                    # Convert to pixel coordinates
+                    # Convert to pixel coordinates (invert Y axis for image coordinates)
                     pixel_x = int(norm_x * image_width)
-                    pixel_y = int(norm_y * image_height)
+                    pixel_y = int((1.0 - norm_y) * image_height)  # Flip Y-axis
                     
                     # Ensure coordinates are within image bounds
                     pixel_x = max(0, min(pixel_x, image_width - 1))
