@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports - FieldVision AI</title>
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            color: #f0f6fc;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+        }
+        
+        .page-header {
+            background: rgba(13, 17, 23, 0.8);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: #58a6ff;
+            margin-bottom: 0.5rem;
+        }
+        
+        .page-subtitle {
+            color: #8b949e;
+            font-size: 1.1rem;
+        }
+        
+        .reports-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .report-card {
+            background: rgba(21, 32, 43, 0.6);
+            border: 1px solid rgba(88, 166, 255, 0.2);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .report-card:hover {
+            border-color: #58a6ff;
+            box-shadow: 0 4px 12px rgba(88, 166, 255, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .field-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #f0f6fc;
+            margin-bottom: 0.5rem;
+        }
+        
+        .field-location {
+            color: #8b949e;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+        
+        .field-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #58a6ff;
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            color: #8b949e;
+            margin-top: 0.2rem;
+        }
+        
+        .field-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .btn-report {
+            flex: 1;
+            background: rgba(88, 166, 255, 0.2);
+            border: 1px solid #58a6ff;
+            color: #58a6ff;
+            padding: 0.5rem;
+            border-radius: 6px;
+            text-decoration: none;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-report:hover {
+            background: rgba(88, 166, 255, 0.3);
+            color: #58a6ff;
+            text-decoration: none;
+        }
+        
+        .btn-field {
+            background: rgba(70, 117, 59, 0.2);
+            border: 1px solid #46a758;
+            color: #46a758;
+        }
+        
+        .btn-field:hover {
+            background: rgba(70, 117, 59, 0.3);
+            color: #46a758;
+        }
+        
+        .no-fields {
+            text-align: center;
+            padding: 3rem;
+            color: #8b949e;
+        }
+        
+        .no-fields i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        
+        .analysis-status {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .status-analyzed {
+            background: rgba(70, 117, 59, 0.2);
+            color: #46a758;
+            border: 1px solid rgba(70, 117, 59, 0.3);
+        }
+        
+        .status-pending {
+            background: rgba(187, 128, 9, 0.2);
+            color: #bb8009;
+            border: 1px solid rgba(187, 128, 9, 0.3);
+        }
+        
+        .back-nav {
+            margin-bottom: 2rem;
+        }
+        
+        .back-nav a {
+            color: #8b949e;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .back-nav a:hover {
+            color: #58a6ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <!-- Back Navigation -->
+        <div class="back-nav">
+            <a href="/dashboard">
+                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+            </a>
+        </div>
+        
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-chart-bar me-3"></i>Field Reports
+            </h1>
+            <p class="page-subtitle">
+                Comprehensive analysis and insights for all your fields
+            </p>
+        </div>
+        
+        <!-- Reports Grid -->
+        {% if fields %}
+        <div class="reports-grid">
+            {% for field in fields %}
+            <div class="report-card" onclick="window.location.href='/field/{{ field.id }}/report'">
+                <div class="field-name">{{ field.name }}</div>
+                <div class="field-location">
+                    <i class="fas fa-map-marker-alt me-1"></i>
+                    {{ field.center_lat|round(4) }}, {{ field.center_lng|round(4) }}
+                </div>
+                
+                {% if field.analyses %}
+                    <div class="analysis-status status-analyzed">
+                        <i class="fas fa-check-circle me-1"></i>Analysis Available
+                    </div>
+                {% else %}
+                    <div class="analysis-status status-pending">
+                        <i class="fas fa-clock me-1"></i>Awaiting Analysis
+                    </div>
+                {% endif %}
+                
+                <div class="field-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">{{ field.calculate_area_acres()|round(1) }}</div>
+                        <div class="stat-label">Acres</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ field.analyses|length }}</div>
+                        <div class="stat-label">Analyses</div>
+                    </div>
+                </div>
+                
+                <div class="field-actions">
+                    <a href="/field/{{ field.id }}/report" class="btn-report" onclick="event.stopPropagation()">
+                        <i class="fas fa-file-alt me-1"></i>View Report
+                    </a>
+                    <a href="/field/{{ field.id }}" class="btn-report btn-field" onclick="event.stopPropagation()">
+                        <i class="fas fa-eye me-1"></i>Field View
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-fields">
+            <i class="fas fa-seedling"></i>
+            <h3>No Fields Added Yet</h3>
+            <p>Add your first field to start generating reports</p>
+            <a href="/" class="btn btn-primary mt-3">
+                <i class="fas fa-plus me-2"></i>Add Your First Field
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

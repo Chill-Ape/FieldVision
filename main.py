@@ -5,6 +5,7 @@ Provides endpoints for fetching and displaying NDVI data from Sentinel Hub
 
 import json
 import logging
+import os
 from datetime import datetime
 from flask import Flask, render_template, render_template_string, Response, jsonify, request
 from auth import SentinelHubAuth
@@ -14,8 +15,8 @@ from ndvi_fetcher import NDVIFetcher
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize Flask app
-app = Flask(__name__)
+# Import and use the configured Flask app from app.py
+from app import app, db
 
 # Initialize Sentinel Hub components
 auth_handler = SentinelHubAuth()
@@ -25,10 +26,10 @@ ndvi_fetcher = NDVIFetcher(auth_handler)
 # Format: [min_longitude, min_latitude, max_longitude, max_latitude] in EPSG:4326
 DEFAULT_BBOX = [-122.5, 37.7, -122.3, 37.9]
 
-@app.route('/')
-def index():
+@app.route('/satellite')
+def satellite_interface():
     """
-    Interactive map interface for NDVI analysis
+    Satellite interface for NDVI analysis
     Returns modern web interface with map drawing tools
     """
     return render_template('index.html')
@@ -401,6 +402,31 @@ def health_check():
             "/health": "Service health check"
         }
     })
+
+# Import database functionality
+try:
+    from app import db
+    import models
+    
+    # Configure database for this app
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///fieldvision.db")
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_recycle": 300,
+        "pool_pre_ping": True,
+    }
+    app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
+    
+    # Initialize database with this app
+    db.init_app(app)
+    
+    with app.app_context():
+        db.create_all()
+    
+    # Import routes after database setup
+    import routes
+    
+except ImportError as e:
+    logger.warning(f"Could not import database functionality: {e}")
 
 if __name__ == '__main__':
     # Run in debug mode for development

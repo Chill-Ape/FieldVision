@@ -1,5 +1,6 @@
 from flask import render_template, request, jsonify, flash, redirect, url_for, Response
-from app import app, db
+from main import app
+from app import db
 from models import Field, FieldAnalysis
 from utils.sentinel_hub import fetch_ndvi_image
 from utils.ndvi_processor import process_ndvi_data, calculate_field_zones
@@ -26,6 +27,12 @@ def field_detail(field_id):
     field = Field.query.get_or_404(field_id)
     latest_analysis = FieldAnalysis.query.filter_by(field_id=field_id).order_by(FieldAnalysis.analysis_date.desc()).first()
     return render_template('field_detail.html', field=field, analysis=latest_analysis)
+
+@app.route('/reports')
+def reports():
+    """Reports dashboard showing all field reports"""
+    fields = Field.query.order_by(Field.created_at.desc()).all()
+    return render_template('reports.html', fields=fields)
 
 @app.route('/field/<int:field_id>/report')
 def field_report(field_id):
