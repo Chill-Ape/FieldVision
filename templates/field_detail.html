@@ -336,7 +336,7 @@ function displayHealthScores(healthScores, ndviData) {
     const container = document.getElementById('healthScores');
     let html = '';
     
-    const healthCounts = { healthy: 0, moderate: 0, stressed: 0 };
+    const healthCounts = { excellent: 0, good: 0, moderate: 0, stressed: 0, poor: 0 };
     
     for (const [zoneId, health] of Object.entries(healthScores)) {
         healthCounts[health]++;
@@ -344,13 +344,19 @@ function displayHealthScores(healthScores, ndviData) {
         let badgeClass = 'secondary';
         let icon = 'fas fa-question';
         
-        if (health === 'healthy') {
+        if (health === 'excellent') {
+            badgeClass = 'success';
+            icon = 'fas fa-star';
+        } else if (health === 'good') {
             badgeClass = 'success';
             icon = 'fas fa-check-circle';
         } else if (health === 'moderate') {
             badgeClass = 'warning';
             icon = 'fas fa-exclamation-triangle';
         } else if (health === 'stressed') {
+            badgeClass = 'danger';
+            icon = 'fas fa-exclamation-circle';
+        } else if (health === 'poor') {
             badgeClass = 'danger';
             icon = 'fas fa-times-circle';
         }

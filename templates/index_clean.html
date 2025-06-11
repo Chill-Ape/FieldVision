@@ -117,7 +117,6 @@
         }
         
         .map-container {
-            overflow: hidden !important;
             position: relative !important;
             border-radius: 8px;
         }
@@ -128,15 +127,13 @@
             border-radius: 8px;
             position: relative;
             z-index: 1;
-            overflow: hidden !important;
         }
         
-        /* Ensure Leaflet tiles are visible and contained */
+        /* Ensure Leaflet tiles are visible */
         .leaflet-container {
             background: #1a1a1a !important;
             opacity: 1 !important;
             visibility: visible !important;
-            overflow: hidden !important;
             position: relative !important;
         }
         
@@ -144,17 +141,12 @@
             z-index: 10 !important;
             opacity: 1 !important;
             visibility: visible !important;
-            overflow: hidden !important;
-            position: relative !important;
         }
         
         .leaflet-map-pane {
             z-index: 10 !important;
             opacity: 1 !important;
             visibility: visible !important;
-            overflow: hidden !important;
-            position: relative !important;
-            transform: translate3d(0, 0, 0) !important;
         }
         
         .leaflet-tile {
@@ -933,9 +925,28 @@
                 })
             };
             
-            // Add default layer (satellite view)
+            // Add default layer (try satellite first, fallback to OSM)
             console.log('Adding satellite tile layer to map...');
             currentTileLayer = mapLayers.satellite;
+            
+            // Add error handling for tile loading
+            currentTileLayer.on('tileerror', function(error) {
+                console.error('Satellite tile loading error:', error);
+                console.log('Falling back to OpenStreetMap...');
+                
+                // Remove failed satellite layer
+                mapInstance.removeLayer(currentTileLayer);
+                
+                // Add OSM as fallback
+                currentTileLayer = mapLayers.osm;
+                currentTileLayer.addTo(mapInstance);
+                updateLayerButtons('osm');
+            });
+            
+            currentTileLayer.on('tileload', function() {
+                console.log('Tiles loading successfully');
+            });
+            
             currentTileLayer.addTo(mapInstance);
             console.log('Satellite layer added');
             
