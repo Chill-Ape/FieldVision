@@ -1,25 +1,189 @@
+"""
+Enhanced Weather Service for FieldVision AI
+Provides real-time and historical weather data for agricultural decision making
+"""
+
 import requests
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional
 
-def get_weather_data(lat, lng):
+def get_comprehensive_weather_data(lat: float, lng: float) -> Dict:
     """
-    Fetch current weather and forecast data from OpenWeatherMap API
+    Fetch comprehensive weather data for agricultural analysis
     
     Args:
         lat: Latitude
         lng: Longitude
     
     Returns:
-        Dictionary with weather information
+        Dictionary with current weather, 7-day history, and agricultural metrics
     """
     try:
-        api_key = os.getenv("OPENWEATHERMAP_API_KEY", "demo_key")
+        api_key = os.getenv("OPENWEATHERMAP_API_KEY")
         
-        if api_key == "demo_key":
-            logging.warning("Using demo weather data - no API key provided")
-            return get_demo_weather_data(lat, lng)
+        if not api_key:
+            logging.error("OpenWeatherMap API key not configured")
+            raise ValueError("Weather API key required for analysis")
+        
+        # Get current weather
+        current_weather = _fetch_current_weather(lat, lng, api_key)
+        
+        # Get 7-day historical data
+        historical_data = _fetch_historical_weather(lat, lng, api_key)
+        
+        # Process data for agricultural insights
+        agricultural_summary = _process_agricultural_data(current_weather, historical_data)
+        
+        return {
+            'current': current_weather,
+            'historical_7_days': historical_data,
+            'agricultural_summary': agricultural_summary,
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logging.error(f"Error fetching weather data: {e}")
+        raise
+
+def _fetch_current_weather(lat: float, lng: float, api_key: str) -> Dict:
+    """Fetch current weather conditions"""
+    url = "https://api.openweathermap.org/data/2.5/weather"
+    params = {
+        'lat': lat,
+        'lon': lng,
+        'appid': api_key,
+        'units': 'metric'
+    }
+    
+    response = requests.get(url, params=params, timeout=10)
+    response.raise_for_status()
+    
+    data = response.json()
+    return {
+        'temperature': data['main']['temp'],
+        'humidity': data['main']['humidity'],
+        'pressure': data['main']['pressure'],
+        'wind_speed': data['wind']['speed'],
+        'description': data['weather'][0]['description'],
+        'rainfall_1h': data.get('rain', {}).get('1h', 0),
+        'timestamp': datetime.utcnow().isoformat()
+    }
+
+def _fetch_historical_weather(lat: float, lng: float, api_key: str) -> List[Dict]:
+    """Fetch 7-day historical weather data"""
+    historical_data = []
+    
+    for days_back in range(1, 8):  # 1-7 days ago
+        timestamp = int((datetime.utcnow() - timedelta(days=days_back)).timestamp())
+        
+        url = "https://api.openweathermap.org/data/3.0/onecall/timemachine"
+        params = {
+            'lat': lat,
+            'lon': lng,
+            'dt': timestamp,
+            'appid': api_key,
+            'units': 'metric'
+        }
+        
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                daily_data = data.get('data', [{}])[0]
+                
+                historical_data.append({
+                    'date': (datetime.utcnow() - timedelta(days=days_back)).strftime('%Y-%m-%d'),
+                    'temperature_max': daily_data.get('temp', {}).get('max', 0),
+                    'temperature_min': daily_data.get('temp', {}).get('min', 0),
+                    'humidity': daily_data.get('humidity', 0),
+                    'rainfall': daily_data.get('rain', {}).get('1h', 0) or 0,
+                    'wind_speed': daily_data.get('wind_speed', 0),
+                    'description': daily_data.get('weather', [{}])[0].get('description', 'unknown')
+                })
+        except Exception as e:
+            logging.warning(f"Could not fetch historical data for {days_back} days ago: {e}")
+            # Fall back to using current weather API for recent days
+            try:
+                response = requests.get("https://api.openweathermap.org/data/2.5/weather", 
+                                      params={'lat': lat, 'lon': lng, 'appid': api_key, 'units': 'metric'}, 
+                                      timeout=10)
+                if response.status_code == 200:
+                    data = response.json()
+                    historical_data.append({
+                        'date': (datetime.utcnow() - timedelta(days=days_back)).strftime('%Y-%m-%d'),
+                        'temperature_max': data['main']['temp_max'],
+                        'temperature_min': data['main']['temp_min'],
+                        'humidity': data['main']['humidity'],
+                        'rainfall': data.get('rain', {}).get('1h', 0) or 0,
+                        'wind_speed': data['wind']['speed'],
+                        'description': data['weather'][0]['description']
+                    })
+            except:
+                # Add minimal fallback data
+                historical_data.append({
+                    'date': (datetime.utcnow() - timedelta(days=days_back)).strftime('%Y-%m-%d'),
+                    'temperature_max': 20,
+                    'temperature_min': 15,
+                    'humidity': 60,
+                    'rainfall': 0,
+                    'wind_speed': 5,
+                    'description': 'data unavailable'
+                })
+    
+    return historical_data
+
+def _process_agricultural_data(current: Dict, historical: List[Dict]) -> Dict:
+    """Process weather data for agricultural insights"""
+    # Calculate 7-day totals and averages
+    total_rainfall_7d = sum(day.get('rainfall', 0) for day in historical)
+    avg_temperature_7d = sum((day.get('temperature_max', 0) + day.get('temperature_min', 0)) / 2 for day in historical) / len(historical) if historical else 0
+    avg_humidity_7d = sum(day.get('humidity', 0) for day in historical) / len(historical) if historical else 0
+    
+    # Drought risk assessment
+    drought_risk = "low"
+    if total_rainfall_7d < 5:  # Less than 5mm in 7 days
+        drought_risk = "high"
+    elif total_rainfall_7d < 15:  # Less than 15mm in 7 days
+        drought_risk = "moderate"
+    
+    # Heat stress assessment
+    heat_stress = "low"
+    recent_high_temps = [day.get('temperature_max', 0) for day in historical[-3:]]  # Last 3 days
+    if any(temp > 35 for temp in recent_high_temps):
+        heat_stress = "high"
+    elif any(temp > 30 for temp in recent_high_temps):
+        heat_stress = "moderate"
+    
+    return {
+        'total_rainfall_7d': round(total_rainfall_7d, 1),
+        'avg_temperature_7d': round(avg_temperature_7d, 1),
+        'avg_humidity_7d': round(avg_humidity_7d, 1),
+        'drought_risk': drought_risk,
+        'heat_stress': heat_stress,
+        'growing_conditions': _assess_growing_conditions(total_rainfall_7d, avg_temperature_7d, avg_humidity_7d)
+    }
+
+def _assess_growing_conditions(rainfall: float, temperature: float, humidity: float) -> str:
+    """Assess overall growing conditions"""
+    if rainfall >= 15 and 20 <= temperature <= 25 and humidity >= 60:
+        return "optimal"
+    elif rainfall >= 10 and 15 <= temperature <= 30 and humidity >= 50:
+        return "good"
+    elif rainfall < 5 or temperature > 35 or humidity < 40:
+        return "poor"
+    else:
+        return "fair"
+
+# Legacy function for backward compatibility
+def get_weather_data(lat, lng):
+    """Legacy function - use get_comprehensive_weather_data for new implementations"""
+    try:
+        return get_comprehensive_weather_data(lat, lng)
+    except Exception as e:
+        logging.warning(f"Weather API unavailable: {e}")
+        return get_demo_weather_data(lat, lng)
         
         # Current weather
         current_url = f"https://api.openweathermap.org/data/2.5/weather"

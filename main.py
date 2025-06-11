@@ -270,6 +270,94 @@ def get_ndvi_image():
         logger.error(f"Error in /ndvi endpoint: {e}")
         return jsonify({"error": "Internal server error", "message": str(e)}), 500
 
+@app.route('/analyze_field', methods=['POST'])
+def analyze_field_with_ai():
+    """
+    Advanced field analysis with AI recommendations
+    Combines NDVI analysis, weather data, and agricultural insights
+    """
+    try:
+        data = request.get_json()
+        if not data or 'bbox' not in data:
+            return jsonify({"error": "Missing 'bbox' in request JSON"}), 400
+        
+        bbox = data['bbox']
+        geometry = data.get('geometry')
+        crop_type = data.get('crop_type', 'grapevine')
+        field_id = data.get('field_id')
+        
+        # Validate inputs
+        if not ndvi_fetcher.validate_bbox(bbox):
+            return jsonify({"error": "Invalid bounding box format"}), 400
+        
+        logger.info(f"Starting AI field analysis for bbox: {bbox}")
+        
+        # Check authentication
+        if not auth_handler.is_authenticated():
+            return jsonify({
+                "error": "Sentinel Hub credentials required",
+                "message": "Configure SENTINEL_HUB_CLIENT_ID and SENTINEL_HUB_CLIENT_SECRET"
+            }), 503
+        
+        # Step 1: Get NDVI image data
+        image_data = ndvi_fetcher.fetch_ndvi_image(bbox, geometry=geometry)
+        if not image_data:
+            return jsonify({"error": "Failed to fetch satellite imagery"}), 500
+        
+        # Step 2: Analyze NDVI image
+        from utils.ndvi_analyzer import analyze_field_ndvi, get_zone_ndvi_values
+        ndvi_analysis = analyze_field_ndvi(image_data, geometry)
+        zone_ndvi_values = get_zone_ndvi_values(ndvi_analysis)
+        
+        # Step 3: Get weather data for field location
+        center_lat = (bbox[1] + bbox[3]) / 2
+        center_lng = (bbox[0] + bbox[2]) / 2
+        
+        from utils.weather_service import get_comprehensive_weather_data
+        try:
+            weather_data = get_comprehensive_weather_data(center_lat, center_lng)
+        except Exception as e:
+            logger.warning(f"Weather data unavailable: {e}")
+            weather_data = {
+                'current': {'temperature': 20, 'humidity': 60, 'description': 'unavailable'},
+                'agricultural_summary': {
+                    'total_rainfall_7d': 10, 'avg_temperature_7d': 20,
+                    'drought_risk': 'unknown', 'growing_conditions': 'unknown'
+                }
+            }
+        
+        # Step 4: Generate AI recommendations
+        from utils.recommendation_engine import analyze_field_with_weather
+        ai_recommendations = analyze_field_with_weather(zone_ndvi_values, weather_data, crop_type)
+        
+        # Step 5: Cache results if this is a saved field
+        if field_id:
+            from models import Field
+            field = Field.query.get(field_id)
+            if field:
+                field.cache_ndvi_image(image_data)
+                logger.info(f"Cached analysis for field {field_id}")
+        
+        # Return comprehensive analysis
+        analysis_results = {
+            'success': True,
+            'ndvi_analysis': ndvi_analysis,
+            'weather_data': weather_data,
+            'ai_recommendations': ai_recommendations,
+            'field_metadata': {
+                'bbox': bbox,
+                'center_coordinates': [center_lat, center_lng],
+                'crop_type': crop_type,
+                'analysis_timestamp': f"{datetime.now().isoformat()}"
+            }
+        }
+        
+        return jsonify(analysis_results)
+        
+    except Exception as e:
+        logger.error(f"Error in AI field analysis: {e}")
+        return jsonify({"error": "Analysis failed", "message": str(e)}), 500
+
 @app.route('/health')
 def health_check():
     """
