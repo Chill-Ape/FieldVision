@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 
 def create_field_zones_accurate(field_coordinates):
     """
-    Create 9 zones within a field polygon using proper geometric division
-    Accounts for field rotation and irregular shapes
+    Create 9 zones within a field polygon using the field's actual orientation
+    Divides the field along its major and minor axes for accurate zone mapping
     
     Args:
         field_coordinates: List of [lat, lng] coordinate pairs defining the field polygon
@@ -25,15 +25,46 @@ def create_field_zones_accurate(field_coordinates):
         polygon_coords = [(coord[1], coord[0]) for coord in field_coordinates]  # Convert lat,lng to lng,lat
         field_polygon = Polygon(polygon_coords)
         
-        # Get the field's bounding box and center
-        minx, miny, maxx, maxy = field_polygon.bounds
-        center_x, center_y = field_polygon.centroid.x, field_polygon.centroid.y
+        # Get the field's vertices to understand its actual shape
+        vertices = list(field_polygon.exterior.coords[:-1])  # Remove duplicate last point
         
-        # Calculate field's oriented bounding box to handle rotation
-        field_width = maxx - minx
-        field_height = maxy - miny
+        # Find the field's oriented bounding box by calculating the minimum area rectangle
+        # This gives us the field's natural orientation
+        field_bounds = field_polygon.bounds
+        minx, miny, maxx, maxy = field_bounds
         
-        # Create 9 zones by dividing the field into a 3x3 grid
+        # Calculate the field's principal axes by analyzing vertex distribution
+        # Find the longest edge to determine field orientation
+        max_dist = 0
+        primary_vector = None
+        
+        for i in range(len(vertices)):
+            for j in range(i + 2, len(vertices)):  # Skip adjacent vertices
+                v1, v2 = vertices[i], vertices[j]
+                dist = ((v2[0] - v1[0])**2 + (v2[1] - v1[1])**2)**0.5
+                if dist > max_dist:
+                    max_dist = dist
+                    primary_vector = (v2[0] - v1[0], v2[1] - v1[1])
+        
+        # Normalize the primary vector
+        if primary_vector:
+            length = (primary_vector[0]**2 + primary_vector[1]**2)**0.5
+            if length > 0:
+                primary_unit = (primary_vector[0] / length, primary_vector[1] / length)
+                # Perpendicular vector
+                secondary_unit = (-primary_unit[1], primary_unit[0])
+            else:
+                primary_unit = (1, 0)
+                secondary_unit = (0, 1)
+        else:
+            primary_unit = (1, 0)
+            secondary_unit = (0, 1)
+        
+        # Get field centroid
+        centroid = field_polygon.centroid
+        cx, cy = centroid.x, centroid.y
+        
+        # Create zones by dividing the field along its natural axes
         zones = {}
         zone_names = [
             ['Northwest', 'North', 'Northeast'],
@@ -41,42 +72,72 @@ def create_field_zones_accurate(field_coordinates):
             ['Southwest', 'South', 'Southeast']
         ]
         
+        # Calculate the field's extent along its primary axes
+        # Project all vertices onto the primary and secondary axes
+        primary_projections = []
+        secondary_projections = []
+        
+        for vertex in vertices:
+            # Vector from centroid to vertex
+            v = (vertex[0] - cx, vertex[1] - cy)
+            # Project onto primary and secondary axes
+            primary_proj = v[0] * primary_unit[0] + v[1] * primary_unit[1]
+            secondary_proj = v[0] * secondary_unit[0] + v[1] * secondary_unit[1]
+            primary_projections.append(primary_proj)
+            secondary_projections.append(secondary_proj)
+        
+        # Get the range of projections
+        primary_min, primary_max = min(primary_projections), max(primary_projections)
+        secondary_min, secondary_max = min(secondary_projections), max(secondary_projections)
+        
+        # Create 3x3 grid of zones aligned with field orientation
         for row in range(3):
             for col in range(3):
                 zone_name = zone_names[row][col]
                 
-                # Calculate zone boundaries as fractions of the field extent
-                x_start = minx + (col / 3.0) * field_width
-                x_end = minx + ((col + 1) / 3.0) * field_width
-                y_start = miny + (row / 3.0) * field_height
-                y_end = miny + ((row + 1) / 3.0) * field_height
+                # Calculate zone boundaries along field axes
+                primary_start = primary_min + (col / 3.0) * (primary_max - primary_min)
+                primary_end = primary_min + ((col + 1) / 3.0) * (primary_max - primary_min)
+                secondary_start = secondary_min + (row / 3.0) * (secondary_max - secondary_min)
+                secondary_end = secondary_min + ((row + 1) / 3.0) * (secondary_max - secondary_min)
                 
-                # Create zone rectangle
-                zone_rect = Polygon([
-                    (x_start, y_start),
-                    (x_end, y_start),
-                    (x_end, y_end),
-                    (x_start, y_end)
-                ])
+                # Convert back to geographic coordinates
+                # Zone corners in local coordinate system
+                corners_local = [
+                    (primary_start, secondary_start),
+                    (primary_end, secondary_start),
+                    (primary_end, secondary_end),
+                    (primary_start, secondary_end)
+                ]
                 
-                # Intersect with field polygon to get the actual zone within the field
+                # Convert to global coordinates
+                corners_global = []
+                for p_proj, s_proj in corners_local:
+                    global_x = cx + p_proj * primary_unit[0] + s_proj * secondary_unit[0]
+                    global_y = cy + p_proj * primary_unit[1] + s_proj * secondary_unit[1]
+                    corners_global.append((global_x, global_y))
+                
+                # Create zone polygon and intersect with field
+                zone_rect = Polygon(corners_global)
                 zone_polygon = field_polygon.intersection(zone_rect)
                 
-                if zone_polygon.is_empty:
-                    # If no intersection, create a small zone at the center
-                    zone_polygon = Point(center_x, center_y).buffer(0.0001)
+                if zone_polygon.is_empty or zone_polygon.area < 1e-10:
+                    # Create a small zone at the expected location
+                    zone_center_x = cx + ((primary_start + primary_end) / 2) * primary_unit[0] + ((secondary_start + secondary_end) / 2) * secondary_unit[0]
+                    zone_center_y = cy + ((primary_start + primary_end) / 2) * primary_unit[1] + ((secondary_start + secondary_end) / 2) * secondary_unit[1]
+                    zone_polygon = Point(zone_center_x, zone_center_y).buffer(0.0001)
                 
                 zones[f"zone_{row}_{col}"] = {
                     'name': zone_name,
                     'polygon': zone_polygon,
-                    'bounds': zone_polygon.bounds if hasattr(zone_polygon, 'bounds') else (center_x, center_y, center_x, center_y)
+                    'bounds': zone_polygon.bounds if hasattr(zone_polygon, 'bounds') else (cx, cy, cx, cy)
                 }
         
-        logger.info(f"Created {len(zones)} accurate field zones accounting for field geometry")
+        logger.info(f"Created {len(zones)} orientation-aware field zones using field's natural axes")
         return zones
         
     except Exception as e:
-        logger.error(f"Error creating accurate field zones: {e}")
+        logger.error(f"Error creating orientation-aware field zones: {e}")
         # Fallback to simple zone creation
         return create_simple_zones_fallback(field_coordinates)
 
