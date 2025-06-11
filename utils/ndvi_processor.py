@@ -42,32 +42,61 @@ def process_ndvi_data(image_data, zones, field_coordinates=None, field_bbox=None
                 g = img_array[:, :, 1].astype(float) 
                 b = img_array[:, :, 2].astype(float)
                 
-                # Convert colorized NDVI back to actual values
-                # Green areas indicate healthy vegetation (high NDVI ~0.5-0.8)
-                # Red/brown areas indicate bare soil or stressed vegetation (low NDVI ~0.0-0.3)
-                # Blue areas indicate water (negative NDVI)
+                # Improved color-to-NDVI mapping for accurate interpretation
+                # Based on standard NDVI visualization: Red=Poor, Yellow=Moderate, Green=Good
                 
-                # Create NDVI mapping based on color analysis
-                ndvi_array = np.zeros_like(r)
+                # Calculate color dominance for accurate classification
+                total_intensity = r + g + b + 1e-6  # Avoid division by zero
+                r_ratio = r / total_intensity
+                g_ratio = g / total_intensity
+                b_ratio = b / total_intensity
                 
-                # Identify green vegetation areas (high green channel)
-                green_mask = (g > r) & (g > b) & (g > 100)
-                ndvi_array[green_mask] = 0.3 + (g[green_mask] / 255.0) * 0.5  # 0.3 to 0.8 range
+                # Create NDVI array based on precise color analysis
+                ndvi_array = np.zeros_like(r, dtype=np.float32)
                 
-                # Identify moderately vegetated areas (yellowish-green)
-                moderate_mask = (g > r) & (g > 80) & (g <= 100) & (~green_mask)
-                ndvi_array[moderate_mask] = 0.2 + (g[moderate_mask] / 255.0) * 0.3  # 0.2 to 0.5 range
+                # Bright green areas (healthy vegetation) - high green dominance
+                bright_green_mask = (g > 180) & (g > r + 50) & (g > b + 50)
+                ndvi_array[bright_green_mask] = 0.6 + (g[bright_green_mask] - 180) / 75.0 * 0.2  # 0.6 to 0.8
                 
-                # Identify bare soil/stressed areas (reddish-brown)
-                stressed_mask = (r >= g) & (r > 50) & (~green_mask) & (~moderate_mask)
-                ndvi_array[stressed_mask] = 0.05 + (r[stressed_mask] / 255.0) * 0.2  # 0.05 to 0.25 range
+                # Medium green areas (good vegetation) - moderate green dominance
+                medium_green_mask = (g > 120) & (g > r + 20) & (g > b + 20) & (~bright_green_mask)
+                ndvi_array[medium_green_mask] = 0.4 + (g[medium_green_mask] - 120) / 60.0 * 0.2  # 0.4 to 0.6
                 
-                # Water or very low vegetation (bluish or very dark)
-                water_mask = (b > r) & (b > g) | ((r + g + b) < 150)
-                ndvi_array[water_mask] = -0.1 + ((r[water_mask] + g[water_mask]) / 510.0) * 0.15  # -0.1 to 0.05 range
+                # Yellow-green areas (moderate vegetation) - mixed green and red
+                yellow_mask = (g > 100) & (r > 80) & (abs(g - r) < 50) & (~bright_green_mask) & (~medium_green_mask)
+                ndvi_array[yellow_mask] = 0.2 + (g[yellow_mask] - 100) / 100.0 * 0.2  # 0.2 to 0.4
+                
+                # Orange areas (stressed vegetation) - more red than green
+                orange_mask = (r > g) & (r > 100) & (g > 50) & (~yellow_mask)
+                ndvi_array[orange_mask] = 0.1 + (g[orange_mask] / 255.0) * 0.1  # 0.1 to 0.2
+                
+                # Red areas (poor/bare soil) - high red dominance
+                red_mask = (r > g + 30) & (r > b + 30) & (r > 80)
+                ndvi_array[red_mask] = -0.1 + (g[red_mask] / 255.0) * 0.2  # -0.1 to 0.1
+                
+                # Very dark red areas (very poor conditions)
+                dark_red_mask = (r > g + 20) & (r > b + 20) & (r > 50) & (r <= 80)
+                ndvi_array[dark_red_mask] = -0.2 + (g[dark_red_mask] / 255.0) * 0.1  # -0.2 to -0.1
+                
+                # Blue/water areas (negative NDVI)
+                water_mask = (b > r) & (b > g) & (b > 100)
+                ndvi_array[water_mask] = -0.3 + (b[water_mask] / 255.0) * 0.1  # -0.3 to -0.2
+                
+                # Very dark areas (shadows or bare soil)
+                dark_mask = (r + g + b < 100) & (~water_mask)
+                ndvi_array[dark_mask] = -0.1
+                
+                # Fill any remaining pixels with basic color ratio
+                unassigned_mask = (ndvi_array == 0) & (~bright_green_mask) & (~medium_green_mask) & (~yellow_mask) & (~orange_mask) & (~red_mask) & (~dark_red_mask) & (~water_mask) & (~dark_mask)
+                if np.any(unassigned_mask):
+                    # Use green-red ratio for unassigned pixels
+                    color_ratio = (g[unassigned_mask] - r[unassigned_mask]) / (g[unassigned_mask] + r[unassigned_mask] + 1e-6)
+                    ndvi_array[unassigned_mask] = color_ratio * 0.4 + 0.2
                 
                 # Ensure values are in valid NDVI range
-                ndvi_array = np.clip(ndvi_array, -1, 1)
+                ndvi_array = np.clip(ndvi_array, -1.0, 1.0)
+                
+                logging.info(f"NDVI color analysis - Red pixels: {np.sum(red_mask)}, Green pixels: {np.sum(bright_green_mask + medium_green_mask)}, Yellow pixels: {np.sum(yellow_mask)}")
             else:
                 # Grayscale image - convert to NDVI range
                 ndvi_array = (img_array[:, :, 0].astype(float) / 255.0) * 1.6 - 0.3  # Map to typical NDVI range
