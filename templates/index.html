@@ -1339,17 +1339,55 @@
                     calculateRectangleArea(currentBounds)
             ) : '';
             
-            // Display NDVI image (same as before)
-            const imageUrl = '/ndvi';
-            document.getElementById('ndvi-result').innerHTML = `
-                <div style="position: relative; display: inline-block;">
-                    <img src="${imageUrl}" alt="NDVI Analysis" class="ndvi-image" style="cursor: pointer; width: 100%;" onclick="openImageModal('${imageUrl}', 'AI-Enhanced NDVI Analysis<br>Crop: ${data.field_metadata.crop_type}<br>Analysis: ${data.field_metadata.analysis_timestamp}')">
-                    <div style="position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.8); color: white; padding: 0.5rem; border-radius: 4px; font-size: 0.75rem;">
-                        📍 ${shapeType.toUpperCase()}: ${areaInfo}
+            // Display NDVI image from the AI analysis request
+            const ndviRequestData = { 
+                bbox: [
+                    currentBounds.getWest(),
+                    currentBounds.getSouth(),
+                    currentBounds.getEast(),
+                    currentBounds.getNorth()
+                ]
+            };
+            
+            if (currentLayer && currentLayer instanceof L.Polygon) {
+                ndviRequestData.geometry = currentLayer.toGeoJSON().geometry;
+            }
+            
+            // Add field ID if available for caching
+            const selectedSite = localStorage.getItem('selectedSite');
+            if (selectedSite) {
+                const site = JSON.parse(selectedSite);
+                ndviRequestData.field_id = site.id;
+            }
+            
+            // Fetch the NDVI image for this specific area
+            fetch('/ndvi', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(ndviRequestData)
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                const imageUrl = URL.createObjectURL(blob);
+                document.getElementById('ndvi-result').innerHTML = `
+                    <div style="position: relative; display: inline-block;">
+                        <img src="${imageUrl}" alt="NDVI Analysis" class="ndvi-image" style="cursor: pointer; width: 100%;" onclick="openImageModal('${imageUrl}', 'AI-Enhanced NDVI Analysis<br>Crop: ${data.field_metadata.crop_type}<br>Analysis: ${data.field_metadata.analysis_timestamp}')">
+                        <div style="position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.8); color: white; padding: 0.5rem; border-radius: 4px; font-size: 0.75rem;">
+                            📍 ${shapeType.toUpperCase()}: ${areaInfo}
+                        </div>
+                        <button onclick="openImageModal('${imageUrl}', 'AI-Enhanced NDVI Analysis')" style="position: absolute; top: 5px; right: 5px; background: rgba(88, 166, 255, 0.9); color: white; border: none; padding: 0.5rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 500;">🔍 Fullscreen</button>
                     </div>
-                    <button onclick="openImageModal('${imageUrl}', 'AI-Enhanced NDVI Analysis')" style="position: absolute; top: 5px; right: 5px; background: rgba(88, 166, 255, 0.9); color: white; border: none; padding: 0.5rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 500;">🔍 Fullscreen</button>
-                </div>
-            `;
+                `;
+            })
+            .catch(error => {
+                document.getElementById('ndvi-result').innerHTML = `
+                    <div style="color: #e74c3c; padding: 1rem; background: #fdf2f2; border-radius: 8px;">
+                        <strong>Error:</strong> Could not load NDVI image for selected area
+                    </div>
+                `;
+            });
             
             // Display AI Recommendations
             displayAIRecommendations(data.ai_recommendations);
@@ -1446,7 +1484,7 @@
                             <h5 style="margin: 0 0 0.5rem 0; color: #f0f6fc;">7-Day Summary</h5>
                             <div style="font-size: 0.9rem; color: #8b949e;">
                                 <div>Rainfall: <span style="color: #f0f6fc;">${summary.total_rainfall_7d}mm</span></div>
-                                <div>Avg Temp: <span style="color: #f0f6fc;">${summary.avg_temperature_7d}°C</span></div>
+                                <div>Avg Temp: <span style="color: #f0f6fc;">${summary.avg_temperature_7d}°F</span></div>
                                 <div>Growing Conditions: <span style="color: #f0f6fc;">${summary.growing_conditions}</span></div>
                                 <div>Drought Risk: <span style="color: ${summary.drought_risk === 'high' ? '#ff6b6b' : summary.drought_risk === 'moderate' ? '#ffa500' : '#58a6ff'};">${summary.drought_risk}</span></div>
                             </div>
@@ -1591,7 +1629,14 @@
             drawnItems.clearLayers();
             
             // Create layer from GeoJSON
-            const layer = L.geoJSON(site.geometry).getLayers()[0];
+            const layer = L.geoJSON(site.geometry, {
+                style: {
+                    color: '#58a6ff',
+                    weight: 2,
+                    fillOpacity: 0.1
+                }
+            }).getLayers()[0];
+            
             drawnItems.addLayer(layer);
             currentLayer = layer;
             currentBounds = layer.getBounds();
@@ -1599,12 +1644,17 @@
             // Fit map to site bounds
             map.fitBounds(currentBounds, { padding: [20, 20] });
             
-            // Update display
+            // Update display and enable controls
             updateCoordinatesDisplay();
             document.getElementById('analyze-btn').disabled = false;
+            document.getElementById('simple-analyze-btn').disabled = false;
+            document.getElementById('crop-selection').style.display = 'block';
             document.getElementById('save-site-btn').disabled = false;
             
-            // Show site info
+            // Set site name in the interface
+            document.getElementById('site-name').value = site.name || '';
+            document.getElementById('site-description').value = site.description || '';
+        }
             const notification = document.createElement('div');
             notification.style.cssText = `
                 position: fixed;
