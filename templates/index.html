@@ -1029,19 +1029,15 @@
         
         // Initialize map
         function initMap() {
-            console.log('initMap() called - checking device type');
-            console.log('Window width in initMap():', window.innerWidth);
-            
-            // Check if mobile device first
-            const isMobile = window.innerWidth <= 767.98;
-            console.log('isMobile in initMap():', isMobile);
-            
-            if (isMobile) {
-                console.log('Mobile device detected - skipping map initialization and showing mobile interface');
-                mapInitialized = true; // Prevent further initialization attempts
+            // MOBILE DETECTION - FIRST PRIORITY
+            if (window.innerWidth <= 767.98) {
+                console.log('MOBILE DETECTED - Width:', window.innerWidth, '- Stopping map initialization');
+                mapInitialized = true;
                 setupMobileInterface();
                 return;
             }
+            
+            console.log('DESKTOP DETECTED - Width:', window.innerWidth, '- Proceeding with map');
             
             if (mapInitialized) {
                 console.log('Map already initialized, skipping...');
