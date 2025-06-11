@@ -497,11 +497,12 @@
             }
             
             .map-container {
-                display: none; /* Hide map container on mobile */
+                display: none !important; /* Hide map container on mobile */
             }
             
             /* Mobile site selection interface */
             .mobile-site-selector {
+                display: block !important; /* Ensure mobile selector is visible */
                 width: 100%;
                 background: rgba(13, 17, 23, 0.95);
                 border: 1px solid rgba(88, 166, 255, 0.12);
@@ -1001,6 +1002,16 @@
         
         // Initialize map
         function initMap() {
+            // Check if mobile device first
+            const isMobile = window.innerWidth <= 767.98;
+            
+            if (isMobile) {
+                console.log('Mobile device detected - skipping map initialization and showing mobile interface');
+                mapInitialized = true; // Prevent further initialization attempts
+                setupMobileInterface();
+                return;
+            }
+            
             if (mapInitialized) {
                 console.log('Map already initialized, skipping...');
                 return;
@@ -1547,6 +1558,30 @@
             window.mobileSelectedCoordinates = null;
             currentBounds = null;
             console.log('Mobile selection cleared');
+        }
+        
+        // Setup mobile interface
+        function setupMobileInterface() {
+            console.log('Setting up mobile interface...');
+            
+            // Ensure map container is hidden and mobile selector is visible
+            const mapContainer = document.querySelector('.map-container');
+            const mobileSelector = document.querySelector('.mobile-site-selector');
+            
+            if (mapContainer) {
+                mapContainer.style.display = 'none';
+                console.log('Map container hidden on mobile');
+            }
+            
+            if (mobileSelector) {
+                mobileSelector.style.display = 'block';
+                console.log('Mobile site selector shown');
+            } else {
+                console.error('Mobile site selector not found');
+            }
+            
+            // Initialize any mobile-specific functionality
+            console.log('Mobile interface setup complete');
         }
 
         function retryMapInit() {
