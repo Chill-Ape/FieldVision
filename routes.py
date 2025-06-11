@@ -1,14 +1,20 @@
 from flask import render_template, request, jsonify, flash, redirect, url_for, Response
-from main import app
-from app import db
+from app import app, db
 from models import Field, FieldAnalysis
 from utils.sentinel_hub import fetch_ndvi_image
 from utils.ndvi_processor import process_ndvi_data, calculate_field_zones
 from utils.ai_recommendations import generate_recommendations
 from utils.weather_service import get_weather_data
+from auth import SentinelHubAuth
+from ndvi_fetcher import NDVIFetcher
 import logging
 import json
 from datetime import datetime
+
+# Initialize satellite functionality
+logger = logging.getLogger(__name__)
+auth_handler = SentinelHubAuth()
+ndvi_fetcher = NDVIFetcher(auth_handler)
 
 @app.route('/')
 def index():
@@ -205,3 +211,95 @@ def get_cached_ndvi(field_id):
             'Cache-Control': 'public, max-age=86400'
         }
     )
+
+@app.route('/ndvi', methods=['GET', 'POST'])
+def get_ndvi_image():
+    """
+    Fetch NDVI image from Sentinel Hub API
+    
+    GET: Uses default bounding box
+    POST: Accepts custom bounding box in JSON format: {"bbox": [lng1, lat1, lng2, lat2]}
+    
+    Returns:
+        PNG image response or error message
+    """
+    try:
+        # Determine bounding box and geometry
+        if request.method == 'POST':
+            data = request.get_json()
+            if not data or 'bbox' not in data:
+                return jsonify({"error": "Missing 'bbox' in request JSON"}), 400
+            bbox = data['bbox']
+            geometry = data.get('geometry')  # Optional polygon geometry
+        else:
+            bbox = [-122.5, 37.7, -122.3, 37.9]  # Default San Francisco Bay Area
+            geometry = None
+        
+        # Validate bounding box
+        if not ndvi_fetcher.validate_bbox(bbox):
+            return jsonify({"error": "Invalid bounding box format or coordinates"}), 400
+        
+        logger.info(f"Fetching NDVI image for bbox: {bbox}")
+        
+        # Check if credentials are available
+        if not auth_handler.is_authenticated():
+            return jsonify({
+                "error": "Sentinel Hub credentials not configured",
+                "message": "Please set SENTINEL_HUB_CLIENT_ID and SENTINEL_HUB_CLIENT_SECRET environment variables"
+            }), 503
+        
+        # Check if this is for a saved field and has cached NDVI
+        field_id = None
+        if request.method == 'POST':
+            data = request.get_json() or {}
+            field_id = data.get('field_id')
+        
+        # Try to use cached image if available and fresh
+        if field_id:
+            try:
+                field = Field.query.get(field_id)
+                if field and field.has_cached_ndvi() and field.is_ndvi_cache_fresh():
+                    logger.info(f"Serving cached NDVI for field {field_id}")
+                    return Response(
+                        field.get_cached_ndvi_image(),
+                        mimetype='image/png',
+                        headers={
+                            'Content-Disposition': f'inline; filename="ndvi_field_{field_id}.png"',
+                            'Cache-Control': 'public, max-age=86400'
+                        }
+                    )
+            except Exception as e:
+                logger.warning(f"Could not check cached NDVI: {e}")
+        
+        # Fetch NDVI image from API
+        image_data = ndvi_fetcher.fetch_ndvi_image(bbox, geometry=geometry)
+        
+        if image_data:
+            # Cache the image if this is for an existing saved field
+            if field_id:
+                try:
+                    field = Field.query.get(field_id)
+                    if field:
+                        field.cache_ndvi_image(image_data)
+                        db.session.commit()
+                        logger.info(f"Cached NDVI image for field {field_id}")
+                except Exception as e:
+                    logger.warning(f"Could not cache NDVI: {e}")
+            
+            return Response(
+                image_data,
+                mimetype='image/png',
+                headers={
+                    'Content-Disposition': f'inline; filename="ndvi_{bbox[0]}_{bbox[1]}.png"',
+                    'Cache-Control': 'public, max-age=3600'
+                }
+            )
+        else:
+            return jsonify({
+                "error": "Failed to fetch NDVI image",
+                "message": "Could not retrieve satellite data. Check logs for details."
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Error in /ndvi endpoint: {e}")
+        return jsonify({"error": "Internal server error", "message": str(e)}), 500
