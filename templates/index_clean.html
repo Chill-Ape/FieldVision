@@ -357,6 +357,16 @@
         </div>
         
         <div class="section">
+            <h3>Map Layers</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem;">
+                <button class="btn btn-secondary" onclick="changeMapLayer('osm')" id="osm-btn" style="font-size: 0.8rem; padding: 0.4rem;">Street</button>
+                <button class="btn btn-secondary" onclick="changeMapLayer('satellite')" id="satellite-btn" style="font-size: 0.8rem; padding: 0.4rem;">Satellite</button>
+                <button class="btn btn-secondary" onclick="changeMapLayer('topo')" id="topo-btn" style="font-size: 0.8rem; padding: 0.4rem;">Topo</button>
+                <button class="btn btn-secondary" onclick="changeMapLayer('terrain')" id="terrain-btn" style="font-size: 0.8rem; padding: 0.4rem;">Terrain</button>
+            </div>
+        </div>
+
+        <div class="section">
             <h3>Location Search</h3>
             <div class="search-container">
                 <input type="text" id="address-input" class="search-input" 
@@ -527,6 +537,9 @@
             }
         }
         
+        let currentTileLayer;
+        let mapLayers = {};
+        
         function initializeMap() {
             // Clear any existing map
             if (mapInstance) {
@@ -535,9 +548,26 @@
             
             mapInstance = L.map('map').setView([37.7749, -122.4194], 10);
             
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(mapInstance);
+            // Define map layers
+            mapLayers = {
+                osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }),
+                satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                }),
+                topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                    attribution: 'Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)'
+                }),
+                terrain: L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}{r}.png', {
+                    attribution: 'Map tiles by Stamen Design, CC BY 3.0 — Map data © OpenStreetMap contributors'
+                })
+            };
+            
+            // Add default layer (street map)
+            currentTileLayer = mapLayers.osm;
+            currentTileLayer.addTo(mapInstance);
+            updateLayerButtons('osm');
             
             drawnItemsGroup = new L.FeatureGroup();
             mapInstance.addLayer(drawnItemsGroup);
@@ -719,6 +749,37 @@
             if (analyzeBtn) analyzeBtn.disabled = true;
             if (saveBtn) saveBtn.disabled = true;
             if (clearBtn) clearBtn.disabled = true;
+        }
+        
+        function changeMapLayer(layerType) {
+            if (currentTileLayer && mapInstance) {
+                mapInstance.removeLayer(currentTileLayer);
+            }
+            
+            if (mapLayers[layerType]) {
+                currentTileLayer = mapLayers[layerType];
+                currentTileLayer.addTo(mapInstance);
+                updateLayerButtons(layerType);
+            }
+        }
+        
+        function updateLayerButtons(activeLayer) {
+            // Reset all buttons
+            const buttons = ['osm-btn', 'satellite-btn', 'topo-btn', 'terrain-btn'];
+            buttons.forEach(btnId => {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    btn.className = 'btn btn-secondary';
+                    btn.style.fontSize = '0.8rem';
+                    btn.style.padding = '0.4rem';
+                }
+            });
+            
+            // Highlight active button
+            const activeBtn = document.getElementById(activeLayer + '-btn');
+            if (activeBtn) {
+                activeBtn.className = 'btn btn-primary';
+            }
         }
         
         function searchAddress() {
