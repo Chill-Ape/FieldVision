@@ -62,15 +62,27 @@
                 </div>
                 <div class="card-body">
                     {% if field.has_cached_ndvi() %}
-                        <div class="text-center mb-3">
-                            <img src="{{ url_for('get_cached_ndvi', field_id=field.id) }}" 
-                                 alt="NDVI Analysis for {{ field.name }}" 
-                                 class="img-fluid rounded"
-                                 style="max-height: 400px; width: auto;"
-                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                            <div class="alert alert-warning" style="display: none;">
-                                <strong>NDVI Image Unavailable</strong><br>
-                                The satellite analysis image could not be loaded. Please try regenerating the analysis.
+                        <div class="text-center mb-3 position-relative">
+                            <div class="form-check form-check-inline mb-2">
+                                <input class="form-check-input" type="checkbox" id="zoneOverlay" onchange="toggleZoneOverlay()">
+                                <label class="form-check-label text-light" for="zoneOverlay">
+                                    <small>Show Zone Boundaries</small>
+                                </label>
+                            </div>
+                            <div class="position-relative d-inline-block" id="ndvi-container">
+                                <img id="ndvi-image" 
+                                     src="{{ url_for('get_cached_ndvi', field_id=field.id) }}" 
+                                     alt="NDVI Analysis for {{ field.name }}" 
+                                     class="img-fluid rounded"
+                                     style="max-height: 400px; width: auto;"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                <canvas id="zone-overlay" 
+                                        class="position-absolute top-0 start-0" 
+                                        style="display: none; pointer-events: none; border-radius: 6px;"></canvas>
+                                <div class="alert alert-warning" style="display: none;">
+                                    <strong>NDVI Image Unavailable</strong><br>
+                                    The satellite analysis image could not be loaded. Please try regenerating the analysis.
+                                </div>
                             </div>
                         </div>
                         
@@ -942,6 +954,7 @@ function deleteAIInsight(insightId) {
 // Check if AI insight was already generated today when page loads
 document.addEventListener('DOMContentLoaded', function() {
     checkDailyAILimit({{ field.id }});
+    setupZoneOverlay();
 });
 
 function checkDailyAILimit(fieldId) {
@@ -967,5 +980,103 @@ function checkDailyAILimit(fieldId) {
         }
     }
 }
+
+function setupZoneOverlay() {
+    const ndviImage = document.getElementById('ndvi-image');
+    if (ndviImage) {
+        ndviImage.onload = function() {
+            resizeZoneOverlay();
+        };
+        // If image is already loaded
+        if (ndviImage.complete) {
+            resizeZoneOverlay();
+        }
+    }
+}
+
+function resizeZoneOverlay() {
+    const ndviImage = document.getElementById('ndvi-image');
+    const canvas = document.getElementById('zone-overlay');
+    
+    if (ndviImage && canvas) {
+        canvas.width = ndviImage.offsetWidth;
+        canvas.height = ndviImage.offsetHeight;
+        canvas.style.width = ndviImage.offsetWidth + 'px';
+        canvas.style.height = ndviImage.offsetHeight + 'px';
+    }
+}
+
+function toggleZoneOverlay() {
+    const checkbox = document.getElementById('zoneOverlay');
+    const canvas = document.getElementById('zone-overlay');
+    
+    if (checkbox.checked) {
+        drawZoneOverlay();
+        canvas.style.display = 'block';
+    } else {
+        canvas.style.display = 'none';
+    }
+}
+
+function drawZoneOverlay() {
+    const canvas = document.getElementById('zone-overlay');
+    const ctx = canvas.getContext('2d');
+    
+    if (!canvas || !ctx) return;
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Zone labels and their positions in the 3x3 grid
+    const zones = [
+        ['Northwest', 'North', 'Northeast'],
+        ['West', 'Center', 'East'], 
+        ['Southwest', 'South', 'Southeast']
+    ];
+    
+    // Calculate zone dimensions
+    const zoneWidth = canvas.width / 3;
+    const zoneHeight = canvas.height / 3;
+    
+    // Draw zone boundaries and labels
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.lineWidth = 2;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.font = 'bold 12px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+            const x = col * zoneWidth;
+            const y = row * zoneHeight;
+            
+            // Draw zone boundary
+            ctx.strokeRect(x, y, zoneWidth, zoneHeight);
+            
+            // Calculate label position (center of zone)
+            const labelX = x + zoneWidth / 2;
+            const labelY = y + zoneHeight / 2;
+            
+            // Draw label background
+            const labelText = zones[row][col];
+            const textMetrics = ctx.measureText(labelText);
+            const textWidth = textMetrics.width;
+            const textHeight = 16;
+            
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(labelX - textWidth/2 - 4, labelY - textHeight/2 - 2, textWidth + 8, textHeight + 4);
+            
+            // Draw label text
+            ctx.fillStyle = 'white';
+            ctx.fillText(labelText, labelX, labelY);
+        }
+    }
+}
+
+// Resize overlay when window resizes
+window.addEventListener('resize', function() {
+    setTimeout(resizeZoneOverlay, 100);
+});
 </script>
 {% endblock %}
