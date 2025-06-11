@@ -540,21 +540,42 @@ function generateAIInsights(fieldId) {
     .then(response => response.json())
     .then(data => {
         if (data.success && data.insights) {
-            // Update the timeline item with actual insights
-            updateAIInsightInTimeline(aiInsightId, data.insights);
+            // Remove temporary insight and reload page to show persisted insight
+            const tempElement = document.getElementById(aiInsightId);
+            if (tempElement) {
+                tempElement.remove();
+            }
             showSuccess('AI insights generated successfully!');
+            setTimeout(() => location.reload(), 1500);
         } else {
-            // Update with error message
-            updateAIInsightInTimeline(aiInsightId, null, data.error || 'Unknown error');
+            // Handle daily limit error
+            if (data.error && data.error.includes('already generated today')) {
+                updateAIInsightInTimeline(aiInsightId, null, 'Daily AI analysis limit reached. Only one AI insight per field per day is allowed.');
+                showInfo('Daily AI analysis limit reached. You can generate a new analysis tomorrow.');
+                
+                // Disable the button until tomorrow
+                btn.innerHTML = '<i class="fas fa-clock me-2"></i>Available Tomorrow';
+                btn.disabled = true;
+                btn.classList.remove('btn-warning');
+                btn.classList.add('btn-secondary');
+                return; // Don't re-enable button
+            } else {
+                updateAIInsightInTimeline(aiInsightId, null, data.error || 'Failed to generate insights');
+                showError(data.error || 'Failed to generate AI insights. Please try again.');
+            }
         }
     })
     .catch(error => {
         console.error('Error:', error);
         updateAIInsightInTimeline(aiInsightId, null, 'Failed to generate AI insights. Please try again.');
+        showError('Failed to generate AI insights. Please try again.');
     })
     .finally(() => {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
+        // Only re-enable if not disabled due to daily limit
+        if (!btn.classList.contains('btn-secondary')) {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
     });
 }
 
@@ -860,6 +881,35 @@ function deleteAIInsight(insightId) {
         console.error('Error:', error);
         showError('Error deleting AI insight. Please try again.');
     });
+}
+
+// Check if AI insight was already generated today when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    checkDailyAILimit({{ field.id }});
+});
+
+function checkDailyAILimit(fieldId) {
+    // Check if there's an AI insight from today
+    const today = new Date().toDateString();
+    const aiInsights = document.querySelectorAll('[id^="ai-insight-"]');
+    
+    // If we have AI insights from today, disable the button
+    for (let insight of aiInsights) {
+        const dateElement = insight.querySelector('small.text-muted');
+        if (dateElement) {
+            const insightDate = new Date(dateElement.textContent.trim());
+            if (insightDate.toDateString() === today) {
+                const btn = document.querySelector(`button[onclick="generateAIInsights(${fieldId})"]`);
+                if (btn) {
+                    btn.innerHTML = '<i class="fas fa-clock me-2"></i>Available Tomorrow';
+                    btn.disabled = true;
+                    btn.classList.remove('btn-warning');
+                    btn.classList.add('btn-secondary');
+                }
+                break;
+            }
+        }
+    }
 }
 </script>
 {% endblock %}
