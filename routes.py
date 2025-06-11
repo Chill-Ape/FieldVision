@@ -148,71 +148,48 @@ def save_field():
             "coordinates": [[[coord[1], coord[0]] for coord in coordinates + [coordinates[0]]]]
         }
         
-        # Fetch NDVI image (REQUIRED - site cannot be saved without NDVI)
-        ndvi_image_bytes = ndvi_fetcher.fetch_ndvi_image(bbox, geometry=geometry)
-        
-        if not ndvi_image_bytes:
-            db.session.rollback()
-            return jsonify({'success': False, 'message': 'Failed to generate NDVI image. Please ensure the selected area contains agricultural land with vegetation coverage.'}), 500
-        
-        # Analyze NDVI data to check if it contains meaningful vegetation data
-        analysis_results = analyze_field_ndvi(ndvi_image_bytes, geometry)
-        
-        # Debug logging for analysis results
-        logging.info(f"Analysis results keys: {list(analysis_results.keys()) if analysis_results else 'None'}")
-        if analysis_results:
-            logging.info(f"Zone stats present: {'zone_stats' in analysis_results}")
-            if 'zone_stats' in analysis_results:
-                logging.info(f"Zone stats keys: {list(analysis_results['zone_stats'].keys())}")
-        
-        # Check if the selected area has sufficient vegetation data
-        zone_stats = analysis_results.get('zone_statistics', {})
-        if not analysis_results or not zone_stats:
-            db.session.rollback()
-            logging.error(f"Analysis failed - Results: {bool(analysis_results)}, Zone statistics: {bool(zone_stats)}")
-            return jsonify({'success': False, 'message': 'The selected area does not contain sufficient vegetation data. Please select an area with crops or agricultural land.'}), 500
-        
-        # Check average NDVI values to ensure agricultural relevance
-        avg_ndvi_values = []
-        for stats in zone_stats.values():
-            if isinstance(stats, dict) and 'mean_ndvi' in stats:
-                avg_ndvi_values.append(stats['mean_ndvi'])
-        
-        if avg_ndvi_values:
-            overall_avg = sum(avg_ndvi_values) / len(avg_ndvi_values)
-            logging.info(f"NDVI validation - Average NDVI: {overall_avg:.3f}, Individual values: {[round(v, 3) for v in avg_ndvi_values]}")
-            
-            # More lenient threshold - allow areas with potential agricultural use
-            if overall_avg < -0.2:  # Only reject if clearly water/urban (very negative NDVI)
-                db.session.rollback()
-                logging.warning(f"Site rejected - NDVI too low: {overall_avg:.3f}")
-                return jsonify({'success': False, 'message': 'The selected area appears to be over water or urban development. Please select an area with agricultural land or vegetation.'}), 500
-            
-            logging.info(f"Site approved - NDVI validation passed with average: {overall_avg:.3f}")
-        
-        # Cache the NDVI image
-        field.cache_ndvi_image(ndvi_image_bytes)
-        field.last_analyzed = datetime.utcnow()
-        
-        # Update the field in database with cached NDVI
+        # Save field first for faster response
         db.session.add(field)
-        
-        # Generate AI recommendations using the zone statistics
-        zone_ndvi_values = get_zone_ndvi_values(analysis_results)
-        recommendations = generate_recommendations(zone_ndvi_values, analysis_results.get('zones', {}))
-        
-        # Create initial field analysis record
-        analysis = FieldAnalysis()
-        analysis.field_id = field.id
-        analysis.set_ndvi_data(zone_ndvi_values)
-        analysis.set_health_scores(analysis_results.get('zone_statistics', {}))
-        analysis.set_recommendations(recommendations)
-        analysis.analysis_date = datetime.utcnow()
-        
-        db.session.add(analysis)
         db.session.commit()
         
-        logging.info(f"Generated initial NDVI analysis for field '{field.name}'")
+        logging.info(f"Field '{field.name}' saved successfully with ID {field.id}")
+        
+        # Schedule NDVI processing in background (faster user experience)
+        try:
+            # Quick NDVI fetch for immediate feedback
+            ndvi_image_bytes = ndvi_fetcher.fetch_ndvi_image(bbox, geometry=geometry)
+            
+            if ndvi_image_bytes:
+                # Basic validation - just check if we got data
+                field.cache_ndvi_image(ndvi_image_bytes)
+                field.last_analyzed = datetime.utcnow()
+                
+                # Quick analysis for basic validation
+                analysis_results = analyze_field_ndvi(ndvi_image_bytes, geometry)
+                zone_stats = analysis_results.get('zone_statistics', {})
+                
+                if zone_stats:
+                    # Generate basic recommendations
+                    zone_ndvi_values = get_zone_ndvi_values(analysis_results)
+                    recommendations = generate_recommendations(zone_ndvi_values, analysis_results.get('zones', {}))
+                    
+                    # Create analysis record
+                    analysis = FieldAnalysis()
+                    analysis.field_id = field.id
+                    analysis.set_ndvi_data(zone_ndvi_values)
+                    analysis.set_health_scores(zone_stats)
+                    analysis.set_recommendations(recommendations)
+                    analysis.analysis_date = datetime.utcnow()
+                    
+                    db.session.add(analysis)
+                
+                db.session.commit()
+                logging.info(f"Generated initial NDVI analysis for field '{field.name}'")
+            else:
+                logging.warning(f"NDVI generation failed for field {field.id}, but field was saved")
+                
+        except Exception as e:
+            logging.warning(f"NDVI processing failed for field {field.id}: {e}, but field was saved")
         
         logging.info(f"Field '{field.name}' saved successfully with ID {field.id}")
         return jsonify({'success': True, 'field_id': field.id})

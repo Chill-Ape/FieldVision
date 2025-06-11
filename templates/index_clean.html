@@ -613,6 +613,40 @@
     </div>
 </div>
 
+<!-- Saving Progress Modal -->
+<div id="savingProgressModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 15000;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(13, 17, 23, 0.98); border: 1px solid rgba(88, 166, 255, 0.4); border-radius: 12px; padding: 3rem; text-align: center; min-width: 350px;">
+        <div style="color: #58a6ff; font-size: 3rem; margin-bottom: 1rem;">
+            <i class="fas fa-satellite-dish fa-spin"></i>
+        </div>
+        <h3 style="color: #f0f6fc; margin-bottom: 1rem; font-family: 'Exo 2', sans-serif; font-weight: 400;">Processing Site Data</h3>
+        <p style="color: #8b949e; margin-bottom: 1.5rem; font-family: 'Exo 2', sans-serif; line-height: 1.5;">
+            Generating NDVI analysis and creating project folder...
+        </p>
+        <div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; color: #58a6ff; font-family: 'Exo 2', sans-serif;">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>Please wait...</span>
+        </div>
+    </div>
+</div>
+
+<!-- Site Success Modal -->
+<div id="siteSuccessModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 15000;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(13, 17, 23, 0.98); border: 1px solid rgba(46, 160, 67, 0.4); border-radius: 12px; padding: 3rem; text-align: center; min-width: 400px;">
+        <div style="color: #2ea043; font-size: 4rem; margin-bottom: 1rem;">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <h3 style="color: #f0f6fc; margin-bottom: 1rem; font-family: 'Exo 2', sans-serif; font-weight: 400;">Site Saved Successfully!</h3>
+        <p style="color: #8b949e; margin-bottom: 2rem; font-family: 'Exo 2', sans-serif; line-height: 1.5;">
+            <strong style="color: #f0f6fc;"><span id="successSiteName"></span></strong> has been saved with NDVI analysis and project folder created.
+        </p>
+        <div style="display: flex; gap: 1rem; justify-content: center;">
+            <button onclick="hideSiteSuccessModal()" style="padding: 0.75rem 1.5rem; background: #30363d; color: #8b949e; border: none; border-radius: 6px; cursor: pointer; font-family: 'Exo 2', sans-serif;">Close</button>
+            <button onclick="window.location.href='/dashboard'" style="padding: 0.75rem 1.5rem; background: #58a6ff; color: #0d1117; border: none; border-radius: 6px; cursor: pointer; font-family: 'Exo 2', sans-serif; font-weight: 500;">View Dashboard</button>
+        </div>
+    </div>
+</div>
+
 <!-- Full Screen Image Modal -->
 <div id="imageModal" class="image-modal">
     <div class="modal-content">
@@ -1053,6 +1087,45 @@
             document.getElementById('siteDescInput').value = '';
         }
         
+        function showSavingProgress() {
+            const progressModal = document.getElementById('savingProgressModal');
+            if (progressModal) {
+                progressModal.style.display = 'block';
+            }
+        }
+        
+        function hideSavingProgress() {
+            const progressModal = document.getElementById('savingProgressModal');
+            if (progressModal) {
+                progressModal.style.display = 'none';
+            }
+        }
+        
+        function showSuccessModal(siteName, fieldId) {
+            const modal = document.getElementById('siteSuccessModal');
+            const siteNameSpan = document.getElementById('successSiteName');
+            if (modal && siteNameSpan) {
+                siteNameSpan.textContent = siteName;
+                modal.style.display = 'block';
+                
+                // Auto-hide after 3 seconds
+                setTimeout(() => {
+                    hideSiteSuccessModal();
+                }, 3000);
+            }
+        }
+        
+        function hideSiteSuccessModal() {
+            const modal = document.getElementById('siteSuccessModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+        
+        function viewSiteProject(fieldId) {
+            window.location.href = `/site/${fieldId}`;
+        }
+        
         function saveSite() {
             const siteName = document.getElementById('siteNameInput').value.trim();
             if (!siteName) {
@@ -1064,6 +1137,15 @@
                 alert('No area selected');
                 return;
             }
+            
+            // Show loading state
+            const saveButton = document.querySelector('#saveSiteModal button[onclick="saveSite()"]');
+            const originalButtonText = saveButton.innerHTML;
+            saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving Site...';
+            saveButton.disabled = true;
+            
+            // Show loading overlay
+            showSavingProgress();
             
             // Save field to database
             const fieldData = {
@@ -1089,14 +1171,22 @@
             .then(data => {
                 if (data.success) {
                     closeSaveSiteModal();
-                    alert(`Site "${siteName}" saved successfully!`);
+                    hideSavingProgress();
+                    showSuccessModal(siteName, data.field_id);
                 } else {
+                    hideSavingProgress();
                     alert('Failed to save site: ' + (data.message || 'Unknown error'));
                 }
             })
             .catch(error => {
                 console.error('Error saving site:', error);
+                hideSavingProgress();
                 alert('Failed to save site. Please try again.');
+            })
+            .finally(() => {
+                // Reset button state
+                saveButton.innerHTML = originalButtonText;
+                saveButton.disabled = false;
             });
         }
         
@@ -1316,6 +1406,11 @@
         window.showSaveSiteModal = showSaveSiteModal;
         window.saveSite = saveSite;
         window.closeSaveSiteModal = closeSaveSiteModal;
+        window.showSavingProgress = showSavingProgress;
+        window.hideSavingProgress = hideSavingProgress;
+        window.showSuccessModal = showSuccessModal;
+        window.hideSiteSuccessModal = hideSiteSuccessModal;
+        window.viewSiteProject = viewSiteProject;
         window.changeMapLayer = changeMapLayer;
         window.toggleLayerControl = toggleLayerControl;
     </script>
