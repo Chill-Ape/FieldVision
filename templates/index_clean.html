@@ -627,16 +627,51 @@
             let lng1 = bounds.getWest();
             let lng2 = bounds.getEast();
             
-            return Math.abs((lat2 - lat1) * (lng2 - lng1));
+            // Calculate area using Haversine-based approach for geographic coordinates
+            let latAvg = (lat1 + lat2) / 2;
+            let latDiff = lat2 - lat1;
+            let lngDiff = lng2 - lng1;
+            
+            // Convert to meters using approximate conversion at the given latitude
+            let metersPerDegreeLat = 111320; // meters per degree latitude
+            let metersPerDegreeLng = 111320 * Math.cos(latAvg * Math.PI / 180); // adjust for longitude
+            
+            let heightMeters = Math.abs(latDiff * metersPerDegreeLat);
+            let widthMeters = Math.abs(lngDiff * metersPerDegreeLng);
+            
+            return heightMeters * widthMeters; // area in square meters
         }
         
-        function formatArea(area) {
-            // Convert from decimal degrees to acres using proper conversion
-            let acres = area * 247.105;
-            let hectares = area * 111.32 * 111.32 / 10000;
+        function calculatePolygonArea(latlngs) {
+            // Use the shoelace formula with proper geographic coordinate conversion
+            let area = 0;
+            let j = latlngs.length - 1;
+            
+            // Get average latitude for longitude correction
+            let avgLat = latlngs.reduce((sum, point) => sum + point.lat, 0) / latlngs.length;
+            let metersPerDegreeLat = 111320;
+            let metersPerDegreeLng = 111320 * Math.cos(avgLat * Math.PI / 180);
+            
+            for (let i = 0; i < latlngs.length; i++) {
+                let xi = latlngs[i].lat * metersPerDegreeLat;
+                let yi = latlngs[i].lng * metersPerDegreeLng;
+                let xj = latlngs[j].lat * metersPerDegreeLat;
+                let yj = latlngs[j].lng * metersPerDegreeLng;
+                
+                area += (xj + xi) * (yj - yi);
+                j = i;
+            }
+            
+            return Math.abs(area / 2); // area in square meters
+        }
+        
+        function formatArea(areaSquareMeters) {
+            // Convert square meters to acres and hectares
+            let acres = areaSquareMeters / 4046.86; // 1 acre = 4046.86 square meters
+            let hectares = areaSquareMeters / 10000; // 1 hectare = 10000 square meters
+            let sqft = areaSquareMeters * 10.764; // 1 square meter = 10.764 square feet
             
             if (acres < 0.1) {
-                let sqft = acres * 43560;
                 return `${sqft.toFixed(0)} sq ft (${acres.toFixed(3)} acres)`;
             } else if (acres < 1) {
                 return `${acres.toFixed(2)} acres (${hectares.toFixed(3)} ha)`;
