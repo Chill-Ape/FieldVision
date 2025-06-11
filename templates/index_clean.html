@@ -781,7 +781,9 @@
                             initializeMap();
                             // Check if we're editing an existing field
                             if (editFieldData && editFieldName) {
-                                loadExistingFieldForEditing();
+                                setTimeout(() => {
+                                    loadExistingFieldForEditing();
+                                }, 200);
                             }
                             // Ensure API status is checked
                             checkAPIStatus();
@@ -1520,6 +1522,7 @@
                 // Add to drawn items
                 drawnItemsGroup.addLayer(polygon);
                 currentLayer = polygon;
+                currentBounds = polygon.getBounds();
                 
                 // Fit map to polygon bounds
                 mapInstance.fitBounds(polygon.getBounds(), { padding: [20, 20] });
@@ -1527,11 +1530,62 @@
                 // Update field statistics
                 updateFieldStats(polygon);
                 
-                // Show analyze button
+                // Show analyze button and field info
                 document.getElementById('analyze-section').style.display = 'block';
+                document.getElementById('field-info').style.display = 'block';
+                
+                // Load existing NDVI image if available
+                loadExistingNDVIImage();
                 
                 console.log('Existing field polygon loaded successfully');
             }
+        }
+        
+        function loadExistingNDVIImage() {
+            if (!editFieldId) return;
+            
+            console.log('Loading existing NDVI image for field:', editFieldId);
+            
+            // Check if field has cached NDVI image
+            const ndviImageUrl = `/field/${editFieldId}/cached_ndvi`;
+            
+            // Create a test image to see if NDVI exists
+            const testImg = new Image();
+            testImg.onload = function() {
+                console.log('NDVI image found, displaying...');
+                
+                // Show the NDVI image in the results section
+                const resultSection = document.getElementById('result-section');
+                const ndviImageContainer = document.getElementById('ndvi-image-container');
+                const ndviImage = document.getElementById('ndvi-image');
+                
+                if (resultSection && ndviImageContainer && ndviImage) {
+                    ndviImage.src = ndviImageUrl;
+                    ndviImage.onerror = function() {
+                        console.log('Failed to load NDVI image');
+                        resultSection.style.display = 'none';
+                    };
+                    ndviImage.onload = function() {
+                        console.log('NDVI image loaded successfully');
+                        resultSection.style.display = 'block';
+                        ndviImageContainer.style.display = 'block';
+                        
+                        // Update image info
+                        const imageInfo = document.getElementById('image-info');
+                        if (imageInfo) {
+                            imageInfo.innerHTML = `
+                                <div style="color: #58a6ff; font-weight: 500;">Current NDVI Analysis</div>
+                                <div style="color: #8b949e; font-size: 0.85rem;">Field: ${editFieldName}</div>
+                                <div style="color: #8b949e; font-size: 0.85rem;">Click image to view full screen</div>
+                            `;
+                        }
+                    };
+                }
+            };
+            testImg.onerror = function() {
+                console.log('No existing NDVI image found');
+            };
+            testImg.src = ndviImageUrl;
         }
         
         // Auto-initialize if we're on the index page
