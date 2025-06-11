@@ -298,6 +298,19 @@
     font-size: 0.85rem;
     padding: 0.4rem 0.6rem;
 }
+
+.collapse-icon {
+    transition: transform 0.3s ease;
+}
+
+.ai-insight-header {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.ai-insight-header:hover {
+    background-color: rgba(23, 162, 184, 0.8) !important;
+}
 </style>
 
 <script>
@@ -415,6 +428,22 @@ function addAIInsightToTimeline(insightId, insights = null, isLoading = false) {
     
     // Insert at the beginning of the timeline
     timeline.insertBefore(timelineItem, timeline.firstChild);
+    
+    // Add event listener for collapse toggle to rotate chevron
+    if (!isLoading) {
+        const collapseElement = timelineItem.querySelector(`#collapse-${insightId}`);
+        if (collapseElement) {
+            collapseElement.addEventListener('show.bs.collapse', function () {
+                const icon = timelineItem.querySelector('.collapse-icon');
+                if (icon) icon.style.transform = 'rotate(180deg)';
+            });
+            
+            collapseElement.addEventListener('hide.bs.collapse', function () {
+                const icon = timelineItem.querySelector('.collapse-icon');
+                if (icon) icon.style.transform = 'rotate(0deg)';
+            });
+        }
+    }
 }
 
 function updateAIInsightInTimeline(insightId, insights, error = null) {
@@ -455,33 +484,36 @@ function updateAIInsightInTimeline(insightId, insights, error = null) {
                 <i class="fas fa-brain text-info"></i>
             </div>
             <div class="flex-grow-1">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                    <h6 class="mb-0 text-light">
-                        <i class="fas fa-brain me-2"></i>AI Insights
-                        <button class="btn btn-sm btn-link text-info p-0 ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${insightId}" aria-expanded="false">
-                            <i class="fas fa-chevron-down"></i>
-                        </button>
-                    </h6>
-                    <small class="text-muted">${currentTime}</small>
-                </div>
-                <div class="row mb-2">
-                    <div class="col-md-4">
-                        <small class="text-muted">Confidence:</small>
-                        <span class="fw-bold text-success">${Math.round((insights.confidence_score || 0.7) * 100)}%</span>
+                <!-- Clickable Header -->
+                <div class="card bg-dark border-info">
+                    <div class="card-header bg-info text-white p-2 ai-insight-header" data-bs-toggle="collapse" data-bs-target="#collapse-${insightId}" aria-expanded="false">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">
+                                <i class="fas fa-brain me-2"></i>AI Insights
+                            </h6>
+                            <div class="d-flex align-items-center">
+                                <small class="text-white-50 me-3">${currentTime}</small>
+                                <i class="fas fa-chevron-down collapse-icon"></i>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-4">
+                                <small class="text-white-50">Confidence:</small>
+                                <span class="fw-bold">${Math.round((insights.confidence_score || 0.7) * 100)}%</span>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-white-50">Issues:</small>
+                                <span class="fw-bold">${criticalCount}</span>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-white-50">Actions:</small>
+                                <span class="fw-bold">${actionCount}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-md-4">
-                        <small class="text-muted">Critical Issues:</small>
-                        <span class="fw-bold text-warning">${criticalCount}</span>
-                    </div>
-                    <div class="col-md-4">
-                        <small class="text-muted">Actions:</small>
-                        <span class="fw-bold text-danger">${actionCount}</span>
-                    </div>
-                </div>
-                
-                <!-- Collapsible Content -->
-                <div class="collapse" id="collapse-${insightId}">
-                    <div class="card bg-secondary border-0 mt-2">
+                    
+                    <!-- Collapsible Content -->
+                    <div class="collapse" id="collapse-${insightId}">
                         <div class="card-body p-3">
                             ${generateInsightContent(aiData)}
                         </div>
@@ -490,6 +522,28 @@ function updateAIInsightInTimeline(insightId, insights, error = null) {
             </div>
         </div>
     `;
+    
+    // Add event listeners for collapse functionality
+    setTimeout(() => {
+        const collapseElement = timelineItem.querySelector(`#collapse-${insightId}`);
+        if (collapseElement) {
+            collapseElement.addEventListener('show.bs.collapse', function () {
+                const icon = timelineItem.querySelector('.collapse-icon');
+                if (icon) {
+                    icon.style.transform = 'rotate(180deg)';
+                    icon.style.transition = 'transform 0.3s ease';
+                }
+            });
+            
+            collapseElement.addEventListener('hide.bs.collapse', function () {
+                const icon = timelineItem.querySelector('.collapse-icon');
+                if (icon) {
+                    icon.style.transform = 'rotate(0deg)';
+                    icon.style.transition = 'transform 0.3s ease';
+                }
+            });
+        }
+    }, 100);
 }
 
 function generateInsightContent(aiData) {
