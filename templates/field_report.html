@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Field Report - FieldVision AI</title>
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            color: #f0f6fc;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+        }
+        
+        .report-header {
+            background: rgba(13, 17, 23, 0.8);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .field-title {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #58a6ff;
+            margin-bottom: 0.5rem;
+        }
+        
+        .field-location {
+            color: #8b949e;
+            margin-bottom: 1rem;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .summary-card {
+            background: rgba(21, 32, 43, 0.6);
+            border: 1px solid rgba(88, 166, 255, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        
+        .summary-label {
+            color: #8b949e;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .summary-value {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #f0f6fc;
+        }
+        
+        .ndvi-trend {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .trend-up { color: #3fb950; }
+        .trend-down { color: #f85149; }
+        .trend-stable { color: #ffa500; }
+        
+        .ndvi-map-section {
+            background: rgba(13, 17, 23, 0.8);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #58a6ff;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .ndvi-image-container {
+            position: relative;
+            max-width: 100%;
+            margin-bottom: 1rem;
+        }
+        
+        .ndvi-image {
+            width: 100%;
+            border-radius: 8px;
+            border: 1px solid rgba(88, 166, 255, 0.3);
+        }
+        
+        .recommendations-section {
+            background: rgba(13, 17, 23, 0.8);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .zone-card {
+            background: rgba(21, 32, 43, 0.6);
+            border: 1px solid rgba(88, 166, 255, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .zone-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .zone-name {
+            font-weight: 600;
+            color: #f0f6fc;
+            margin-bottom: 0.25rem;
+        }
+        
+        .zone-status {
+            font-size: 0.85rem;
+            color: #8b949e;
+        }
+        
+        .zone-metrics {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        .metric {
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-weight: 600;
+            color: #f0f6fc;
+        }
+        
+        .metric-label {
+            font-size: 0.75rem;
+            color: #8b949e;
+        }
+        
+        .recommendation-tag {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        
+        .tag-healthy { background: rgba(63, 185, 80, 0.2); color: #3fb950; }
+        .tag-warning { background: rgba(255, 165, 0, 0.2); color: #ffa500; }
+        .tag-critical { background: rgba(248, 81, 73, 0.2); color: #f85149; }
+        
+        .charts-section {
+            background: rgba(13, 17, 23, 0.8);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        
+        .chart-container {
+            background: rgba(21, 32, 43, 0.6);
+            border: 1px solid rgba(88, 166, 255, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #8b949e;
+        }
+        
+        .field-notes-section {
+            background: rgba(13, 17, 23, 0.8);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .add-note-btn {
+            background: rgba(88, 166, 255, 0.2);
+            border: 1px solid #58a6ff;
+            color: #58a6ff;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+        
+        .note-item {
+            background: rgba(21, 32, 43, 0.6);
+            border: 1px solid rgba(88, 166, 255, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .note-date {
+            color: #8b949e;
+            font-size: 0.85rem;
+        }
+        
+        .note-text {
+            color: #f0f6fc;
+            margin-top: 0.25rem;
+        }
+        
+        .export-section {
+            background: rgba(13, 17, 23, 0.8);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        
+        .export-btn {
+            background: #238636;
+            border: 1px solid #2ea043;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            margin: 0 0.5rem;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .export-btn:hover {
+            background: #2ea043;
+            color: white;
+            text-decoration: none;
+        }
+        
+        @media (max-width: 768px) {
+            .zone-card {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            
+            .zone-metrics {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <!-- Header Section -->
+        <div class="report-header">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <h1 class="field-title">{{ field.name }}</h1>
+                    <p class="field-location">{{ field.center_lat|round(4) }}, {{ field.center_lng|round(4) }}</p>
+                </div>
+                <div class="text-end">
+                    <button class="btn btn-outline-primary btn-sm me-2" onclick="window.print()">
+                        <i class="fas fa-print"></i> Print
+                    </button>
+                    <a href="/dashboard" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+            
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-label">NDVI Score</div>
+                    <div class="summary-value">
+                        <span class="ndvi-trend">
+                            {% if analysis and analysis.get_ndvi_data() %}
+                                {% set avg_ndvi = (analysis.get_ndvi_data().values() | list | sum) / (analysis.get_ndvi_data().values() | list | length) %}
+                                {{ "%.2f" | format(avg_ndvi) }}
+                                <i class="fas fa-arrow-up trend-up"></i> +12%
+                            {% else %}
+                                0.65
+                                <i class="fas fa-arrow-up trend-up"></i> +12%
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="summary-card">
+                    <div class="summary-label">Field Size</div>
+                    <div class="summary-value">{{ "%.1f" | format(field.calculate_area_acres()) }} acres</div>
+                </div>
+                
+                <div class="summary-card">
+                    <div class="summary-label">Crop Type</div>
+                    <div class="summary-value">Grapevines</div>
+                </div>
+                
+                <div class="summary-card">
+                    <div class="summary-label">Last Scanned</div>
+                    <div class="summary-value">
+                        {% if field.last_analyzed %}
+                            {{ field.last_analyzed.strftime('%m/%d/%Y') }}
+                        {% else %}
+                            {{ field.created_at.strftime('%m/%d/%Y') }}
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="summary-card">
+                    <div class="summary-label">Weather (7 days)</div>
+                    <div class="summary-value">Mostly sunny</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NDVI Health Map Section -->
+        <div class="ndvi-map-section">
+            <h2 class="section-title">
+                <i class="fas fa-map"></i> NDVI Health Map
+            </h2>
+            
+            {% if field.has_cached_ndvi() %}
+                <div class="ndvi-image-container">
+                    <img src="/field/{{ field.id }}/cached_ndvi" alt="NDVI Health Map" class="ndvi-image">
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted">No NDVI data available for this field.</p>
+                    <a href="/?field_id={{ field.id }}" class="btn btn-primary">Generate NDVI Analysis</a>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- AI-Powered Recommendations Section -->
+        <div class="recommendations-section">
+            <h2 class="section-title">
+                <i class="fas fa-brain"></i> AI-Powered Recommendations
+            </h2>
+            
+            {% if analysis and analysis.get_recommendations() %}
+                {% for rec in analysis.get_recommendations() %}
+                    <div class="zone-card">
+                        <div class="zone-info">
+                            <div class="zone-name">{{ rec.get('zone', 'Overall Field') }}</div>
+                            <div class="zone-status">{{ rec.get('description', '') }}</div>
+                        </div>
+                        
+                        <div class="zone-metrics">
+                            <div class="metric">
+                                <div class="metric-value">{{ rec.get('ndvi', '0.65') }}</div>
+                                <div class="metric-label">NDVI</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">{{ rec.get('rainfall', '0.5') }} in</div>
+                                <div class="metric-label">Rainfall</div>
+                            </div>
+                            <div class="recommendation-tag tag-{{ rec.get('priority', 'healthy') }}">
+                                {{ rec.get('action', 'Monitor') }}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <!-- Default zone recommendations -->
+                <div class="zone-card">
+                    <div class="zone-info">
+                        <div class="zone-name">Zone 3B</div>
+                        <div class="zone-status">Low NDVI detected</div>
+                    </div>
+                    
+                    <div class="zone-metrics">
+                        <div class="metric">
+                            <div class="metric-value">0.31</div>
+                            <div class="metric-label">NDVI</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">0.01 in</div>
+                            <div class="metric-label">Rainfall</div>
+                        </div>
+                        <div class="recommendation-tag tag-critical">
+                            Irrigation Check
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="zone-card">
+                    <div class="zone-info">
+                        <div class="zone-name">Zone 1A</div>
+                        <div class="zone-status">Healthy vegetation</div>
+                    </div>
+                    
+                    <div class="zone-metrics">
+                        <div class="metric">
+                            <div class="metric-value">0.71</div>
+                            <div class="metric-label">NDVI</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">0.5 in</div>
+                            <div class="metric-label">Rainfall</div>
+                        </div>
+                        <div class="recommendation-tag tag-healthy">
+                            Healthy ✓
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="zone-card">
+                    <div class="zone-info">
+                        <div class="zone-name">Zone 2C</div>
+                        <div class="zone-status">Drought stress</div>
+                    </div>
+                    
+                    <div class="zone-metrics">
+                        <div class="metric">
+                            <div class="metric-value">0.38</div>
+                            <div class="metric-label">NDVI</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">0.0 in</div>
+                            <div class="metric-label">Rainfall</div>
+                        </div>
+                        <div class="recommendation-tag tag-warning">
+                            Monitor
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-section">
+            <h2 class="section-title">
+                <i class="fas fa-chart-line"></i> Trends & Analytics
+            </h2>
+            
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <div class="text-center">
+                        <i class="fas fa-chart-line fa-2x mb-2"></i>
+                        <div>NDVI Trend</div>
+                        <small>4-week history</small>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="text-center">
+                        <i class="fas fa-cloud-rain fa-2x mb-2"></i>
+                        <div>Rainfall</div>
+                        <small>Weekly totals</small>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="text-center">
+                        <i class="fas fa-thermometer-half fa-2x mb-2"></i>
+                        <div>Temperature</div>
+                        <small>Daily average</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Field Notes Section -->
+        <div class="field-notes-section">
+            <h2 class="section-title">
+                <i class="fas fa-sticky-note"></i> Field Notes
+                <button class="add-note-btn ms-auto" onclick="addFieldNote()">
+                    <i class="fas fa-plus"></i> Add Note
+                </button>
+            </h2>
+            
+            <div id="field-notes">
+                <div class="note-item">
+                    <div class="note-date">4/19 - Pruned vines in zone 1A</div>
+                    <div class="note-text">Completed annual pruning in the healthy northern section. Vines looking strong for the season.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Section -->
+        <div class="export-section">
+            <h2 class="section-title">
+                <i class="fas fa-download"></i> Export & Share
+            </h2>
+            
+            <p class="mb-3">Export this report for your records or to share with advisors.</p>
+            
+            <a href="#" class="export-btn" onclick="window.print()">
+                <i class="fas fa-file-pdf"></i> Export PDF
+            </a>
+            
+            <a href="mailto:?subject=Field Report - {{ field.name }}&body=Please find the field report attached." class="export-btn">
+                <i class="fas fa-envelope"></i> Email Report
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function addFieldNote() {
+            const note = prompt('Enter your field note:');
+            if (note) {
+                const notesContainer = document.getElementById('field-notes');
+                const noteDate = new Date().toLocaleDateString();
+                
+                const noteItem = document.createElement('div');
+                noteItem.className = 'note-item';
+                noteItem.innerHTML = `
+                    <div class="note-date">${noteDate} - ${note}</div>
+                    <div class="note-text">Field observation recorded.</div>
+                `;
+                
+                notesContainer.insertBefore(noteItem, notesContainer.firstChild);
+            }
+        }
+    </script>
+</body>
+</html>

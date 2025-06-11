@@ -27,6 +27,13 @@ def field_detail(field_id):
     latest_analysis = FieldAnalysis.query.filter_by(field_id=field_id).order_by(FieldAnalysis.analysis_date.desc()).first()
     return render_template('field_detail.html', field=field, analysis=latest_analysis)
 
+@app.route('/field/<int:field_id>/report')
+def field_report(field_id):
+    """Comprehensive field report page"""
+    field = Field.query.get_or_404(field_id)
+    latest_analysis = FieldAnalysis.query.filter_by(field_id=field_id).order_by(FieldAnalysis.analysis_date.desc()).first()
+    return render_template('field_report.html', field=field, analysis=latest_analysis)
+
 @app.route('/api/save_field', methods=['POST'])
 def save_field():
     """Save a new field with polygon data"""

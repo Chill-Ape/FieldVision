@@ -1,0 +1,83 @@
+🎯 Goals of the Reports Page
+Show farmers what’s happening, why it matters, and what to do
+
+Keep it visually clean, easily scannable, and action-oriented
+
+Allow comparison over time (optional upgrade later)
+
+✅ Reports Page Structure (Farmer-Friendly + Action-Driven)
+🧭 1. Header Section (Field Summary)
+📍 Field Name + Location
+
+📅 Date of NDVI scan
+
+📈 NDVI trend summary (e.g., “Down 12% from last week”)
+
+📐 Field size in acres / hectares
+
+🧪 Crop Type
+
+🌤️ Weather overview (last 7 days)
+
+🧠 Visual: compact summary card with weather icons and NDVI change arrows
+
+🌿 2. NDVI Health Map (Interactive)
+Image of the NDVI analysis
+
+Zones highlighted: 🔴🟡🟢
+
+Clickable or hoverable zones with:
+
+NDVI value
+
+“Zone health” label
+
+Action tag: e.g., “Inspect,” “No action,” “Consider irrigation”
+
+🧠 3. AI-Powered Recommendations Section
+Show simple, direct actions for each zone or overall:
+
+Zone	NDVI	Weather	AI Recommendation
+3B	0.32	3mm rain	“Drought stress likely. Check irrigation.”
+1A	0.71	12mm rain	“Healthy zone. No action needed.”
+2C	0.38	0mm rain	“Low NDVI and dry. Consider soil test or pest check.”
+
+🧠 Visual: card per zone, icons for weather/stress, emoji or colored tags
+
+📊 4. Charts Section (Visual Trends)
+📈 NDVI Trend Graph (last 4 weeks)
+
+🌧️ Rainfall Chart (stacked with NDVI if possible)
+
+🌡️ Temperature trend
+
+Let farmers understand what's changing, not just current state.
+
+📷 5. Field Notes (Farmer Log)
+“Add note” button → lets farmer log an action:
+
+“Sprayed zone 2C for mildew”
+
+“Fertilized north section”
+
+Shows date + note alongside NDVI for tracking decisions
+
+📥 6. Export / Share
+PDF export of report (great for advisors, co-ops, records)
+
+Option to email or print
+
+🧠 Design Priorities
+Principle	How to Apply It
+Clarity	Use icons, color tags, zone names
+Actionability	Every section ends with a recommendation
+Simplicity	Use cards, not blocks of text
+Mobile-first	Reports must be readable on phone
+
+🚀 Extra Features (Later Stages)
+Compare “This Week vs Last Week” view
+
+Toggle between “All Fields” or “One Field”
+
+Show GDD (growing degree days) for crop development tracking
+
