@@ -859,6 +859,11 @@
                 <p style="font-size: 0.85rem; color: #8b949e; margin-bottom: 1rem;">
                     Use rectangle or polygon tools to define analysis area
                 </p>
+                <!-- Draw Site Button - Primary Action -->
+                <button id="draw-site-btn" class="btn" onclick="openFullscreenMap()" style="width: 100%; background: #58a6ff; margin-bottom: 1rem; padding: 0.75rem; font-weight: 600;">
+                    📍 Draw Site on Map
+                </button>
+                
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
                     <button id="clear-btn" class="btn btn-warning" onclick="clearDrawings()">
                         Clear Selection
@@ -867,10 +872,6 @@
                         Save as Site
                     </button>
                 </div>
-                <button id="draw-site-btn" class="btn" onclick="openFullscreenMap()" style="width: 100%; background: #58a6ff; margin-bottom: 0.5rem;">
-                    <i class="fas fa-draw-polygon" style="margin-right: 0.5rem;"></i>
-                    Draw Site on Map
-                </button>
             </div>
             
             <div class="section">
