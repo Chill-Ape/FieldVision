@@ -50,6 +50,7 @@ def save_field():
         field.center_lat = center_lat
         field.center_lng = center_lng
         field.set_polygon_coordinates(coordinates)
+        field.created_at = datetime.utcnow()
         
         db.session.add(field)
         db.session.commit()
@@ -59,8 +60,10 @@ def save_field():
         
     except Exception as e:
         logging.error(f"Error saving field: {str(e)}")
+        if 'data' in locals():
+            logging.error(f"Request data: {data}")
         db.session.rollback()
-        return jsonify({'error': 'Failed to save field'}), 500
+        return jsonify({'error': f'Failed to save field: {str(e)}'}), 500
 
 @app.route('/api/analyze_field/<int:field_id>', methods=['POST'])
 def analyze_field(field_id):
@@ -144,36 +147,7 @@ def delete_field(field_id):
         db.session.rollback()
         return jsonify({'error': 'Failed to delete field'}), 500
 
-@app.route('/field/<field_id>/cached_ndvi')
-def get_cached_ndvi(field_id):
-    """Serve cached NDVI image for a field"""
-    try:
-        from app import db
-        cached_data = db.session.execute(
-            db.text("SELECT cached_ndvi_image, ndvi_cache_date FROM field WHERE id = :id AND cached_ndvi_image IS NOT NULL"), 
-            {"id": field_id}
-        ).fetchone()
-        
-        if cached_data and cached_data[0]:
-            # Check if cache is fresh (within 30 days)
-            from datetime import timedelta, datetime
-            if cached_data[1]:
-                cache_age = datetime.utcnow() - cached_data[1]
-                if cache_age < timedelta(days=30):
-                    return Response(
-                        cached_data[0],
-                        mimetype='image/png',
-                        headers={
-                            'Content-Disposition': f'inline; filename="ndvi_field_{field_id}.png"',
-                            'Cache-Control': 'public, max-age=86400'
-                        }
-                    )
-        
-        return jsonify({'error': 'No cached NDVI image found'}), 404
-        
-    except Exception as e:
-        logging.error(f"Error retrieving cached NDVI for field {field_id}: {e}")
-        return jsonify({'error': 'Failed to retrieve cached image'}), 500
+
 
 @app.route('/api/field_history/<int:field_id>')
 def field_history(field_id):
