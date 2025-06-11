@@ -188,25 +188,10 @@
             border-radius: 1px;
         }
         
-        /* Show custom hamburger on mobile, hide default */
-        @media (max-width: 767.98px) {
-            .navbar-toggler-icon {
-                display: none !important;
-            }
-            .custom-hamburger {
-                display: flex !important;
-                position: relative !important;
-            }
-        }
-        
-        /* Show default icon on desktop, hide custom */
-        @media (min-width: 768px) {
-            .navbar-toggler-icon {
-                display: block !important;
-            }
-            .custom-hamburger {
-                display: none !important;
-            }
+        /* Hide all Bootstrap navbar toggle elements */
+        .navbar-toggler,
+        .navbar-toggler-icon {
+            display: none !important;
         }
         
         /* Improve mobile menu styling */
@@ -291,14 +276,7 @@
                 </ul>
             </div>
             
-            <!-- Mobile Menu Button (only visible on small screens) -->
-            <div class="d-lg-none mobile-menu-btn" onclick="toggleMobileMenu()">
-                <div class="hamburger-icon">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
-            </div>
+
         </div>
         
         <!-- Mobile Navigation Menu (only visible on small screens) -->
@@ -359,26 +337,7 @@
             });
         });
     </script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Ensure navbar toggle works on mobile
-            const navbarToggler = document.querySelector('.navbar-toggler');
-            const navbarCollapse = document.querySelector('.navbar-collapse');
-            
-            if (navbarToggler && navbarCollapse) {
-                navbarToggler.addEventListener('click', function() {
-                    navbarCollapse.classList.toggle('show');
-                });
-                
-                // Close menu when clicking outside
-                document.addEventListener('click', function(event) {
-                    if (!navbarToggler.contains(event.target) && !navbarCollapse.contains(event.target)) {
-                        navbarCollapse.classList.remove('show');
-                    }
-                });
-            }
-        });
-    </script>
+
     
     <!-- Navigation JavaScript -->
     <script>
