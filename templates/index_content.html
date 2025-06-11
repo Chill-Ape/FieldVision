@@ -18,81 +18,41 @@
         overflow-x: hidden;
     }
     
-    .header {
+    .analysis-header {
         background: rgba(13, 17, 23, 0.95);
         border-bottom: 1px solid rgba(88, 166, 255, 0.3);
-        padding: 1rem 0;
+        padding: 0.75rem 0;
         backdrop-filter: blur(10px);
+        margin-bottom: 1rem;
     }
     
-    .header-content {
+    .analysis-header-content {
         max-width: 1400px;
         margin: 0 auto;
-        padding: 0 2rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 1rem;
+        padding: 0 1.5rem;
+        text-align: center;
     }
     
-    .header-left h1 {
+    .analysis-title {
         font-family: 'Orbitron', monospace;
-        font-size: 2.5rem;
-        font-weight: 900;
+        font-size: 1.5rem;
+        font-weight: 700;
         background: linear-gradient(45deg, #58a6ff, #79c0ff);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
-        display: flex;
-        align-items: center;
-        gap: 1rem;
         margin: 0;
     }
     
-    .header-icon {
-        font-size: 2.5rem;
-        animation: pulse 2s infinite;
-    }
-    
-    .header p {
+    .analysis-subtitle {
         color: #8b949e;
-        margin-top: 0.5rem;
-        font-size: 1.1rem;
-    }
-    
-    .nav {
-        display: flex;
-        gap: 1rem;
-        background: rgba(30, 36, 61, 0.6);
-        padding: 0.5rem;
-        border-radius: 8px;
-        border: 1px solid rgba(88, 166, 255, 0.15);
-    }
-    
-    .nav-link {
-        color: #8b949e;
-        text-decoration: none;
-        padding: 0.5rem 1rem;
-        border-radius: 6px;
-        transition: all 0.3s ease;
-        font-weight: 500;
-    }
-    
-    .nav-link:hover {
-        color: #58a6ff;
-        background: rgba(88, 166, 255, 0.1);
-    }
-    
-    .nav-link.active {
-        color: #f0f6fc;
-        background: rgba(88, 166, 255, 0.2);
-        border: 1px solid rgba(88, 166, 255, 0.3);
+        margin: 0.25rem 0 0 0;
+        font-size: 0.9rem;
     }
     
     .container {
         display: flex;
-        height: calc(100vh - 120px);
+        height: calc(100vh - 180px);
         gap: 1.5rem;
         padding: 1.5rem;
     }
@@ -439,23 +399,14 @@
     }
 </style>
 
-<div class="header">
-    <div class="header-content">
-        <div class="header-left">
-            <h1>
-                <div class="header-icon">📡</div>
-                Satellite Intelligence
-            </h1>
-            <nav class="nav">
-                <a href="/" class="nav-link active">Analysis</a>
-                <a href="/sites" class="nav-link">My Sites</a>
-                <a href="/dashboard" class="nav-link">Reports</a>
-            </nav>
-        </div>
-        <p>Professional vegetation health analysis using Sentinel-2 satellite data</p>
+<div class="analysis-header">
+    <div class="analysis-header-content">
+        <h1 class="analysis-title">📡 Satellite Intelligence</h1>
+        <p class="analysis-subtitle">Professional vegetation health analysis using Sentinel-2 satellite data</p>
     </div>
-    
-    <div class="container">
+</div>
+
+<div class="container">
         <div class="sidebar">
             <div class="section">
                 <div id="status-indicator" class="status-indicator status-success">
