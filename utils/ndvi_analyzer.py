@@ -20,13 +20,13 @@ class NDVIAnalyzer:
         """Initialize the NDVI analyzer with agricultural parameters"""
         self.zone_grid_size = (3, 3)  # 3x3 grid for zone analysis
         
-        # NDVI classification thresholds (adjusted for realistic agricultural values)
+        # NDVI classification thresholds
         self.ndvi_thresholds = {
-            'excellent': 0.8,    # Very healthy, dense vegetation
-            'good': 0.6,         # Healthy vegetation
-            'moderate': 0.4,     # Moderate vegetation health
-            'stressed': 0.2,     # Stressed vegetation
-            'poor': 0.0          # Very poor or no vegetation
+            'excellent': 0.7,
+            'good': 0.5,
+            'fair': 0.3,
+            'poor': 0.1,
+            'critical': 0.0
         }
     
     def analyze_ndvi_image(self, image_bytes: bytes, field_geometry: Optional[Dict] = None) -> Dict:
@@ -253,11 +253,11 @@ class NDVIAnalyzer:
         # Field uniformity (lower std = more uniform)
         field_uniformity = max(0, 100 - (field_std * 200))  # Convert to percentage
         
-        # Count zone health status using updated thresholds
+        # Count zone health status
         healthy_zones = sum(1 for stats in zone_stats.values() 
-                           if stats['mean_ndvi'] >= 0.6)  # Good or excellent
+                           if stats['mean_ndvi'] > 0.5)
         stressed_zones = sum(1 for stats in zone_stats.values() 
-                            if stats['mean_ndvi'] < 0.4)  # Stressed or poor
+                            if stats['mean_ndvi'] < 0.3)
         
         # Overall health assessment
         overall_health = self._classify_vegetation_health(field_mean)
@@ -278,16 +278,16 @@ class NDVIAnalyzer:
             return 'excellent'
         elif ndvi_value >= self.ndvi_thresholds['good']:
             return 'good'
-        elif ndvi_value >= self.ndvi_thresholds['moderate']:
-            return 'moderate'
-        elif ndvi_value >= self.ndvi_thresholds['stressed']:
-            return 'stressed'
-        else:
+        elif ndvi_value >= self.ndvi_thresholds['fair']:
+            return 'fair'
+        elif ndvi_value >= self.ndvi_thresholds['poor']:
             return 'poor'
+        else:
+            return 'critical'
     
     def _calculate_health_distribution(self, zone_stats: Dict) -> Dict:
         """Calculate distribution of health classifications across zones"""
-        distribution = {'excellent': 0, 'good': 0, 'moderate': 0, 'stressed': 0, 'poor': 0}
+        distribution = {'excellent': 0, 'good': 0, 'fair': 0, 'poor': 0, 'critical': 0}
         
         for stats in zone_stats.values():
             classification = stats['health_classification']

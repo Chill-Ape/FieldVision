@@ -78,7 +78,7 @@ function evaluatePixel(sample) {
 }
 """
     
-    def create_request_payload(self, bbox: List[float], width: int = 2500, height: int = 2500, days_back: int = 10) -> dict:
+    def create_request_payload(self, bbox: List[float], width: int = 2500, height: int = 2500) -> dict:
         """
         Create the request payload for Sentinel Hub Process API
         
@@ -86,14 +86,13 @@ function evaluatePixel(sample) {
             bbox: Bounding box coordinates [min_lng, min_lat, max_lng, max_lat]
             width: Output image width in pixels
             height: Output image height in pixels
-            days_back: Number of days to look back for imagery
             
         Returns:
             Dictionary containing the complete request payload
         """
-        # Calculate time range - prioritize most recent imagery
+        # Calculate time range (last 30 days)
         end_date = datetime.now()
-        start_date = end_date - timedelta(days=days_back)
+        start_date = end_date - timedelta(days=30)
         
         return {
             "input": {
@@ -110,7 +109,7 @@ function evaluatePixel(sample) {
                             "from": start_date.strftime("%Y-%m-%dT00:00:00Z"),
                             "to": end_date.strftime("%Y-%m-%dT23:59:59Z")
                         },
-                        "maxCloudCoverage": 10
+                        "maxCloudCoverage": 20
                     }
                 }]
             },
@@ -152,58 +151,39 @@ function evaluatePixel(sample) {
             logger.error("Failed to obtain access token")
             return None
         
+        # Create request payload with calculated dimensions
+        payload = self.create_request_payload(bbox, width, height)
+        
         headers = {
             'Authorization': f'Bearer {token}',
             'Content-Type': 'application/json',
             'Accept': 'image/png'
         }
         
-        # Try progressively longer time windows to find the freshest available imagery
-        time_windows = [7, 14, 21, 30]  # Start with 7 days, expand if needed
-        
-        for days_back in time_windows:
-            payload = self.create_request_payload(bbox, width, height, days_back)
+        try:
+            logger.info(f"Requesting NDVI image for bbox: {bbox}")
+            response = requests.post(
+                self.process_url,
+                json=payload,
+                headers=headers,
+                timeout=60
+            )
             
-            try:
-                logger.info(f"Requesting NDVI image for bbox: {bbox} (last {days_back} days)")
-                response = requests.post(
-                    self.process_url,
-                    json=payload,
-                    headers=headers,
-                    timeout=60
-                )
+            if response.status_code == 200:
+                logger.info(f"Successfully fetched NDVI image ({len(response.content)} bytes)")
                 
-                if response.status_code == 200:
-                    logger.info(f"Successfully fetched NDVI image from last {days_back} days ({len(response.content)} bytes)")
-                    
-                    # Apply polygon masking if geometry is provided
-                    if geometry:
-                        return self._apply_polygon_mask(response.content, bbox, geometry, width, height)
-                    
-                    return response.content
-                elif response.status_code == 400:
-                    # Check if it's a "no data" error - try longer time window
-                    try:
-                        error_response = response.json()
-                        if 'no data' in str(error_response).lower() or 'temporal' in str(error_response).lower():
-                            logger.warning(f"No satellite data available in last {days_back} days, trying longer window...")
-                            continue  # Try next time window
-                    except:
-                        pass
-                    
-                    logger.error(f"API request failed with status {response.status_code}: {response.text}")
-                    continue
-                else:
-                    logger.error(f"Failed to fetch NDVI image: {response.status_code} - {response.text}")
-                    continue
-                    
-            except requests.exceptions.RequestException as e:
-                logger.error(f"Error fetching NDVI image: {e}")
-                continue
-        
-        # If we've exhausted all time windows without success
-        logger.error("Failed to fetch NDVI image from any time window")
-        return None
+                # Apply polygon masking if geometry is provided
+                if geometry:
+                    return self._apply_polygon_mask(response.content, bbox, geometry, width, height)
+                
+                return response.content
+            else:
+                logger.error(f"Failed to fetch NDVI image: {response.status_code} - {response.text}")
+                return None
+                
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error fetching NDVI image: {e}")
+            return None
     
     def validate_bbox(self, bbox: List[float]) -> bool:
         """

@@ -33,6 +33,7 @@
             background: rgba(13, 17, 23, 0.95);
             border: 1px solid rgba(88, 166, 255, 0.12);
             border-radius: 8px;
+            overflow: hidden;
             box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
             position: relative;
             min-height: 600px;
@@ -115,18 +116,12 @@
             }
         }
         
-        .map-container {
-            position: relative !important;
-            border-radius: 8px;
-        }
-
         #map {
             width: 100%;
             height: 100%;
             border-radius: 8px;
             position: relative;
             z-index: 1;
-            pointer-events: auto !important;
         }
         
         /* Ensure Leaflet tiles are visible */
@@ -134,47 +129,23 @@
             background: #1a1a1a !important;
             opacity: 1 !important;
             visibility: visible !important;
-            position: relative !important;
-            pointer-events: auto !important;
-            cursor: grab !important;
-        }
-        
-        .leaflet-container.leaflet-drag {
-            cursor: grabbing !important;
         }
         
         .leaflet-tile-pane {
             z-index: 10 !important;
             opacity: 1 !important;
             visibility: visible !important;
-            pointer-events: auto !important;
         }
         
         .leaflet-map-pane {
             z-index: 10 !important;
             opacity: 1 !important;
             visibility: visible !important;
-            pointer-events: auto !important;
         }
         
         .leaflet-tile {
             opacity: 1 !important;
             visibility: visible !important;
-            pointer-events: auto !important;
-        }
-        
-        .leaflet-control-container {
-            pointer-events: auto !important;
-        }
-        
-        /* Ensure no overlaying elements block map interaction */
-        .map-container * {
-            pointer-events: auto !important;
-        }
-        
-        .map-container::before,
-        .map-container::after {
-            pointer-events: none !important;
         }
         
         .section {
@@ -889,12 +860,7 @@
                     keyboard: true,
                     zoomControl: true,
                     attributionControl: true,
-                    preferCanvas: false,
-                    maxBoundsViscosity: 1.0,
-                    worldCopyJump: false,
-                    inertia: true,
-                    inertiaDeceleration: 3000,
-                    inertiaMaxSpeed: 1500
+                    preferCanvas: false
                 }).setView([37.7749, -122.4194], 10);
                 console.log('Map instance created with dragging enabled:', mapInstance);
                 
@@ -912,54 +878,6 @@
                         console.log('Re-enabling dragging...');
                         mapInstance.dragging.enable();
                     }
-                    
-                    // Force proper event handling across entire map area
-                    const mapContainer = mapInstance.getContainer();
-                    
-                    // Force map container to highest z-index
-                    mapContainer.style.zIndex = '999999';
-                    mapContainer.style.position = 'relative';
-                    mapContainer.style.pointerEvents = 'auto';
-                    
-                    // Remove any blocking overlays that might exist
-                    const blockingElements = document.querySelectorAll('[style*="position: fixed"], [style*="position: absolute"]');
-                    blockingElements.forEach(el => {
-                        const style = window.getComputedStyle(el);
-                        const zIndex = parseInt(style.zIndex) || 0;
-                        if (zIndex > 1000 && el.id !== 'saveSiteModal' && el.id !== 'imageModal') {
-                            console.log('Removing blocking element:', el);
-                            el.style.pointerEvents = 'none';
-                        }
-                    });
-                    
-                    // Force all map panes to be interactive
-                    const mapPanes = mapContainer.getElementsByClassName('leaflet-map-pane')[0];
-                    if (mapPanes) {
-                        mapPanes.style.pointerEvents = 'auto';
-                        mapPanes.style.cursor = 'grab';
-                        mapPanes.style.zIndex = '1000000';
-                        
-                        // Force all child elements to allow pointer events
-                        const allElements = mapPanes.querySelectorAll('*');
-                        allElements.forEach(el => {
-                            el.style.pointerEvents = 'auto';
-                        });
-                    }
-                    
-                    // Force leaflet controls to be interactive
-                    const leafletControls = mapContainer.querySelectorAll('.leaflet-control-container *');
-                    leafletControls.forEach(el => {
-                        el.style.pointerEvents = 'auto';
-                        el.style.zIndex = '1000001';
-                    });
-                    
-                    // Add event listeners to debug mouse events
-                    mapContainer.addEventListener('mousedown', function(e) {
-                        console.log('Mouse down at:', e.clientY, 'container height:', mapContainer.offsetHeight);
-                    });
-                    
-                    console.log('Applied z-index fixes for map interaction');
-                    
                 }, 100);
             } catch (error) {
                 console.error('Error creating map:', error);
@@ -992,28 +910,9 @@
                 })
             };
             
-            // Add default layer (try satellite first, fallback to OSM)
+            // Add default layer (satellite view)
             console.log('Adding satellite tile layer to map...');
             currentTileLayer = mapLayers.satellite;
-            
-            // Add error handling for tile loading
-            currentTileLayer.on('tileerror', function(error) {
-                console.error('Satellite tile loading error:', error);
-                console.log('Falling back to OpenStreetMap...');
-                
-                // Remove failed satellite layer
-                mapInstance.removeLayer(currentTileLayer);
-                
-                // Add OSM as fallback
-                currentTileLayer = mapLayers.osm;
-                currentTileLayer.addTo(mapInstance);
-                updateLayerButtons('osm');
-            });
-            
-            currentTileLayer.on('tileload', function() {
-                console.log('Tiles loading successfully');
-            });
-            
             currentTileLayer.addTo(mapInstance);
             console.log('Satellite layer added');
             
