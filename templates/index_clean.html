@@ -738,12 +738,19 @@
             };
             
             // Add default layer (satellite view)
+            console.log('Adding satellite tile layer to map...');
             currentTileLayer = mapLayers.satellite;
             currentTileLayer.addTo(mapInstance);
-            updateLayerButtons('satellite');
+            console.log('Satellite layer added');
             
+            // Ensure layer buttons are updated
+            updateLayerButtons('satellite');
+            console.log('Layer buttons updated');
+            
+            console.log('Creating drawn items group...');
             drawnItemsGroup = new L.FeatureGroup();
             mapInstance.addLayer(drawnItemsGroup);
+            console.log('Drawn items group added to map');
             
             let drawControl = new L.Control.Draw({
                 edit: {
@@ -761,8 +768,11 @@
             mapInstance.addControl(drawControl);
             
             // Add custom layer control widget
+            console.log('Adding layer control widget...');
             addLayerControlWidget();
+            console.log('Layer control widget added');
             
+            console.log('Setting up draw event handlers...');
             mapInstance.on(L.Draw.Event.CREATED, function (e) {
                 let layer = e.layer;
                 drawnItemsGroup.clearLayers();
@@ -774,8 +784,20 @@
                 updateCoordinatesDisplay(layer);
                 enableAnalysisButtons();
             });
+            console.log('Draw event handlers set up');
             
+            console.log('Checking API status...');
             checkAPIStatus();
+            
+            console.log('Map initialization completed successfully!');
+            
+            // Final check - ensure tiles are loading
+            setTimeout(() => {
+                console.log('Final map check - Current tile layer:', currentTileLayer);
+                console.log('Map has layers:', mapInstance.hasLayer(currentTileLayer));
+                console.log('Map zoom level:', mapInstance.getZoom());
+                console.log('Map center:', mapInstance.getCenter());
+            }, 1000);
         }
         
         function updateCoordinatesDisplay(layer) {
