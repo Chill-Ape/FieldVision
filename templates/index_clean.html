@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+
+{% block title %}Map Interface - FieldVision AI{% endblock %}
+
+{% block head %}
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+    
+    <style>
+        .map-container {
+            display: flex;
+            height: calc(100vh - 80px);
+            gap: 1rem;
+            padding: 1rem;
+        }
+        
+        .sidebar {
+            width: 320px;
+            background: rgba(13, 17, 23, 0.95);
+            border: 1px solid rgba(88, 166, 255, 0.12);
+            border-radius: 8px;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+        
+        .map-area {
+            flex: 1;
+            background: rgba(13, 17, 23, 0.95);
+            border: 1px solid rgba(88, 166, 255, 0.12);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .section {
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(88, 166, 255, 0.08);
+        }
+        
+        .section:last-child {
+            border-bottom: none;
+        }
+        
+        .section h3 {
+            color: #58a6ff;
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 0.5rem;
+            background: rgba(30, 36, 61, 0.6);
+            border: 1px solid rgba(88, 166, 255, 0.15);
+            border-radius: 4px;
+            color: #f0f6fc;
+            margin-bottom: 0.5rem;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 0.5rem;
+            background: #58a6ff;
+            border: none;
+            border-radius: 4px;
+            color: #0d1117;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .btn:hover {
+            background: #79c0ff;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .coordinates-display {
+            background: rgba(30, 36, 61, 0.6);
+            border: 1px solid rgba(88, 166, 255, 0.15);
+            border-radius: 4px;
+            padding: 0.5rem;
+            font-size: 0.85rem;
+            color: #8b949e;
+            min-height: 50px;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            background: rgba(40, 167, 69, 0.1);
+            border: 1px solid rgba(40, 167, 69, 0.3);
+            color: #28a745;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="map-container">
+    <div class="sidebar">
+        <div class="section">
+            <div id="status-indicator" class="status-indicator">
+                <span>●</span>
+                <span>API Connected</span>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>Location Search</h3>
+            <input type="text" id="address-input" class="search-input" placeholder="Enter address...">
+            <button onclick="searchAddress()" class="btn">Find Location</button>
+        </div>
+        
+        <div class="section">
+            <h3>Selected Area</h3>
+            <div id="coordinates-display" class="coordinates-display">
+                No area selected
+            </div>
+            <button id="analyze-btn" class="btn" onclick="analyzeNDVI()" disabled>
+                Generate NDVI
+            </button>
+        </div>
+        
+        <div id="result-section" class="section" style="display: none;">
+            <h3>Analysis Results</h3>
+            <div id="ndvi-result"></div>
+        </div>
+    </div>
+    
+    <div class="map-area">
+        <div id="map"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+    
+    <script>
+        let map;
+        let drawnItems;
+        let currentBounds = null;
+        let currentLayer = null;
+        
+        function initializePage(page) {
+            if (page === '/') {
+                initializeMap();
+            }
+        }
+        
+        function initializeMap() {
+            map = L.map('map').setView([37.7749, -122.4194], 10);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            drawnItems = new L.FeatureGroup();
+            map.addLayer(drawnItems);
+            
+            let drawControl = new L.Control.Draw({
+                edit: {
+                    featureGroup: drawnItems
+                },
+                draw: {
+                    polygon: true,
+                    rectangle: true,
+                    circle: false,
+                    marker: false,
+                    polyline: false,
+                    circlemarker: false
+                }
+            });
+            map.addControl(drawControl);
+            
+            map.on(L.Draw.Event.CREATED, function (e) {
+                let layer = e.layer;
+                drawnItems.clearLayers();
+                drawnItems.addLayer(layer);
+                
+                currentLayer = layer;
+                currentBounds = layer.getBounds();
+                
+                updateCoordinatesDisplay(layer);
+                document.getElementById('analyze-btn').disabled = false;
+            });
+        }
+        
+        function updateCoordinatesDisplay(layer) {
+            let bounds = layer.getBounds();
+            let shapeType = layer instanceof L.Polygon ? 'Polygon' : 'Rectangle';
+            
+            document.getElementById('coordinates-display').innerHTML = `
+                <strong>${shapeType} Selected</strong><br>
+                N: ${bounds.getNorth().toFixed(4)}°<br>
+                S: ${bounds.getSouth().toFixed(4)}°<br>
+                E: ${bounds.getEast().toFixed(4)}°<br>
+                W: ${bounds.getWest().toFixed(4)}°
+            `;
+        }
+        
+        function searchAddress() {
+            let address = document.getElementById('address-input').value.trim();
+            if (!address) return;
+            
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.length > 0) {
+                        let lat = parseFloat(data[0].lat);
+                        let lon = parseFloat(data[0].lon);
+                        map.setView([lat, lon], 15);
+                    } else {
+                        alert('Location not found');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error searching address:', error);
+                    alert('Error searching for location');
+                });
+        }
+        
+        async function analyzeNDVI() {
+            if (!currentLayer || !currentBounds) {
+                alert('Please select an area first');
+                return;
+            }
+            
+            const requestData = { 
+                bbox: [
+                    currentBounds.getWest(),
+                    currentBounds.getSouth(),
+                    currentBounds.getEast(),
+                    currentBounds.getNorth()
+                ]
+            };
+            
+            if (currentLayer instanceof L.Polygon) {
+                requestData.geometry = currentLayer.toGeoJSON().geometry;
+            }
+            
+            try {
+                const response = await fetch('/ndvi', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const imageUrl = URL.createObjectURL(blob);
+                    
+                    document.getElementById('ndvi-result').innerHTML = `
+                        <img src="${imageUrl}" alt="NDVI Analysis" style="width: 100%; border-radius: 4px;">
+                    `;
+                    
+                    document.getElementById('result-section').style.display = 'block';
+                } else {
+                    document.getElementById('ndvi-result').innerHTML = `
+                        <div style="color: #e74c3c; padding: 1rem; background: rgba(231, 76, 60, 0.1); border-radius: 4px;">
+                            Analysis failed. Please try again.
+                        </div>
+                    `;
+                    document.getElementById('result-section').style.display = 'block';
+                }
+            } catch (error) {
+                document.getElementById('ndvi-result').innerHTML = `
+                    <div style="color: #e74c3c; padding: 1rem; background: rgba(231, 76, 60, 0.1); border-radius: 4px;">
+                        Network error. Please try again.
+                    </div>
+                `;
+                document.getElementById('result-section').style.display = 'block';
+            }
+        }
+        
+        // Auto-initialize if we're on the index page
+        if (window.location.pathname === '/' || window.location.pathname === '') {
+            document.addEventListener('DOMContentLoaded', initializeMap);
+        }
+    </script>
+{% endblock %}

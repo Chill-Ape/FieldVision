@@ -40,7 +40,7 @@ def render_spa_template(template_name, **context):
 @app.route('/')
 def index():
     """Main page with map interface"""
-    return render_spa_template('index.html')
+    return render_spa_template('index_clean.html')
 
 @app.route('/dashboard')
 def dashboard():
