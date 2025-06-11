@@ -151,11 +151,16 @@
                                         <div class="row">
                                             {% set ndvi_data = analysis.get_ndvi_data() %}
                                             {% if ndvi_data %}
-                                                {% set avg_ndvi = ndvi_data.values() | list | avg %}
-                                                <div class="col-md-6">
-                                                    <small class="text-muted">Average NDVI:</small>
-                                                    <span class="fw-bold text-info">{{ "%.3f"|format(avg_ndvi) }}</span>
-                                                </div>
+                                                {% set ndvi_values = ndvi_data.values() | list %}
+                                                {% set ndvi_sum = ndvi_values | sum %}
+                                                {% set ndvi_count = ndvi_values | length %}
+                                                {% if ndvi_count > 0 %}
+                                                    {% set avg_ndvi = ndvi_sum / ndvi_count %}
+                                                    <div class="col-md-6">
+                                                        <small class="text-muted">Average NDVI:</small>
+                                                        <span class="fw-bold text-info">{{ "%.3f"|format(avg_ndvi) }}</span>
+                                                    </div>
+                                                {% endif %}
                                             {% endif %}
                                             <div class="col-md-6">
                                                 {% set recommendations = analysis.get_recommendations() %}
