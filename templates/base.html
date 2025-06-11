@@ -304,9 +304,12 @@
     <!-- Mobile Navigation Script -->
     <script>
         function toggleMobileMenu() {
+            console.log('Toggle mobile menu called');
             const mobileNav = document.getElementById('mobile-nav');
+            console.log('Mobile nav element:', mobileNav);
             if (mobileNav) {
                 mobileNav.classList.toggle('show');
+                console.log('Classes after toggle:', mobileNav.className);
             }
         }
         
@@ -316,7 +319,7 @@
             const menuBtn = document.querySelector('button[onclick="toggleMobileMenu()"]');
             
             if (mobileNav && menuBtn && !menuBtn.contains(event.target) && !mobileNav.contains(event.target)) {
-                mobileNav.style.display = 'none';
+                mobileNav.classList.remove('show');
             }
         });
         
