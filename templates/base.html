@@ -129,26 +129,25 @@
         
         /* Mobile navigation menu styling */
         .mobile-nav-menu {
-            display: none !important;
-            position: absolute;
-            top: 100%;
+            display: none;
+            position: fixed;
+            top: 60px;
             left: 0;
             right: 0;
             background: rgba(13, 17, 23, 0.98);
-            border-bottom: 2px solid rgba(88, 166, 255, 0.3);
+            border-bottom: 2px solid #58a6ff;
             padding: 1rem 0;
-            z-index: 1000;
+            z-index: 9999;
+            width: 100%;
         }
         
         .mobile-nav-menu.show {
-            display: block !important;
+            display: block;
         }
         
         /* Hide mobile menu on desktop */
         @media (min-width: 992px) {
-            .mobile-nav-menu {
-                display: none !important;
-            }
+            .mobile-nav-menu,
             .mobile-nav-menu.show {
                 display: none !important;
             }
@@ -287,20 +286,20 @@
             
 
         </div>
-        
-        <!-- Mobile Navigation Menu (only visible on small screens) -->
-        <div id="mobile-nav" class="mobile-nav-menu">
-            <a href="/" class="mobile-nav-link">
-                <i class="fas fa-map me-2"></i>Map Interface
-            </a>
-            <a href="/dashboard" class="mobile-nav-link">
-                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-            </a>
-            <a href="/reports" class="mobile-nav-link">
-                <i class="fas fa-chart-bar me-2"></i>Reports
-            </a>
-        </div>
     </nav>
+    
+    <!-- Mobile Navigation Menu (positioned outside navbar) -->
+    <div id="mobile-nav" class="mobile-nav-menu">
+        <a href="/" class="mobile-nav-link">
+            <i class="fas fa-map me-2"></i>Map Interface
+        </a>
+        <a href="/dashboard" class="mobile-nav-link">
+            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+        </a>
+        <a href="/reports" class="mobile-nav-link">
+            <i class="fas fa-chart-bar me-2"></i>Reports
+        </a>
+    </div>
     
     <!-- Main Content -->
     <div id="mainContent" class="main-content">
