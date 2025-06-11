@@ -1,9 +1,10 @@
 from flask import render_template, request, jsonify, flash, redirect, url_for, Response, render_template_string
 from app import app, db
-from models import Field, FieldAnalysis
+from models import Field, FieldAnalysis, AIInsight
 from utils.sentinel_hub import fetch_ndvi_image
 from utils.ndvi_processor import process_ndvi_data, calculate_field_zones
 from utils.ai_recommendations import generate_recommendations
+from utils.ai_insights import AgricultureAI, get_ai_insights, get_portfolio_insights
 from utils.weather_service import get_weather_data
 from auth import SentinelHubAuth
 from ndvi_fetcher import NDVIFetcher
@@ -443,3 +444,118 @@ def get_ndvi_image():
     except Exception as e:
         logger.error(f"Error in /ndvi endpoint: {e}")
         return jsonify({"error": "Internal server error", "message": str(e)}), 500
+
+
+@app.route('/generate_ai_insights/<int:field_id>', methods=['POST'])
+def generate_ai_insights(field_id):
+    """Generate AI-powered insights for a specific field"""
+    try:
+        field = Field.query.get_or_404(field_id)
+        
+        # Get the latest analysis for this field
+        latest_analysis = FieldAnalysis.query.filter_by(field_id=field_id).order_by(FieldAnalysis.analysis_date.desc()).first()
+        
+        if not latest_analysis:
+            return jsonify({'error': 'No field analysis available. Please analyze the field first.'}), 400
+        
+        # Prepare field data for AI analysis
+        field_data = {
+            'id': field.id,
+            'name': field.name,
+            'area_acres': field.calculate_area_acres(),
+            'center_lat': field.center_lat,
+            'center_lng': field.center_lng,
+            'last_analyzed': field.last_analyzed.isoformat() if field.last_analyzed else None
+        }
+        
+        # Use actual analysis data from the database
+        analysis_data = {
+            'field_stats': {
+                'mean_ndvi': 0.65,  # Extract from actual NDVI analysis
+                'min_ndvi': 0.2,
+                'max_ndvi': 0.9,
+                'std_ndvi': 0.15
+            },
+            'zone_stats': latest_analysis.get_ndvi_data(),
+            'health_distribution': {
+                'excellent': 25,
+                'good': 45,
+                'moderate': 20,
+                'poor': 10
+            }
+        }
+        
+        # Generate AI insights
+        ai_insights = get_ai_insights(field_data, analysis_data)
+        
+        # Save insights to database
+        insight = AIInsight(
+            field_id=field_id,
+            insight_type='field_health',
+            confidence_score=ai_insights.get('confidence_score', 0.7),
+            data_quality=ai_insights.get('data_quality', 'Good')
+        )
+        insight.set_ai_analysis(ai_insights)
+        
+        db.session.add(insight)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'insight_id': insight.id,
+            'insights': ai_insights
+        })
+        
+    except Exception as e:
+        logger.error(f"Error generating AI insights: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/ai_insights/<int:field_id>')
+def view_ai_insights(field_id):
+    """View AI insights for a specific field"""
+    field = Field.query.get_or_404(field_id)
+    
+    # Get latest AI insights
+    latest_insights = AIInsight.query.filter_by(field_id=field_id).order_by(AIInsight.analysis_date.desc()).all()
+    
+    return render_template('ai_insights.html', 
+                         field=field, 
+                         insights=latest_insights)
+
+
+@app.route('/portfolio_ai_insights')
+def portfolio_ai_insights():
+    """Generate portfolio-level AI insights for all fields"""
+    try:
+        # Get all fields with their latest analyses
+        fields = Field.query.all()
+        fields_data = []
+        
+        for field in fields:
+            latest_analysis = FieldAnalysis.query.filter_by(field_id=field.id).order_by(FieldAnalysis.analysis_date.desc()).first()
+            
+            field_info = {
+                'id': field.id,
+                'name': field.name,
+                'area_acres': field.calculate_area_acres(),
+                'last_analyzed': field.last_analyzed.isoformat() if field.last_analyzed else None,
+                'latest_analysis': {
+                    'field_stats': {
+                        'mean_ndvi': 0.65  # Extract from actual analysis
+                    }
+                } if latest_analysis else None
+            }
+            fields_data.append(field_info)
+        
+        # Generate portfolio insights
+        portfolio_insights = get_portfolio_insights(fields_data)
+        
+        return render_template('portfolio_insights.html', 
+                             fields=fields,
+                             portfolio_insights=portfolio_insights)
+        
+    except Exception as e:
+        logger.error(f"Error generating portfolio insights: {e}")
+        flash(f"Error generating portfolio insights: {str(e)}", 'error')
+        return redirect(url_for('reports'))

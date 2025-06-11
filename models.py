@@ -110,3 +110,44 @@ class FieldAnalysis(db.Model):
     def set_weather_data(self, data):
         """Set weather data from a dictionary"""
         self.weather_data = json.dumps(data)
+
+
+class AIInsight(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    field_id = db.Column(db.Integer, db.ForeignKey('field.id'), nullable=False)
+    analysis_date = db.Column(db.DateTime, default=datetime.utcnow)
+    insight_type = db.Column(db.String(50), nullable=False)  # 'field_health', 'zone_specific', 'portfolio', 'timing'
+    ai_analysis = db.Column(db.Text)  # JSON string of AI analysis results
+    confidence_score = db.Column(db.Float)  # AI confidence in recommendations
+    data_quality = db.Column(db.String(100))  # Assessment of input data quality
+    implementation_status = db.Column(db.String(50), default='pending')  # 'pending', 'in_progress', 'completed'
+    
+    # Relationship to field
+    field = db.relationship('Field', backref=db.backref('ai_insights', lazy=True, cascade='all, delete-orphan'))
+    
+    def get_ai_analysis(self):
+        """Return AI analysis as a dictionary"""
+        if self.ai_analysis:
+            try:
+                return json.loads(self.ai_analysis)
+            except json.JSONDecodeError:
+                return {}
+        return {}
+    
+    def set_ai_analysis(self, data):
+        """Set AI analysis from a dictionary"""
+        self.ai_analysis = json.dumps(data)
+    
+    def get_priority_actions(self):
+        """Extract high-priority actions from AI analysis"""
+        analysis = self.get_ai_analysis()
+        if 'ai_insights' in analysis:
+            return analysis['ai_insights'].get('immediate_actions', [])
+        return []
+    
+    def get_critical_insights(self):
+        """Extract critical insights from AI analysis"""
+        analysis = self.get_ai_analysis()
+        if 'ai_insights' in analysis:
+            return analysis['ai_insights'].get('critical_insights', [])
+        return []
