@@ -44,9 +44,9 @@
                         <i class="fas fa-clock me-1"></i>
                         Last updated: <span id="current-time"></span>
                     </div>
-                    <button class="btn btn-success btn-sm" onclick="loadPage('/', event)">
+                    <a href="/" class="btn btn-success btn-sm">
                         <i class="fas fa-plus me-1"></i>Create New Site
-                    </button>
+                    </a>
                 </div>
             </div>
         </div>
@@ -112,7 +112,7 @@
                             <li><a class="dropdown-item" href="#" onclick="openSiteProject({{ field.id }})">
                                 <i class="fas fa-folder-open me-2"></i>Open Project
                             </a></li>
-                            <li><a class="dropdown-item" href="#" onclick="loadPage('/field/{{ field.id }}/report', event)">
+                            <li><a class="dropdown-item" href="/field/{{ field.id }}/report">
                                 <i class="fas fa-chart-bar me-2"></i>Generate Report
                             </a></li>
                             <li><a class="dropdown-item" href="#" onclick="scheduleAutomation({{ field.id }})">
@@ -204,9 +204,9 @@
                 <i class="fas fa-seedling fa-4x text-muted mb-4"></i>
                 <h3 class="text-muted">No Fields Added Yet</h3>
                 <p class="text-muted mb-4">Start by creating your first field analysis using the Map Interface.</p>
-                <button class="btn btn-primary" onclick="loadPage('/', event)">
+                <a href="/" class="btn btn-primary">
                     <i class="fas fa-map me-2"></i>Go to Map Interface
-                </button>
+                </a>
             </div>
         </div>
     </div>

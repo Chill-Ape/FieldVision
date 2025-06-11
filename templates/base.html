@@ -107,8 +107,14 @@
             transition: all 0.3s ease;
         }
         
-        /* Mobile navigation menu - only on small screens */
+        /* Force mobile menu button visibility */
         @media (max-width: 991.98px) {
+            .mobile-menu-toggle {
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+            }
+            
             .mobile-nav-menu {
                 display: none;
                 position: absolute;
@@ -229,11 +235,11 @@
             </a>
             
             <!-- Mobile Menu Button (only visible on small screens) -->
-            <button class="btn d-lg-none position-relative" onclick="toggleMobileMenu()" style="border: 2px solid #58a6ff; background: rgba(88, 166, 255, 0.2); padding: 0.4rem 0.6rem; z-index: 1040; margin-left: auto;">
-                <div style="display: flex; flex-direction: column; width: 20px; height: 15px; justify-content: space-between;">
-                    <span style="height: 2px; background: #58a6ff; display: block; width: 100%; border-radius: 1px;"></span>
-                    <span style="height: 2px; background: #58a6ff; display: block; width: 100%; border-radius: 1px;"></span>
-                    <span style="height: 2px; background: #58a6ff; display: block; width: 100%; border-radius: 1px;"></span>
+            <button class="btn d-lg-none mobile-menu-toggle" onclick="toggleMobileMenu()" style="border: 2px solid #58a6ff !important; background: rgba(88, 166, 255, 0.2) !important; padding: 0.4rem 0.6rem !important; z-index: 1040 !important; margin-left: auto !important; display: block !important;">
+                <div style="display: flex !important; flex-direction: column !important; width: 20px !important; height: 15px !important; justify-content: space-between !important;">
+                    <span style="height: 2px !important; background: #58a6ff !important; display: block !important; width: 100% !important; border-radius: 1px !important;"></span>
+                    <span style="height: 2px !important; background: #58a6ff !important; display: block !important; width: 100% !important; border-radius: 1px !important;"></span>
+                    <span style="height: 2px !important; background: #58a6ff !important; display: block !important; width: 100% !important; border-radius: 1px !important;"></span>
                 </div>
             </button>
             
