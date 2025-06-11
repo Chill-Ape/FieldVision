@@ -140,10 +140,9 @@ function evaluatePixel(sample) {
             PNG image bytes or None if request fails
         """
         # Calculate proper dimensions based on geographic aspect ratio
-        if width is None or height is None:
-            calculated_width, calculated_height = self._calculate_optimal_dimensions(bbox)
-            width = calculated_width
-            height = calculated_height
+        # Always recalculate for optimal aspect ratio unless both dimensions are explicitly provided
+        if width == 2500 and height == 2500:
+            width, height = self._calculate_optimal_dimensions(bbox)
         
         logger.info(f"Using image dimensions: {width}x{height} for bbox: {bbox}")
         # Get access token
@@ -227,8 +226,6 @@ function evaluatePixel(sample) {
         Returns:
             Tuple of (width, height) in pixels
         """
-        import math
-        
         min_lng, min_lat, max_lng, max_lat = bbox
         
         # Calculate geographic dimensions
