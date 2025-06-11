@@ -78,6 +78,7 @@ class FieldAnalysis(db.Model):
     health_scores = db.Column(db.Text)  # JSON string of health scores per zone
     recommendations = db.Column(db.Text)  # JSON string of AI recommendations
     weather_data = db.Column(db.Text)  # JSON string of weather information
+    ai_analysis_data = db.Column(db.Text)  # JSON string of comprehensive AI analysis
     
     def get_ndvi_data(self):
         """Return NDVI data as a dictionary"""
@@ -110,3 +111,11 @@ class FieldAnalysis(db.Model):
     def set_weather_data(self, data):
         """Set weather data from a dictionary"""
         self.weather_data = json.dumps(data)
+    
+    def get_ai_analysis_data(self):
+        """Return comprehensive AI analysis data as a dictionary"""
+        return json.loads(self.ai_analysis_data) if self.ai_analysis_data else {}
+    
+    def set_ai_analysis_data(self, data):
+        """Set comprehensive AI analysis data from a dictionary"""
+        self.ai_analysis_data = json.dumps(data)

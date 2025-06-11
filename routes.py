@@ -228,11 +228,40 @@ def analyze_field(field_id):
         # Process NDVI data for each zone
         ndvi_data = process_ndvi_data(ndvi_image_data, zones)
         
-        # Generate AI recommendations
-        recommendations = generate_recommendations(ndvi_data, zones)
+        # Initialize services for comprehensive analysis
+        weather_service = WeatherService()
+        ai_analyzer = AIFieldAnalyzer()
         
-        # Get weather data
-        weather_data = get_weather_data(field.center_lat, field.center_lng)
+        # Prepare field data
+        field_data = {
+            'name': field.name,
+            'center_lat': field.center_lat,
+            'center_lng': field.center_lng,
+            'area_acres': field.calculate_area_acres(),
+            'polygon_coordinates': coordinates,
+            'polygon_data': field.polygon_data
+        }
+        
+        # Generate comprehensive AI analysis
+        comprehensive_analysis = ai_analyzer.generate_comprehensive_analysis(field_data, ndvi_image_data)
+        
+        # Extract weather data from comprehensive analysis
+        weather_analysis = comprehensive_analysis.get('weather_analysis', {})
+        current_weather = weather_analysis.get('current_conditions', {})
+        weather_data = {
+            "temperature": current_weather.get('temperature', 0),
+            "humidity": current_weather.get('humidity', 0),
+            "conditions": current_weather.get('description', 'Unknown'),
+            "wind_speed": current_weather.get('wind_speed', 0),
+            "weather_analysis": weather_analysis
+        }
+        
+        # Extract AI-generated insights
+        ai_insights = comprehensive_analysis.get('ai_insights', {})
+        ndvi_analysis = comprehensive_analysis.get('ndvi_analysis', {})
+        
+        # Use AI recommendations or fallback to basic recommendations
+        recommendations = ai_insights.get('recommendations', generate_recommendations(ndvi_data, zones))
         
         # Calculate health scores based on NDVI values
         health_scores = {}
@@ -245,17 +274,25 @@ def analyze_field(field_id):
                 health_scores[zone_id] = 'stressed'
         
         # Save analysis to database
-        analysis = FieldAnalysis(field_id=field_id)
+        analysis = FieldAnalysis()
+        analysis.field_id = field_id
         analysis.set_ndvi_data(ndvi_data)
         analysis.set_health_scores(health_scores)
         analysis.set_recommendations(recommendations)
         analysis.set_weather_data(weather_data)
         
+        # Store comprehensive analysis using the model method
+        try:
+            analysis.set_ai_analysis_data(comprehensive_analysis)
+        except Exception as e:
+            logging.warning(f"Failed to store AI analysis data: {e}")
+            analysis.set_ai_analysis_data({})
+        
         db.session.add(analysis)
         field.last_analyzed = datetime.utcnow()
         db.session.commit()
         
-        logging.info(f"Field {field_id} analyzed successfully")
+        logging.info(f"Field {field_id} analyzed successfully with AI insights")
         
         return jsonify({
             'success': True,
@@ -263,7 +300,9 @@ def analyze_field(field_id):
             'health_scores': health_scores,
             'recommendations': recommendations,
             'weather_data': weather_data,
-            'zones': zones
+            'zones': zones,
+            'comprehensive_analysis': comprehensive_analysis,
+            'ai_insights': ai_insights
         })
         
     except Exception as e:
@@ -290,6 +329,54 @@ def delete_field(field_id):
 
 
 
+@app.route('/api/field_comprehensive_analysis/<int:field_id>')
+def field_comprehensive_analysis(field_id):
+    """Get comprehensive AI analysis data for a field"""
+    try:
+        field = Field.query.get_or_404(field_id)
+        
+        # Get the latest analysis with AI data
+        latest_analysis = FieldAnalysis.query.filter_by(field_id=field_id)\
+                                           .order_by(FieldAnalysis.analysis_date.desc())\
+                                           .first()
+        
+        if not latest_analysis:
+            return jsonify({'error': 'No analysis data available'}), 404
+        
+        # Get comprehensive AI analysis data
+        ai_analysis = latest_analysis.get_ai_analysis_data()
+        
+        # Get current weather data
+        weather_service = WeatherService()
+        current_weather = weather_service.get_current_weather(field.center_lat, field.center_lng)
+        forecast = weather_service.get_weather_forecast(field.center_lat, field.center_lng)
+        
+        # Format response with all available data
+        response_data = {
+            'field_info': {
+                'id': field.id,
+                'name': field.name,
+                'area_acres': field.calculate_area_acres(),
+                'center_coordinates': [field.center_lat, field.center_lng],
+                'last_analyzed': latest_analysis.analysis_date.isoformat()
+            },
+            'current_weather': current_weather,
+            'weather_forecast': forecast[:8] if forecast else [],  # Next 24 hours
+            'ai_analysis': ai_analysis,
+            'traditional_analysis': {
+                'ndvi_data': latest_analysis.get_ndvi_data(),
+                'health_scores': latest_analysis.get_health_scores(),
+                'recommendations': latest_analysis.get_recommendations(),
+                'weather_data': latest_analysis.get_weather_data()
+            }
+        }
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        logging.error(f"Error fetching comprehensive analysis for field {field_id}: {str(e)}")
+        return jsonify({'error': f'Failed to fetch comprehensive analysis: {str(e)}'}), 500
+
 @app.route('/api/field_history/<int:field_id>')
 def field_history(field_id):
     """Get analysis history for a field"""
@@ -299,12 +386,26 @@ def field_history(field_id):
         
         history = []
         for analysis in analyses:
+            # Include AI analysis summary if available
+            ai_data = analysis.get_ai_analysis_data()
+            ai_summary = {}
+            if ai_data:
+                ai_insights = ai_data.get('ai_insights', {})
+                performance_metrics = ai_data.get('performance_metrics', {})
+                ai_summary = {
+                    'health_score': performance_metrics.get('health_score', 0),
+                    'productivity_estimate': performance_metrics.get('productivity_estimate', 0),
+                    'key_findings': ai_insights.get('key_findings', [])[:3],  # Top 3 findings
+                    'priority_actions': ai_insights.get('priority_actions', [])[:2]  # Top 2 actions
+                }
+            
             history.append({
                 'date': analysis.analysis_date.isoformat(),
                 'ndvi_data': analysis.get_ndvi_data(),
                 'health_scores': analysis.get_health_scores(),
                 'recommendations': analysis.get_recommendations(),
-                'weather_data': analysis.get_weather_data()
+                'weather_data': analysis.get_weather_data(),
+                'ai_summary': ai_summary
             })
         
         return jsonify({
