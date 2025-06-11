@@ -58,10 +58,12 @@ def sites():
 def reports():
     """Reports dashboard showing all field reports"""
     try:
-        fields = Field.query.order_by(Field.created_at.desc()).all()
+        # Eagerly load analyses relationships
+        from sqlalchemy.orm import joinedload
+        fields = Field.query.options(joinedload(Field.analyses)).order_by(Field.created_at.desc()).all()
         logger.info(f"Found {len(fields)} fields for reports page")
         for field in fields:
-            logger.info(f"Field: {field.name}, ID: {field.id}")
+            logger.info(f"Field: {field.name}, ID: {field.id}, Analyses: {len(field.analyses)}")
         return render_template('reports.html', fields=fields)
     except Exception as e:
         logger.error(f"Error loading reports: {e}")
