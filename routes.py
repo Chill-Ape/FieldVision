@@ -165,13 +165,21 @@ def save_field():
         # Analyze NDVI data to check if it contains meaningful vegetation data
         analysis_results = analyze_field_ndvi(ndvi_image_bytes, geometry)
         
+        # Debug logging for analysis results
+        logging.info(f"Analysis results keys: {list(analysis_results.keys()) if analysis_results else 'None'}")
+        if analysis_results:
+            logging.info(f"Zone stats present: {'zone_stats' in analysis_results}")
+            if 'zone_stats' in analysis_results:
+                logging.info(f"Zone stats keys: {list(analysis_results['zone_stats'].keys())}")
+        
         # Check if the selected area has sufficient vegetation data
-        if not analysis_results or not analysis_results.get('zone_stats'):
+        zone_stats = analysis_results.get('zone_statistics', {})
+        if not analysis_results or not zone_stats:
             db.session.rollback()
+            logging.error(f"Analysis failed - Results: {bool(analysis_results)}, Zone statistics: {bool(zone_stats)}")
             return jsonify({'success': False, 'message': 'The selected area does not contain sufficient vegetation data. Please select an area with crops or agricultural land.'}), 500
         
         # Check average NDVI values to ensure agricultural relevance
-        zone_stats = analysis_results.get('zone_stats', {})
         avg_ndvi_values = []
         for stats in zone_stats.values():
             if isinstance(stats, dict) and 'mean_ndvi' in stats:
@@ -196,10 +204,7 @@ def save_field():
         # Update the field in database with cached NDVI
         db.session.add(field)
         
-        # Analyze NDVI data
-        analysis_results = analyze_field_ndvi(ndvi_image_bytes, geometry)
-        
-        # Generate AI recommendations
+        # Generate AI recommendations using the zone statistics
         zone_ndvi_values = get_zone_ndvi_values(analysis_results)
         recommendations = generate_recommendations(zone_ndvi_values, analysis_results.get('zones', {}))
         
@@ -207,7 +212,7 @@ def save_field():
         analysis = FieldAnalysis()
         analysis.field_id = field.id
         analysis.set_ndvi_data(zone_ndvi_values)
-        analysis.set_health_scores(analysis_results.get('zone_stats', {}))
+        analysis.set_health_scores(analysis_results.get('zone_statistics', {}))
         analysis.set_recommendations(recommendations)
         analysis.analysis_date = datetime.utcnow()
         
