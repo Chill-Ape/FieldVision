@@ -72,19 +72,25 @@
             min-height: calc(100vh - 50px);
         }
         
-        /* Force mobile menu button to show on small screens */
+        /* SUPER VISIBLE mobile menu button for testing */
         .mobile-menu-btn {
+            display: block !important;
             cursor: pointer;
-            padding: 0.5rem;
-            border: 2px solid #58a6ff !important;
-            border-radius: 6px;
-            background: rgba(88, 166, 255, 0.2) !important;
-            transition: all 0.3s ease;
+            padding: 1rem !important;
+            border: 5px solid #ff0000 !important;
+            border-radius: 10px !important;
+            background: #ff0000 !important;
+            color: white !important;
+            font-size: 20px !important;
+            font-weight: bold !important;
+            position: relative !important;
+            z-index: 9999 !important;
+            width: 60px !important;
+            height: 60px !important;
         }
         
         .mobile-menu-btn:hover {
-            background: rgba(88, 166, 255, 0.3) !important;
-            border-color: #58a6ff !important;
+            background: #cc0000 !important;
         }
         
         /* Hide mobile menu button on desktop */
@@ -240,11 +246,7 @@
             
             <!-- Mobile Menu Button (outside collapse area) -->
             <div class="mobile-menu-btn" onclick="toggleMobileMenu()">
-                <div class="hamburger-icon">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
+                MENU
             </div>
             
             <!-- Desktop Navigation -->
