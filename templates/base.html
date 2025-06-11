@@ -24,10 +24,11 @@
             background: rgba(13, 17, 23, 0.95);
             border-bottom: 1px solid rgba(88, 166, 255, 0.3);
             backdrop-filter: blur(10px);
-            padding: 0.5rem 0 !important;
-            height: 70px !important;
-            max-height: 70px !important;
-            min-height: 70px !important;
+            padding: 0.25rem 0 !important;
+            height: 50px !important;
+            max-height: 50px !important;
+            min-height: 50px !important;
+            overflow: hidden !important;
             position: fixed !important;
             top: 0 !important;
             left: 0 !important;
@@ -67,55 +68,25 @@
         }
         
         .main-content {
-            padding-top: 70px;
-            min-height: calc(100vh - 70px);
+            padding-top: 50px;
+            min-height: calc(100vh - 50px);
         }
         
-        /* Mobile hamburger menu button */
-        .fixed-mobile-btn {
-            display: none !important;
-        }
-        
+        /* Mobile menu button styling - only on small screens */
         @media (max-width: 991.98px) {
-            .fixed-mobile-btn {
-                display: flex !important;
-                position: fixed !important;
-                top: 15px !important;
-                right: 15px !important;
-                flex-direction: column !important;
-                justify-content: space-around !important;
-                align-items: center !important;
+            .mobile-menu-btn {
                 cursor: pointer;
-                padding: 12px 8px !important;
-                border: 2px solid #58a6ff !important;
-                border-radius: 8px !important;
-                background: rgba(13, 17, 23, 0.95) !important;
-                backdrop-filter: blur(10px) !important;
-                z-index: 9999 !important;
-                width: 52px !important;
-                height: 52px !important;
-                transition: all 0.3s ease !important;
+                padding: 0.5rem;
+                border: 2px solid #58a6ff;
+                border-radius: 6px;
+                background: rgba(88, 166, 255, 0.2);
+                transition: all 0.3s ease;
             }
             
-            .fixed-mobile-btn:hover {
-                background: rgba(88, 166, 255, 0.1) !important;
-                border-color: #79c0ff !important;
+            .mobile-menu-btn:hover {
+                background: rgba(88, 166, 255, 0.3);
+                border-color: #58a6ff;
             }
-            
-            .fixed-mobile-btn:active {
-                transform: scale(0.95) !important;
-            }
-        }
-        
-        /* Hamburger lines */
-        .hamburger-line {
-            width: 26px !important;
-            height: 3px !important;
-            background: #58a6ff !important;
-            margin: 0 !important;
-            transition: all 0.3s ease !important;
-            border-radius: 2px !important;
-            flex-shrink: 0 !important;
         }
         
         /* Hamburger icon */
@@ -136,57 +107,41 @@
             transition: all 0.3s ease;
         }
         
-        /* Mobile navigation menu styling */
-        .mobile-nav-menu {
-            display: none;
-            position: fixed;
-            top: 80px;
-            right: 10px;
-            width: 250px;
-            background: rgba(13, 17, 23, 0.98);
-            border: 2px solid rgba(88, 166, 255, 0.3);
-            border-radius: 8px;
-            padding: 0.5rem 0;
-            z-index: 9998;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        }
-        
-        .mobile-nav-menu.show {
-            display: block !important;
-        }
-        
-        .mobile-nav-link {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1rem;
-            color: #f0f6fc;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            border-bottom: 1px solid rgba(88, 166, 255, 0.1);
-            font-size: 14px;
-        }
-        
-        .mobile-nav-link:hover {
-            background: rgba(88, 166, 255, 0.1);
-            color: #58a6ff;
-            text-decoration: none;
-        }
-        
-        .mobile-nav-link:last-child {
-            border-bottom: none;
-        }
-        
-        .mobile-nav-link i {
-            margin-right: 8px;
-            width: 16px;
-            text-align: center;
-        }
-        
-        /* Hide mobile menu on desktop */
-        @media (min-width: 992px) {
+        /* Mobile navigation menu - only on small screens */
+        @media (max-width: 991.98px) {
             .mobile-nav-menu {
-                display: none !important;
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: rgba(13, 17, 23, 0.98);
+                border-bottom: 2px solid rgba(88, 166, 255, 0.3);
+                padding: 1rem 0;
+                z-index: 1000;
+            }
+            
+            .mobile-nav-menu.show {
+                display: block;
+            }
+            
+            .mobile-nav-link {
+                display: block;
+                padding: 0.75rem 1.5rem;
+                color: #58a6ff;
+                text-decoration: none;
+                transition: all 0.3s ease;
+                border-bottom: 1px solid rgba(88, 166, 255, 0.1);
+            }
+            
+            .mobile-nav-link:hover {
+                background: rgba(88, 166, 255, 0.1);
+                color: #ffffff;
+                text-decoration: none;
+            }
+            
+            .mobile-nav-link:last-child {
+                border-bottom: none;
             }
         }
         
@@ -267,16 +222,11 @@
 
     
     <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
-        <div class="container">
+    <nav class="navbar navbar-expand-lg navbar-custom sticky-top" style="overflow: hidden;">
+        <div class="container" style="max-height: 60px; overflow: hidden;">
             <a class="navbar-brand" href="/">
                 <i class="fas fa-seedling me-2"></i>FieldVision AI
             </a>
-            
-            <!-- Mobile Menu Button (outside collapse area) -->
-            <div class="mobile-menu-btn" onclick="toggleMobileMenu()">
-                MENU
-            </div>
             
             <!-- Desktop Navigation -->
             <div class="collapse navbar-collapse" id="navbarNav">
@@ -311,17 +261,19 @@
                     </li>
                 </ul>
             </div>
-        </div>
-        
-        <!-- Fixed Mobile Menu Button (always visible on mobile) -->
-        <div class="fixed-mobile-btn" onclick="toggleMobileMenu()">
-            <div class="hamburger-line"></div>
-            <div class="hamburger-line"></div>
-            <div class="hamburger-line"></div>
+            
+            <!-- Mobile Menu Button (only visible on small screens) -->
+            <div class="d-lg-none mobile-menu-btn" onclick="toggleMobileMenu()">
+                <div class="hamburger-icon">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
         </div>
         
         <!-- Mobile Navigation Menu (only visible on small screens) -->
-        <div id="mobile-nav" class="mobile-nav-menu">
+        <div id="mobile-nav" class="mobile-nav-menu d-lg-none">
             <a href="/" class="mobile-nav-link">
                 <i class="fas fa-map me-2"></i>Map Interface
             </a>
@@ -345,21 +297,16 @@
     <!-- Mobile Navigation Script -->
     <script>
         function toggleMobileMenu() {
-            console.log('Toggle mobile menu clicked');
             const mobileNav = document.getElementById('mobile-nav');
-            console.log('Mobile nav element:', mobileNav);
             if (mobileNav) {
                 mobileNav.classList.toggle('show');
-                console.log('Menu toggled, classes:', mobileNav.className);
-            } else {
-                console.error('Mobile nav element not found');
             }
         }
         
         // Close mobile menu when clicking outside
         document.addEventListener('click', function(event) {
             const mobileNav = document.getElementById('mobile-nav');
-            const menuBtn = document.querySelector('.fixed-mobile-btn');
+            const menuBtn = document.querySelector('.mobile-menu-btn');
             
             if (mobileNav && menuBtn && !menuBtn.contains(event.target) && !mobileNav.contains(event.target)) {
                 mobileNav.classList.remove('show');

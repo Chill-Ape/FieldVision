@@ -753,11 +753,6 @@
         let currentZoom = 1;
         let currentTileLayer;
         
-        // Check if we're editing an existing field
-        const editFieldData = {% if edit_field %}{{ edit_field.get_polygon_coordinates()|tojson|safe }}{% else %}null{% endif %};
-        const editFieldName = {% if edit_field %}"{{ edit_field.name }}"{% else %}null{% endif %};
-        const editFieldId = {% if edit_field %}{{ edit_field.id }}{% else %}null{% endif %};
-        
         function initializePage(page) {
             console.log('Map initializePage called with page:', page);
             if (page === '/' || page === '' || page === '/index') {
@@ -779,12 +774,6 @@
                         if (typeof L !== 'undefined' && L.Control && L.Control.Draw) {
                             console.log('Initializing map...');
                             initializeMap();
-                            // Check if we're editing an existing field
-                            if (editFieldData && editFieldName) {
-                                setTimeout(() => {
-                                    loadExistingFieldForEditing();
-                                }, 200);
-                            }
                             // Ensure API status is checked
                             checkAPIStatus();
                         } else {
@@ -1228,15 +1217,13 @@
             // Show loading state
             const saveButton = document.querySelector('#saveSiteModal button[onclick="saveSite()"]');
             const originalButtonText = saveButton.innerHTML;
-            const isEditing = editFieldId !== null;
-            
-            saveButton.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${isEditing ? 'Updating' : 'Saving'} Site...`;
+            saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving Site...';
             saveButton.disabled = true;
             
             // Show loading overlay
             showSavingProgress();
             
-            // Prepare field data
+            // Save field to database
             const fieldData = {
                 name: siteName,
                 polygon: JSON.stringify(currentLayer.getLatLngs ? currentLayer.getLatLngs()[0].map(latlng => [latlng.lat, latlng.lng]) : [
@@ -1249,12 +1236,8 @@
                 center_lng: currentBounds.getCenter().lng
             };
             
-            // Determine URL and method based on edit mode
-            const url = isEditing ? `/api/update_field/${editFieldId}` : '/api/save_field';
-            const method = isEditing ? 'PUT' : 'POST';
-            
-            fetch(url, {
-                method: method,
+            fetch('/api/save_field', {
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -1265,23 +1248,16 @@
                 if (data.success) {
                     closeSaveSiteModal();
                     hideSavingProgress();
-                    
-                    if (isEditing) {
-                        // For edits, redirect to the site project page
-                        window.location.href = `/site/${editFieldId}`;
-                    } else {
-                        // For new sites, show success modal
-                        showSuccessModal(siteName, data.field_id);
-                    }
+                    showSuccessModal(siteName, data.field_id);
                 } else {
                     hideSavingProgress();
-                    alert(`Failed to ${isEditing ? 'update' : 'save'} site: ` + (data.message || 'Unknown error'));
+                    alert('Failed to save site: ' + (data.message || 'Unknown error'));
                 }
             })
             .catch(error => {
-                console.error(`Error ${isEditing ? 'updating' : 'saving'} site:`, error);
+                console.error('Error saving site:', error);
                 hideSavingProgress();
-                alert(`Failed to ${isEditing ? 'update' : 'save'} site. Please try again.`);
+                alert('Failed to save site. Please try again.');
             })
             .finally(() => {
                 // Reset button state
@@ -1490,102 +1466,6 @@
                     btn.classList.add('active');
                 }
             });
-        }
-        
-        function loadExistingFieldForEditing() {
-            console.log('Loading existing field for editing:', editFieldName);
-            
-            // Update the UI to show we're in editing mode
-            const headerTitle = document.querySelector('.sidebar h2');
-            if (headerTitle) {
-                headerTitle.innerHTML = `<i class="fas fa-edit" style="color: #ffa500;"></i> Editing: ${editFieldName}`;
-            }
-            
-            // Pre-fill the site name input if available
-            const siteNameInput = document.getElementById('siteNameInput');
-            if (siteNameInput && editFieldName) {
-                siteNameInput.value = editFieldName;
-            }
-            
-            // Load the polygon coordinates
-            if (editFieldData && editFieldData.length > 0) {
-                console.log('Loading polygon coordinates:', editFieldData);
-                
-                // Convert coordinates to Leaflet format and create polygon
-                const latLngs = editFieldData.map(coord => [coord[0], coord[1]]);
-                const polygon = L.polygon(latLngs, {
-                    color: '#ffa500',
-                    weight: 3,
-                    fillOpacity: 0.3
-                });
-                
-                // Add to drawn items
-                drawnItemsGroup.addLayer(polygon);
-                currentLayer = polygon;
-                currentBounds = polygon.getBounds();
-                
-                // Fit map to polygon bounds
-                mapInstance.fitBounds(polygon.getBounds(), { padding: [20, 20] });
-                
-                // Update field statistics
-                updateFieldStats(polygon);
-                
-                // Show analyze button and field info
-                document.getElementById('analyze-section').style.display = 'block';
-                document.getElementById('field-info').style.display = 'block';
-                
-                // Load existing NDVI image if available
-                loadExistingNDVIImage();
-                
-                console.log('Existing field polygon loaded successfully');
-            }
-        }
-        
-        function loadExistingNDVIImage() {
-            if (!editFieldId) return;
-            
-            console.log('Loading existing NDVI image for field:', editFieldId);
-            
-            // Check if field has cached NDVI image
-            const ndviImageUrl = `/field/${editFieldId}/cached_ndvi`;
-            
-            // Create a test image to see if NDVI exists
-            const testImg = new Image();
-            testImg.onload = function() {
-                console.log('NDVI image found, displaying...');
-                
-                // Show the NDVI image in the results section
-                const resultSection = document.getElementById('result-section');
-                const ndviImageContainer = document.getElementById('ndvi-image-container');
-                const ndviImage = document.getElementById('ndvi-image');
-                
-                if (resultSection && ndviImageContainer && ndviImage) {
-                    ndviImage.src = ndviImageUrl;
-                    ndviImage.onerror = function() {
-                        console.log('Failed to load NDVI image');
-                        resultSection.style.display = 'none';
-                    };
-                    ndviImage.onload = function() {
-                        console.log('NDVI image loaded successfully');
-                        resultSection.style.display = 'block';
-                        ndviImageContainer.style.display = 'block';
-                        
-                        // Update image info
-                        const imageInfo = document.getElementById('image-info');
-                        if (imageInfo) {
-                            imageInfo.innerHTML = `
-                                <div style="color: #58a6ff; font-weight: 500;">Current NDVI Analysis</div>
-                                <div style="color: #8b949e; font-size: 0.85rem;">Field: ${editFieldName}</div>
-                                <div style="color: #8b949e; font-size: 0.85rem;">Click image to view full screen</div>
-                            `;
-                        }
-                    };
-                }
-            };
-            testImg.onerror = function() {
-                console.log('No existing NDVI image found');
-            };
-            testImg.src = ndviImageUrl;
         }
         
         // Auto-initialize if we're on the index page

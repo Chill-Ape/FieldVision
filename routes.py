@@ -1,10 +1,9 @@
 from flask import render_template, request, jsonify, flash, redirect, url_for, Response, render_template_string
 from app import app, db
-from models import Field, FieldAnalysis, AIInsight
+from models import Field, FieldAnalysis
 from utils.sentinel_hub import fetch_ndvi_image
 from utils.ndvi_processor import process_ndvi_data, calculate_field_zones
 from utils.ai_recommendations import generate_recommendations
-from utils.ai_insights import AgricultureAI, get_ai_insights, get_portfolio_insights
 from utils.weather_service import get_weather_data
 from auth import SentinelHubAuth
 from ndvi_fetcher import NDVIFetcher
@@ -34,16 +33,7 @@ def render_spa_template(template_name, **context):
 @app.route('/')
 def index():
     """Main page with map interface"""
-    edit_field_id = request.args.get('edit')
-    edit_field = None
-    
-    if edit_field_id:
-        try:
-            edit_field = Field.query.get(int(edit_field_id))
-        except (ValueError, TypeError):
-            edit_field = None
-    
-    return render_template('index_clean.html', edit_field=edit_field)
+    return render_template('index_clean.html')
 
 @app.route('/dashboard')
 def dashboard():
@@ -279,64 +269,6 @@ def analyze_field(field_id):
         logging.error(f"Error analyzing field {field_id}: {str(e)}")
         return jsonify({'error': 'Failed to analyze field'}), 500
 
-@app.route('/api/update_field/<int:field_id>', methods=['PUT'])
-def update_field(field_id):
-    """Update an existing field's polygon data"""
-    try:
-        field = Field.query.get_or_404(field_id)
-        data = request.get_json()
-        
-        # Validate input data
-        if not data or 'name' not in data or 'polygon' not in data:
-            return jsonify({'success': False, 'message': 'Invalid data provided'}), 400
-        
-        # Parse polygon coordinates
-        try:
-            coordinates = json.loads(data['polygon'])
-            if not coordinates or len(coordinates) < 3:
-                return jsonify({'success': False, 'message': 'Invalid polygon coordinates'}), 400
-        except (json.JSONDecodeError, TypeError):
-            return jsonify({'success': False, 'message': 'Invalid polygon format'}), 400
-        
-        # Update field data
-        field.name = data['name']
-        field.set_polygon_coordinates(coordinates)
-        field.center_lat = data.get('center_lat', field.center_lat)
-        field.center_lng = data.get('center_lng', field.center_lng)
-        
-        db.session.commit()
-        
-        logging.info(f"Field '{field.name}' (ID: {field_id}) updated successfully")
-        
-        return jsonify({
-            'success': True,
-            'field_id': field_id,
-            'message': 'Field updated successfully'
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        logging.error(f"Error updating field {field_id}: {str(e)}")
-        return jsonify({'success': False, 'message': 'Failed to update field'}), 500
-
-@app.route('/api/delete_ai_insight/<int:insight_id>', methods=['DELETE'])
-def delete_ai_insight(insight_id):
-    """Delete an AI insight"""
-    try:
-        insight = AIInsight.query.get_or_404(insight_id)
-        field_name = insight.field.name
-        
-        db.session.delete(insight)
-        db.session.commit()
-        
-        logging.info(f"AI insight deleted for field '{field_name}'")
-        return jsonify({'success': True, 'message': 'AI insight deleted successfully'})
-        
-    except Exception as e:
-        logging.error(f"Error deleting AI insight {insight_id}: {str(e)}")
-        db.session.rollback()
-        return jsonify({'success': False, 'message': 'Failed to delete AI insight'}), 500
-
 @app.route('/api/delete_field/<int:field_id>', methods=['DELETE'])
 def delete_field(field_id):
     """Delete a field and its analyses"""
@@ -511,154 +443,3 @@ def get_ndvi_image():
     except Exception as e:
         logger.error(f"Error in /ndvi endpoint: {e}")
         return jsonify({"error": "Internal server error", "message": str(e)}), 500
-
-
-@app.route('/generate_ai_insights/<int:field_id>', methods=['POST'])
-def generate_ai_insights(field_id):
-    """Generate AI-powered insights for a specific field"""
-    try:
-        field = Field.query.get_or_404(field_id)
-        
-        # Daily restriction temporarily disabled for testing
-        # from datetime import datetime, timedelta
-        # today = datetime.utcnow().date()
-        # existing_insight = AIInsight.query.filter(
-        #     AIInsight.field_id == field_id,
-        #     AIInsight.analysis_date >= today,
-        #     AIInsight.analysis_date < today + timedelta(days=1)
-        # ).first()
-        # 
-        # if existing_insight:
-        #     return jsonify({
-        #         'error': 'AI insight already generated today for this field. Only one AI analysis per day is allowed.',
-        #         'existing_insight_id': existing_insight.id
-        #     }), 400
-        
-        # Get the latest analysis for this field
-        latest_analysis = FieldAnalysis.query.filter_by(field_id=field_id).order_by(FieldAnalysis.analysis_date.desc()).first()
-        
-        if not latest_analysis:
-            return jsonify({'error': 'No field analysis available. Please analyze the field first.'}), 400
-        
-        # Prepare field data for AI analysis using actual data
-        field_data = {
-            'id': field.id,
-            'name': field.name,
-            'area_acres': field.calculate_area_acres(),
-            'center_lat': field.center_lat,
-            'center_lng': field.center_lng,
-            'last_analyzed': field.last_analyzed.isoformat() if field.last_analyzed else None
-        }
-        
-        # Extract actual NDVI statistics from the latest analysis
-        ndvi_data = latest_analysis.get_ndvi_data() or {}
-        health_scores = latest_analysis.get_health_scores() or {}
-        
-        # Calculate statistics from actual data
-        ndvi_values = []
-        if ndvi_data:
-            for zone_data in ndvi_data.values():
-                if isinstance(zone_data, dict) and 'ndvi' in zone_data:
-                    ndvi_values.append(zone_data['ndvi'])
-                elif isinstance(zone_data, (int, float)):
-                    ndvi_values.append(zone_data)
-        
-        if ndvi_values:
-            mean_ndvi = sum(ndvi_values) / len(ndvi_values)
-            min_ndvi = min(ndvi_values)
-            max_ndvi = max(ndvi_values)
-            std_ndvi = (sum((x - mean_ndvi) ** 2 for x in ndvi_values) / len(ndvi_values)) ** 0.5
-        else:
-            # Fallback values if no data available
-            mean_ndvi, min_ndvi, max_ndvi, std_ndvi = 0.65, 0.2, 0.9, 0.15
-        
-        # Prepare analysis data for AI
-        analysis_data = {
-            'field_stats': {
-                'mean_ndvi': mean_ndvi,
-                'min_ndvi': min_ndvi,
-                'max_ndvi': max_ndvi,
-                'std_ndvi': std_ndvi
-            },
-            'zone_stats': ndvi_data,
-            'health_scores': health_scores,
-            'recommendations': latest_analysis.get_recommendations() or []
-        }
-        
-        # Generate AI insights
-        ai_insights = get_ai_insights(field_data, analysis_data)
-        
-        # Save insights to database
-        insight = AIInsight(
-            field_id=field_id,
-            insight_type='field_health',
-            confidence_score=ai_insights.get('confidence_score', 0.7),
-            data_quality=ai_insights.get('data_quality', 'Good')
-        )
-        insight.set_ai_analysis(ai_insights)
-        
-        db.session.add(insight)
-        db.session.commit()
-        
-        logging.info(f"AI insight generated for field '{field.name}' (ID: {field_id})")
-        
-        return jsonify({
-            'success': True,
-            'insight_id': insight.id,
-            'insights': ai_insights
-        })
-        
-    except Exception as e:
-        logging.error(f"Error generating AI insights: {e}")
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-
-@app.route('/ai_insights/<int:field_id>')
-def view_ai_insights(field_id):
-    """View AI insights for a specific field"""
-    field = Field.query.get_or_404(field_id)
-    
-    # Get latest AI insights
-    latest_insights = AIInsight.query.filter_by(field_id=field_id).order_by(AIInsight.analysis_date.desc()).all()
-    
-    return render_template('ai_insights.html', 
-                         field=field, 
-                         insights=latest_insights)
-
-
-@app.route('/portfolio_ai_insights')
-def portfolio_ai_insights():
-    """Generate portfolio-level AI insights for all fields"""
-    try:
-        # Get all fields with their latest analyses
-        fields = Field.query.all()
-        fields_data = []
-        
-        for field in fields:
-            latest_analysis = FieldAnalysis.query.filter_by(field_id=field.id).order_by(FieldAnalysis.analysis_date.desc()).first()
-            
-            field_info = {
-                'id': field.id,
-                'name': field.name,
-                'area_acres': field.calculate_area_acres(),
-                'last_analyzed': field.last_analyzed.isoformat() if field.last_analyzed else None,
-                'latest_analysis': {
-                    'field_stats': {
-                        'mean_ndvi': 0.65  # Extract from actual analysis
-                    }
-                } if latest_analysis else None
-            }
-            fields_data.append(field_info)
-        
-        # Generate portfolio insights
-        portfolio_insights = get_portfolio_insights(fields_data)
-        
-        return render_template('portfolio_insights.html', 
-                             fields=fields,
-                             portfolio_insights=portfolio_insights)
-        
-    except Exception as e:
-        logger.error(f"Error generating portfolio insights: {e}")
-        flash(f"Error generating portfolio insights: {str(e)}", 'error')
-        return redirect(url_for('reports'))

@@ -7,55 +7,45 @@
     <!-- Project Header -->
     <div class="row mb-4">
         <div class="col-12">
-            <!-- Back Button and Title Row -->
-            <div class="d-flex align-items-center mb-3">
-                <a href="/dashboard" class="btn btn-outline-secondary btn-sm me-3">
-                    <i class="fas fa-arrow-left me-1"></i><span class="d-none d-sm-inline">Back to Projects</span>
-                </a>
-                <div class="flex-grow-1">
-                    <h1 class="text-light mb-1 h3">
-                        <i class="fas fa-folder-open me-2 text-warning"></i>{{ field.name }}
-                    </h1>
-                    <p class="text-muted mb-0 small">
-                        {{ field.calculate_area_acres()|round(1) }} acres • Created {{ field.created_at.strftime('%B %d, %Y') }}
-                    </p>
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-outline-secondary me-3" onclick="loadPage('/dashboard', event)">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Projects
+                    </button>
+                    <div>
+                        <h1 class="text-light mb-1">
+                            <i class="fas fa-folder-open me-2 text-warning"></i>{{ field.name }}
+                        </h1>
+                        <p class="text-muted mb-0">
+                            {{ field.calculate_area_acres()|round(1) }} acres • Created {{ field.created_at.strftime('%B %d, %Y') }}
+                        </p>
+                    </div>
                 </div>
-            </div>
-            
-            <!-- Action Buttons Row -->
-            <div class="d-flex flex-wrap gap-2">
-                <button class="btn btn-info btn-sm" onclick="generateAIInsights({{ field.id }})">
-                    <i class="fas fa-brain me-1"></i><span class="d-none d-md-inline">AI Insights</span>
-                </button>
-                <button class="btn btn-primary btn-sm" onclick="updateNDVI({{ field.id }})">
-                    <i class="fas fa-sync me-1"></i><span class="d-none d-md-inline">Update NDVI</span>
-                </button>
-                <a href="/?edit={{ field.id }}" class="btn btn-warning btn-sm">
-                    <i class="fas fa-edit me-1"></i><span class="d-none d-md-inline">Edit Polygon</span>
-                </a>
-                <a href="/field/{{ field.id }}/report" class="btn btn-success btn-sm">
-                    <i class="fas fa-chart-line me-1"></i><span class="d-none d-md-inline">Generate Report</span>
-                </a>
-                <button class="btn btn-secondary btn-sm" onclick="scheduleAutomation({{ field.id }})">
-                    <i class="fas fa-clock me-1"></i><span class="d-none d-lg-inline">Schedule</span>
-                </button>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" onclick="updateNDVI({{ field.id }})">
+                        <i class="fas fa-sync me-1"></i>Update NDVI
+                    </button>
+                    <button class="btn btn-success" onclick="loadPage('/field/{{ field.id }}/report', event)">
+                        <i class="fas fa-chart-line me-1"></i>Generate Report
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="row">
         <!-- Left Column - Current NDVI & Analytics -->
-        <div class="col-12 col-lg-8 mb-4">
+        <div class="col-lg-8">
             <!-- Current NDVI Display -->
             <div class="card bg-dark border-secondary mb-4">
                 <div class="card-header">
-                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center">
-                        <h5 class="mb-1 mb-sm-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
                             <i class="fas fa-satellite me-2"></i>Current NDVI Analysis
                         </h5>
                         {% if field.ndvi_cache_date %}
-                        <span class="badge bg-success text-nowrap">
-                            <span class="d-none d-md-inline">Last updated: </span>{{ field.ndvi_cache_date.strftime('%m/%d/%Y %H:%M') }}
+                        <span class="badge bg-success">
+                            Last updated: {{ field.ndvi_cache_date.strftime('%m/%d/%Y %H:%M') }}
                         </span>
                         {% endif %}
                     </div>
@@ -135,168 +125,8 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <div class="timeline" id="analysis-timeline">
-                        <!-- Display persisted AI insights from database -->
-                        {% if field.ai_insights %}
-                            {% for insight in field.ai_insights | sort(attribute='analysis_date', reverse=true) %}
-                            <div class="timeline-item mb-3" id="ai-insight-{{ insight.id }}">
-                                <div class="d-flex align-items-start">
-                                    <div class="timeline-marker me-3 mt-1">
-                                        <i class="fas fa-brain text-warning"></i>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <div class="d-flex justify-content-between align-items-center mb-1">
-                                            <h6 class="mb-0 text-warning">
-                                                <i class="fas fa-sparkles me-1"></i>AI Field Analysis
-                                            </h6>
-                                            <div class="d-flex align-items-center">
-                                                <small class="text-muted me-2">
-                                                    {{ insight.analysis_date.strftime('%m/%d/%Y %H:%M') }}
-                                                </small>
-                                                <button class="btn btn-sm btn-outline-danger" 
-                                                        onclick="deleteAIInsight({{ insight.id }})" 
-                                                        title="Delete AI Insight">
-                                                    <i class="fas fa-trash-alt"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Collapsible AI Analysis Content -->
-                                        <div class="accordion mt-2" id="ai-accordion-{{ insight.id }}">
-                                            <div class="accordion-item bg-dark border-secondary">
-                                                <h2 class="accordion-header">
-                                                    <button class="accordion-button collapsed bg-dark text-light border-0" 
-                                                            type="button" 
-                                                            data-bs-toggle="collapse" 
-                                                            data-bs-target="#ai-collapse-{{ insight.id }}" 
-                                                            aria-expanded="false" 
-                                                            aria-controls="ai-collapse-{{ insight.id }}">
-                                                        <div class="d-flex align-items-center w-100">
-                                                            <i class="fas fa-chart-line text-warning me-2"></i>
-                                                            <span>View AI Analysis & Recommendations</span>
-                                                            <span class="badge bg-warning text-dark ms-2">
-                                                                Confidence: {{ "%.0f"|format(insight.confidence_score * 100) }}%
-                                                            </span>
-                                                        </div>
-                                                    </button>
-                                                </h2>
-                                                <div id="ai-collapse-{{ insight.id }}" 
-                                                     class="accordion-collapse collapse" 
-                                                     data-bs-parent="#ai-accordion-{{ insight.id }}">
-                                                    <div class="accordion-body bg-dark text-light">
-                                                        {% set ai_data = insight.get_ai_analysis() %}
-                                                        
-                                                        <!-- Debug: Check data structure -->
-                                                        <div class="mb-2 small text-info border p-2">
-                                                            <strong>Debug Info:</strong><br>
-                                                            AI Data Keys: {{ ai_data.keys() | list if ai_data else 'None' }}<br>
-                                                            Has ai_insights: {{ 'ai_insights' in ai_data if ai_data else 'False' }}<br>
-                                                            AI Insights Type: {{ ai_data.ai_insights.__class__.__name__ if ai_data and 'ai_insights' in ai_data else 'N/A' }}
-                                                        </div>
-                                                        
-                                                        {% if ai_data and 'ai_insights' in ai_data %}
-                                                            {% set ai_insights = ai_data['ai_insights'] %}
-                                                            <!-- Overall Health Assessment -->
-                                                            {% if ai_insights.overall_health_assessment %}
-                                                            <div class="mb-3">
-                                                                <h6 class="text-info"><i class="fas fa-heartbeat me-1"></i>Overall Health Assessment</h6>
-                                                                <p class="text-light mb-0">{{ ai_insights.overall_health_assessment }}</p>
-                                                            </div>
-                                                            {% endif %}
-                                                            
-                                                            <!-- Critical Insights -->
-                                                            {% if ai_insights.critical_insights %}
-                                                            <div class="mb-3">
-                                                                <h6 class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Critical Insights</h6>
-                                                                <ul class="list-unstyled mb-0">
-                                                                    {% for insight_item in ai_insights.critical_insights %}
-                                                                    <li class="mb-1"><i class="fas fa-arrow-right text-warning me-2"></i>{{ insight_item }}</li>
-                                                                    {% endfor %}
-                                                                </ul>
-                                                            </div>
-                                                            {% endif %}
-                                                            
-                                                            <!-- Immediate Actions -->
-                                                            {% if ai_insights.immediate_actions %}
-                                                            <div class="mb-3">
-                                                                <h6 class="text-danger"><i class="fas fa-clock me-1"></i>Immediate Actions (1-2 weeks)</h6>
-                                                                <ul class="list-unstyled mb-0">
-                                                                    {% for action in ai_insights.immediate_actions %}
-                                                                    <li class="mb-1"><i class="fas fa-check-circle text-danger me-2"></i>{{ action }}</li>
-                                                                    {% endfor %}
-                                                                </ul>
-                                                            </div>
-                                                            {% endif %}
-                                                            
-                                                            <!-- Seasonal Recommendations -->
-                                                            {% if ai_insights.seasonal_recommendations %}
-                                                            <div class="mb-3">
-                                                                <h6 class="text-success"><i class="fas fa-seedling me-1"></i>Seasonal Strategy</h6>
-                                                                <ul class="list-unstyled mb-0">
-                                                                    {% for rec in ai_insights.seasonal_recommendations %}
-                                                                    <li class="mb-1"><i class="fas fa-leaf text-success me-2"></i>{{ rec }}</li>
-                                                                    {% endfor %}
-                                                                </ul>
-                                                            </div>
-                                                            {% endif %}
-                                                            
-                                                            <!-- Additional Sections -->
-                                                            {% if ai_insights.yield_prediction %}
-                                                            <div class="mb-3">
-                                                                <h6 class="text-primary"><i class="fas fa-chart-bar me-1"></i>Yield Prediction</h6>
-                                                                <p class="text-light mb-0">{{ ai_insights.yield_prediction }}</p>
-                                                            </div>
-                                                            {% endif %}
-                                                            
-                                                            {% if ai_insights.risk_factors %}
-                                                            <div class="mb-3">
-                                                                <h6 class="text-warning"><i class="fas fa-shield-alt me-1"></i>Risk Factors</h6>
-                                                                <ul class="list-unstyled mb-0">
-                                                                    {% for risk in ai_insights.risk_factors %}
-                                                                    <li class="mb-1"><i class="fas fa-exclamation text-warning me-2"></i>{{ risk }}</li>
-                                                                    {% endfor %}
-                                                                </ul>
-                                                            </div>
-                                                            {% endif %}
-                                                            
-                                                            {% if ai_insights.optimization_opportunities %}
-                                                            <div class="mb-0">
-                                                                <h6 class="text-info"><i class="fas fa-lightbulb me-1"></i>Optimization Opportunities</h6>
-                                                                <ul class="list-unstyled mb-0">
-                                                                    {% for opp in ai_insights.optimization_opportunities %}
-                                                                    <li class="mb-1"><i class="fas fa-arrow-up text-info me-2"></i>{{ opp }}</li>
-                                                                    {% endfor %}
-                                                                </ul>
-                                                            </div>
-                                                            {% endif %}
-                                                        {% else %}
-                                                            <!-- Fallback when AI insights data is missing or malformed -->
-                                                            <div class="alert alert-warning" role="alert">
-                                                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                                                <strong>AI Analysis Data Issue</strong><br>
-                                                                The AI analysis data appears to be incomplete or corrupted. 
-                                                                Try generating a new AI insight for this field.
-                                                            </div>
-                                                            
-                                                            <!-- Debug info for troubleshooting -->
-                                                            {% if ai_data %}
-                                                            <details class="mt-2">
-                                                                <summary class="text-muted small">Technical Details</summary>
-                                                                <pre class="text-muted small mt-1">{{ ai_data | tojson(indent=2) }}</pre>
-                                                            </details>
-                                                            {% endif %}
-                                                        {% endif %}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        {% endif %}
-                        
-                        {% if field.analyses %}
+                    {% if field.analyses %}
+                        <div class="timeline">
                             {% for analysis in field.analyses[:10] %}
                             <div class="timeline-item mb-3">
                                 <div class="d-flex align-items-start">
@@ -306,7 +136,7 @@
                                     <div class="flex-grow-1">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
                                             <h6 class="mb-0 text-light">
-                                                NDVI Analysis {{ loop.index }}
+                                                Analysis {{ loop.index }}
                                             </h6>
                                             <small class="text-muted">
                                                 {{ analysis.analysis_date.strftime('%m/%d/%Y %H:%M') }}
@@ -332,21 +162,19 @@
                                 </div>
                             </div>
                             {% endfor %}
-                        {% else %}
-                            <div class="text-center py-4" id="empty-timeline-message">
-                                <i class="fas fa-clock fa-2x text-muted mb-3"></i>
-                                <p class="text-muted">No historical data available yet. Analyses will appear here as they are generated.</p>
-                            </div>
-                        {% endif %}
-                    </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-clock fa-2x text-muted mb-3"></i>
+                            <p class="text-muted">No historical data available yet. Analyses will appear here as they are generated.</p>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
-
-
         </div>
 
         <!-- Right Column - Site Information & Controls -->
-        <div class="col-12 col-lg-4">
+        <div class="col-lg-4">
             <!-- Site Details -->
             <div class="card bg-dark border-secondary mb-4">
                 <div class="card-header">
@@ -463,48 +291,6 @@
     font-size: 0.85rem;
     padding: 0.4rem 0.6rem;
 }
-
-.collapse-icon {
-    transition: transform 0.3s ease;
-}
-
-.ai-insight-header {
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
-.ai-insight-header:hover {
-    background-color: rgba(23, 162, 184, 0.8) !important;
-}
-
-/* Mobile Responsive Improvements */
-@media (max-width: 768px) {
-    .timeline-item .row {
-        margin: 0;
-    }
-    
-    .timeline-item .col-md-6 {
-        padding: 0.25rem 0;
-    }
-    
-    .card-header h5 {
-        font-size: 1rem;
-    }
-    
-    .badge {
-        font-size: 0.7rem;
-    }
-    
-    .btn-sm {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.8rem;
-    }
-    
-    .container-fluid {
-        padding-left: 0.75rem;
-        padding-right: 0.75rem;
-    }
-}
 </style>
 
 <script>
@@ -533,308 +319,6 @@ function updateNDVI(fieldId) {
         showError('Failed to update NDVI analysis. Please try again.');
     });
 }
-
-function showLoading() {
-    const btn = event.target;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
-}
-
-function hideLoading() {
-    // Reload will handle resetting the button state
-}
-
-function generateAIInsights(fieldId) {
-    const btn = event.target;
-    const originalText = btn.innerHTML;
-    
-    // Show loading state
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Generating...';
-    
-    // Create loading timeline item
-    const aiInsightId = 'ai-insight-' + Date.now();
-    addAIInsightToTimeline(aiInsightId, null, true);
-    
-    // Generate AI insights
-    fetch(`/generate_ai_insights/${fieldId}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success && data.insights) {
-            // Remove temporary insight and reload page to show persisted insight
-            const tempElement = document.getElementById(aiInsightId);
-            if (tempElement) {
-                tempElement.remove();
-            }
-            showSuccess('AI insights generated successfully!');
-            setTimeout(() => location.reload(), 1500);
-        } else {
-            // Handle daily limit error
-            if (data.error && data.error.includes('already generated today')) {
-                updateAIInsightInTimeline(aiInsightId, null, 'Daily AI analysis limit reached. Only one AI insight per field per day is allowed.');
-                showInfo('Daily AI analysis limit reached. You can generate a new analysis tomorrow.');
-                
-                // Disable the button until tomorrow
-                btn.innerHTML = '<i class="fas fa-clock me-2"></i>Available Tomorrow';
-                btn.disabled = true;
-                btn.classList.remove('btn-warning');
-                btn.classList.add('btn-secondary');
-                return; // Don't re-enable button
-            } else {
-                updateAIInsightInTimeline(aiInsightId, null, data.error || 'Failed to generate insights');
-                showError(data.error || 'Failed to generate AI insights. Please try again.');
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        updateAIInsightInTimeline(aiInsightId, null, 'Failed to generate AI insights. Please try again.');
-        showError('Failed to generate AI insights. Please try again.');
-    })
-    .finally(() => {
-        // Only re-enable if not disabled due to daily limit
-        if (!btn.classList.contains('btn-secondary')) {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }
-    });
-}
-
-function addAIInsightToTimeline(insightId, insights = null, isLoading = false) {
-    const timeline = document.getElementById('analysis-timeline');
-    const emptyMessage = document.getElementById('empty-timeline-message');
-    
-    // Hide empty message if it exists
-    if (emptyMessage) {
-        emptyMessage.style.display = 'none';
-    }
-    
-    const currentTime = new Date().toLocaleString();
-    
-    const timelineItem = document.createElement('div');
-    timelineItem.className = 'timeline-item mb-3';
-    timelineItem.id = insightId;
-    
-    if (isLoading) {
-        timelineItem.innerHTML = `
-            <div class="d-flex align-items-start">
-                <div class="timeline-marker me-3 mt-1">
-                    <i class="fas fa-spinner fa-spin text-info"></i>
-                </div>
-                <div class="flex-grow-1">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <h6 class="mb-0 text-light">
-                            <i class="fas fa-brain me-2"></i>AI Insights
-                        </h6>
-                        <small class="text-muted">${currentTime}</small>
-                    </div>
-                    <div class="text-muted">
-                        <small>Generating AI insights...</small>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    // Insert at the beginning of the timeline
-    timeline.insertBefore(timelineItem, timeline.firstChild);
-    
-    // Add event listener for collapse toggle to rotate chevron
-    if (!isLoading) {
-        const collapseElement = timelineItem.querySelector(`#collapse-${insightId}`);
-        if (collapseElement) {
-            collapseElement.addEventListener('show.bs.collapse', function () {
-                const icon = timelineItem.querySelector('.collapse-icon');
-                if (icon) icon.style.transform = 'rotate(180deg)';
-            });
-            
-            collapseElement.addEventListener('hide.bs.collapse', function () {
-                const icon = timelineItem.querySelector('.collapse-icon');
-                if (icon) icon.style.transform = 'rotate(0deg)';
-            });
-        }
-    }
-}
-
-function updateAIInsightInTimeline(insightId, insights, error = null) {
-    const timelineItem = document.getElementById(insightId);
-    if (!timelineItem) return;
-    
-    const currentTime = new Date().toLocaleString();
-    
-    if (error) {
-        timelineItem.innerHTML = `
-            <div class="d-flex align-items-start">
-                <div class="timeline-marker me-3 mt-1">
-                    <i class="fas fa-exclamation-triangle text-danger"></i>
-                </div>
-                <div class="flex-grow-1">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <h6 class="mb-0 text-light">
-                            <i class="fas fa-brain me-2"></i>AI Insights (Error)
-                        </h6>
-                        <small class="text-muted">${currentTime}</small>
-                    </div>
-                    <div class="alert alert-danger alert-sm">
-                        <small>${error}</small>
-                    </div>
-                </div>
-            </div>
-        `;
-        return;
-    }
-    
-    const aiData = insights.ai_insights || {};
-    const criticalCount = aiData.critical_insights ? aiData.critical_insights.length : 0;
-    const actionCount = aiData.immediate_actions ? aiData.immediate_actions.length : 0;
-    
-    timelineItem.innerHTML = `
-        <div class="d-flex align-items-start">
-            <div class="timeline-marker me-3 mt-1">
-                <i class="fas fa-brain text-info"></i>
-            </div>
-            <div class="flex-grow-1">
-                <!-- Clickable Header -->
-                <div class="card bg-dark border-info">
-                    <div class="card-header bg-info text-white p-2 ai-insight-header" data-bs-toggle="collapse" data-bs-target="#collapse-${insightId}" aria-expanded="false">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0">
-                                <i class="fas fa-brain me-2"></i>AI Insights
-                            </h6>
-                            <div class="d-flex align-items-center">
-                                <small class="text-white-50 me-3">${currentTime}</small>
-                                <i class="fas fa-chevron-down collapse-icon"></i>
-                            </div>
-                        </div>
-                        <div class="row mt-2">
-                            <div class="col-4">
-                                <small class="text-white-50">Confidence:</small>
-                                <span class="fw-bold">${Math.round((insights.confidence_score || 0.7) * 100)}%</span>
-                            </div>
-                            <div class="col-4">
-                                <small class="text-white-50">Issues:</small>
-                                <span class="fw-bold">${criticalCount}</span>
-                            </div>
-                            <div class="col-4">
-                                <small class="text-white-50">Actions:</small>
-                                <span class="fw-bold">${actionCount}</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Collapsible Content -->
-                    <div class="collapse" id="collapse-${insightId}">
-                        <div class="card-body p-3">
-                            ${generateInsightContent(aiData)}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Add event listeners for collapse functionality
-    setTimeout(() => {
-        const collapseElement = timelineItem.querySelector(`#collapse-${insightId}`);
-        if (collapseElement) {
-            collapseElement.addEventListener('show.bs.collapse', function () {
-                const icon = timelineItem.querySelector('.collapse-icon');
-                if (icon) {
-                    icon.style.transform = 'rotate(180deg)';
-                    icon.style.transition = 'transform 0.3s ease';
-                }
-            });
-            
-            collapseElement.addEventListener('hide.bs.collapse', function () {
-                const icon = timelineItem.querySelector('.collapse-icon');
-                if (icon) {
-                    icon.style.transform = 'rotate(0deg)';
-                    icon.style.transition = 'transform 0.3s ease';
-                }
-            });
-        }
-    }, 100);
-}
-
-function generateInsightContent(aiData) {
-    return `
-        <!-- Overall Health Assessment -->
-        <div class="mb-3">
-            <h6 class="text-success mb-2"><i class="fas fa-heartbeat me-2"></i>Overall Health</h6>
-            <p class="small mb-0">${aiData.overall_health_assessment || 'Analysis in progress...'}</p>
-        </div>
-        
-        <!-- Critical Insights -->
-        ${aiData.critical_insights && aiData.critical_insights.length > 0 ? `
-        <div class="mb-3">
-            <h6 class="text-warning mb-2"><i class="fas fa-exclamation-triangle me-2"></i>Critical Insights</h6>
-            ${aiData.critical_insights.map(insight => 
-                `<div class="d-flex mb-1">
-                    <i class="fas fa-lightbulb text-warning me-2 mt-1 small"></i>
-                    <small>${insight}</small>
-                </div>`
-            ).join('')}
-        </div>
-        ` : ''}
-        
-        <!-- Immediate Actions -->
-        ${aiData.immediate_actions && aiData.immediate_actions.length > 0 ? `
-        <div class="mb-3">
-            <h6 class="text-danger mb-2"><i class="fas fa-tasks me-2"></i>Immediate Actions</h6>
-            ${aiData.immediate_actions.map(action => 
-                `<div class="d-flex mb-1">
-                    <input type="checkbox" class="form-check-input me-2 mt-1" style="font-size: 0.8rem;">
-                    <small>${action}</small>
-                </div>`
-            ).join('')}
-        </div>
-        ` : ''}
-        
-        <!-- Seasonal Recommendations -->
-        ${aiData.seasonal_recommendations && aiData.seasonal_recommendations.length > 0 ? `
-        <div class="mb-3">
-            <h6 class="text-success mb-2"><i class="fas fa-calendar-alt me-2"></i>Seasonal Recommendations</h6>
-            <div class="row">
-                ${aiData.seasonal_recommendations.map(rec => 
-                    `<div class="col-md-6 mb-1">
-                        <div class="d-flex">
-                            <i class="fas fa-seedling text-success me-2 mt-1 small"></i>
-                            <small>${rec}</small>
-                        </div>
-                    </div>`
-                ).join('')}
-            </div>
-        </div>
-        ` : ''}
-        
-        <!-- Yield & Optimization -->
-        <div class="row">
-            <div class="col-md-6">
-                <h6 class="text-primary mb-2 small"><i class="fas fa-chart-bar me-2"></i>Yield Prediction</h6>
-                <p class="small mb-0">${aiData.yield_prediction || 'Analysis in progress...'}</p>
-            </div>
-            <div class="col-md-6">
-                <h6 class="text-info mb-2 small"><i class="fas fa-cog me-2"></i>Optimization</h6>
-                ${aiData.optimization_opportunities && aiData.optimization_opportunities.length > 0 ? 
-                    aiData.optimization_opportunities.map(opp => 
-                        `<div class="d-flex mb-1">
-                            <i class="fas fa-arrow-up text-info me-1 mt-1 small"></i>
-                            <small>${opp}</small>
-                        </div>`
-                    ).join('') : 
-                    '<p class="small mb-0 text-muted">No opportunities identified.</p>'
-                }
-            </div>
-        </div>
-    `;
-}
-
-
 
 function scheduleAutomation(fieldId) {
     showInfo('Automation scheduling feature coming soon! This will allow daily/weekly automated NDVI updates.');
@@ -874,48 +358,5 @@ function showNotification(message, type) {
         notification.remove();
     }, 4000);
 }
-
-function deleteAIInsight(insightId) {
-    if (!confirm('Are you sure you want to delete this AI insight? This action cannot be undone.')) {
-        return;
-    }
-    
-    showLoading();
-    
-    fetch(`/api/delete_ai_insight/${insightId}`, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        hideLoading();
-        if (data.success) {
-            showSuccess('AI insight deleted successfully!');
-            // Remove the insight from the DOM
-            const insightElement = document.getElementById(`ai-insight-${insightId}`);
-            if (insightElement) {
-                insightElement.remove();
-            }
-        } else {
-            showError(data.message || 'Error deleting AI insight. Please try again.');
-        }
-    })
-    .catch(error => {
-        hideLoading();
-        console.error('Error:', error);
-        showError('Error deleting AI insight. Please try again.');
-    });
-}
-
-// Daily limit check temporarily disabled for testing
-// document.addEventListener('DOMContentLoaded', function() {
-//     checkDailyAILimit({{ field.id }});
-// });
-
-// function checkDailyAILimit(fieldId) {
-//     // Temporarily disabled for testing
-// }
 </script>
 {% endblock %}
