@@ -39,7 +39,7 @@ def index():
 def dashboard():
     """Dashboard showing all saved fields"""
     fields = Field.query.order_by(Field.created_at.desc()).all()
-    return render_spa_template('dashboard.html', fields=fields)
+    return render_spa_template('dashboard_content.html', fields=fields)
 
 @app.route('/field/<int:field_id>')
 def field_detail(field_id):

@@ -1,4 +1,38 @@
-<div class="container mt-4">
+{% extends "base.html" %}
+
+{% block title %}Dashboard - FieldVision AI{% endblock %}
+
+{% block styles %}
+<style>
+.project-folder-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.project-folder-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(88, 166, 255, 0.2);
+    border-color: rgba(88, 166, 255, 0.5);
+}
+
+.project-actions {
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+}
+
+.project-folder-card:hover .project-actions {
+    opacity: 1;
+}
+
+.alert-sm {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4" data-content-block>
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -187,34 +221,9 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
 
-<style>
-.project-folder-card {
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-.project-folder-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(88, 166, 255, 0.2);
-    border-color: rgba(88, 166, 255, 0.5);
-}
-
-.project-actions {
-    opacity: 0.8;
-    transition: opacity 0.3s ease;
-}
-
-.project-folder-card:hover .project-actions {
-    opacity: 1;
-}
-
-.alert-sm {
-    font-size: 0.8rem;
-    padding: 0.25rem 0.5rem;
-}
-</style>
-
+{% block scripts %}
 <script>
 // Update current time
 function updateCurrentTime() {
@@ -321,3 +330,4 @@ function showNotification(message, type) {
     }, 4000);
 }
 </script>
+{% endblock %}
