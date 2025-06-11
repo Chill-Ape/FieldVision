@@ -611,6 +611,25 @@
             }
         }
         
+        /* Device-specific display controls */
+        .desktop-only {
+            display: block;
+        }
+        
+        .mobile-only {
+            display: none;
+        }
+        
+        @media (max-width: 767.98px) {
+            .desktop-only {
+                display: none !important;
+            }
+            
+            .mobile-only {
+                display: block !important;
+            }
+        }
+        
         /* Mobile map overlay controls */
         .map-overlay {
             position: absolute;
@@ -957,12 +976,13 @@
             </div>
         </div>
         
-        <div class="map-container">
+        <!-- Desktop Map Container -->
+        <div class="map-container desktop-only">
             <div id="map"></div>
         </div>
         
         <!-- Mobile Site Selector -->
-        <div class="mobile-site-selector">
+        <div class="mobile-site-selector mobile-only">
             <h3 style="color: #58a6ff; margin-bottom: 1rem; font-size: 1.2rem;">Select Field Area</h3>
             <button class="draw-site-btn" onclick="openFullscreenMap()">
                 <i class="fas fa-draw-polygon"></i>
@@ -1029,15 +1049,16 @@
         
         // Initialize map
         function initMap() {
-            // MOBILE DETECTION - FIRST PRIORITY
-            if (window.innerWidth <= 767.98) {
-                console.log('MOBILE DETECTED - Width:', window.innerWidth, '- Stopping map initialization');
+            // Check if map container is visible (CSS-based mobile detection)
+            const mapContainer = document.querySelector('.map-container');
+            if (!mapContainer || mapContainer.offsetParent === null) {
+                console.log('Map container hidden - using mobile interface');
                 mapInitialized = true;
                 setupMobileInterface();
                 return;
             }
             
-            console.log('DESKTOP DETECTED - Width:', window.innerWidth, '- Proceeding with map');
+            console.log('Map container visible - proceeding with map initialization');
             
             if (mapInitialized) {
                 console.log('Map already initialized, skipping...');
