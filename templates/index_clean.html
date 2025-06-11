@@ -1127,7 +1127,19 @@
         
         // Auto-initialize if we're on the index page
         if (window.location.pathname === '/' || window.location.pathname === '') {
-            document.addEventListener('DOMContentLoaded', initializeMap);
+            document.addEventListener('DOMContentLoaded', function() {
+                setTimeout(initializeMap, 100);
+            });
         }
+        
+        // Ensure all functions are globally available
+        window.analyzeNDVI = analyzeNDVI;
+        window.searchAddress = searchAddress;
+        window.clearDrawings = clearDrawings;
+        window.showSaveSiteModal = showSaveSiteModal;
+        window.saveSite = saveSite;
+        window.closeSaveSiteModal = closeSaveSiteModal;
+        window.changeMapLayer = changeMapLayer;
+        window.toggleLayerControl = toggleLayerControl;
     </script>
 {% endblock %}
