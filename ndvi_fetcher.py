@@ -74,16 +74,18 @@ function evaluatePixel(sample) {
     // Clamp NDVI to valid range
     ndvi = Math.max(-1, Math.min(1, ndvi));
     
-    // Agricultural NDVI color scheme - proven working
-    if (ndvi < -0.1) return [0.0, 0.4, 0.8]; // Water - blue
-    if (ndvi < 0.1) return [0.8, 0.6, 0.4]; // Bare soil - tan
-    if (ndvi < 0.2) return [1.0, 0.0, 0.0]; // Stress - red
-    if (ndvi < 0.3) return [1.0, 0.5, 0.0]; // Low vigor - orange
-    if (ndvi < 0.4) return [1.0, 1.0, 0.0]; // Moderate - yellow
-    if (ndvi < 0.5) return [0.7, 1.0, 0.0]; // Good - yellow-green
-    if (ndvi < 0.6) return [0.0, 1.0, 0.0]; // Healthy - green
-    if (ndvi < 0.7) return [0.0, 0.8, 0.0]; // Very healthy - dark green
-    return [0.0, 0.6, 0.0]; // Excellent - deep green
+    // Enhanced contrast agricultural NDVI visualization
+    if (ndvi < -0.2) return [0.0, 0.0, 0.8]; // Deep water - blue
+    if (ndvi < -0.05) return [0.3, 0.3, 0.7]; // Shallow water - light blue
+    if (ndvi < 0.05) return [0.7, 0.5, 0.3]; // Bare soil - brown
+    if (ndvi < 0.15) return [0.9, 0.3, 0.3]; // Very stressed - red
+    if (ndvi < 0.25) return [1.0, 0.6, 0.2]; // Stressed - orange
+    if (ndvi < 0.35) return [1.0, 0.9, 0.1]; // Low vigor - yellow
+    if (ndvi < 0.45) return [0.8, 1.0, 0.2]; // Moderate - yellow-green
+    if (ndvi < 0.55) return [0.4, 0.9, 0.3]; // Good - light green
+    if (ndvi < 0.65) return [0.2, 0.8, 0.2]; // Healthy - green
+    if (ndvi < 0.75) return [0.0, 0.7, 0.0]; // Very healthy - dark green
+    return [0.0, 0.5, 0.0]; // Excellent - very dark green
 }
 """
     
