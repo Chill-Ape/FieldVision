@@ -851,7 +851,7 @@
         </div>
     </div>
     
-    <!-- Leaflet JS -->
+    <!-- Leaflet JS with sequential loading -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
     
@@ -861,9 +861,14 @@
         let currentBounds = null;
         let currentLayer = null;
         let areaUnit = localStorage.getItem('areaUnit') || 'acres'; // Default to acres for US business
+        let mapInitialized = false;
         
         // Initialize map
         function initMap() {
+            if (mapInitialized) {
+                console.log('Map already initialized, skipping...');
+                return;
+            }
             try {
                 console.log('Starting initializeMap function');
                 const mapElement = document.getElementById('map');
@@ -897,7 +902,20 @@
                 console.log('Updated map element dimensions:', {width: newRect.width, height: newRect.height});
                 
                 console.log('Creating Leaflet map instance');
-                map = L.map('map', {
+                
+                // Ensure Leaflet is loaded
+                if (typeof L === 'undefined') {
+                    throw new Error('Leaflet library not loaded');
+                }
+                
+                // Clear any existing map instance
+                if (mapElement._leaflet_id) {
+                    delete window[L.Util.stamp(mapElement)];
+                    mapElement._leaflet_id = undefined;
+                }
+                
+                // Create map with mobile-optimized settings
+                map = L.map(mapElement, {
                     zoomControl: true,
                     attributionControl: true,
                     scrollWheelZoom: true,
@@ -905,11 +923,16 @@
                     touchZoom: true,
                     dragging: true,
                     tap: true,
-                    tapTolerance: 15
+                    tapTolerance: 15,
+                    fadeAnimation: false,
+                    zoomAnimation: false,
+                    markerZoomAnimation: false
                 }).setView([37.7749, -122.4194], 10);
                 
                 // Store map reference for mobile handling
                 mapElement._leaflet_map = map;
+                
+                console.log('Map instance created successfully');
             
             // Define map layers
             const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
@@ -1074,8 +1097,14 @@
                 }, 1000);
             }, 500);
             
+            // Mark as successfully initialized
+            mapInitialized = true;
+            console.log('Map initialization process completed successfully');
+            
             } catch (error) {
                 console.error('Error creating map:', error);
+                mapInitialized = false;
+                
                 // Show user-friendly error message
                 const mapElement = document.getElementById('map');
                 if (mapElement) {
@@ -1085,12 +1114,26 @@
                                 <div style="color: #f85149; font-size: 2rem; margin-bottom: 1rem;">⚠️</div>
                                 <h3 style="color: #58a6ff; margin-bottom: 1rem;">Map Loading Error</h3>
                                 <p style="color: #8b949e; margin-bottom: 1rem;">Unable to initialize the map interface.</p>
-                                <button onclick="location.reload()" style="background: #58a6ff; color: #0d1117; border: none; padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer; font-family: 'Exo 2', sans-serif;">Reload Page</button>
+                                <button onclick="retryMapInit()" style="background: #58a6ff; color: #0d1117; border: none; padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer; font-family: 'Exo 2', sans-serif; margin-right: 0.5rem;">Retry</button>
+                                <button onclick="location.reload()" style="background: #30363d; color: #c9d1d9; border: none; padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer; font-family: 'Exo 2', sans-serif;">Reload Page</button>
                             </div>
                         </div>
                     `;
                 }
             }
+        }
+        
+        function retryMapInit() {
+            mapInitialized = false;
+            map = null;
+            drawnItems = null;
+            const mapElement = document.getElementById('map');
+            if (mapElement) {
+                mapElement.innerHTML = '';
+            }
+            setTimeout(() => {
+                initMap();
+            }, 500);
         }
         
         function updateBounds(bounds) {
@@ -1875,33 +1918,97 @@
             }
         }
         
-        // Initialize everything when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            // Wait for all CSS and layout to settle before initializing map
-            setTimeout(() => {
-                initMap();
-                checkAPIStatus();
+        // Show loading indicator while waiting for libraries
+        function showMapLoading() {
+            const mapElement = document.getElementById('map');
+            if (mapElement) {
+                mapElement.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: rgba(13, 17, 23, 0.95); color: #c9d1d9; font-family: 'Exo 2', sans-serif;">
+                        <div style="text-align: center; padding: 2rem;">
+                            <div style="color: #58a6ff; font-size: 2rem; margin-bottom: 1rem; animation: pulse 2s infinite;">🗺️</div>
+                            <h3 style="color: #58a6ff; margin-bottom: 1rem;">Loading Map Interface</h3>
+                            <p style="color: #8b949e; margin-bottom: 1rem;">Initializing satellite imagery and drawing tools...</p>
+                            <div style="width: 40px; height: 40px; border: 3px solid rgba(88, 166, 255, 0.3); border-radius: 50%; border-top: 3px solid #58a6ff; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Wait for Leaflet to load completely
+        function waitForLeaflet(callback, maxAttempts = 100) {
+            let attempts = 0;
+            const checkLeaflet = () => {
+                attempts++;
+                console.log('Checking Leaflet availability, attempt:', attempts);
                 
-                // Initialize mobile map handling after map is created
-                if (typeof initializeMobileMapHandling === 'function') {
-                    initializeMobileMapHandling();
-                }
-                
-                // Check for selected site from dashboard
-                const selectedSite = localStorage.getItem('selectedSite');
-                if (selectedSite) {
-                    const site = JSON.parse(selectedSite);
-                    loadSiteOnMap(site);
-                    localStorage.removeItem('selectedSite');
-                    
-                    // Auto-analyze if requested
-                    const autoAnalyze = localStorage.getItem('autoAnalyze');
-                    if (autoAnalyze === 'true') {
-                        localStorage.removeItem('autoAnalyze');
-                        setTimeout(() => analyzeNDVI(), 1000);
+                if (typeof L !== 'undefined' && L.map && L.tileLayer && L.Control && L.Control.Draw) {
+                    console.log('Leaflet and Leaflet.draw loaded successfully after', attempts, 'attempts');
+                    callback();
+                } else if (attempts < maxAttempts) {
+                    setTimeout(checkLeaflet, 200);
+                } else {
+                    console.error('Leaflet failed to load after', maxAttempts, 'attempts');
+                    // Show error message with retry option
+                    const mapElement = document.getElementById('map');
+                    if (mapElement) {
+                        mapElement.innerHTML = `
+                            <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: rgba(13, 17, 23, 0.95); color: #c9d1d9; font-family: 'Exo 2', sans-serif;">
+                                <div style="text-align: center; padding: 2rem;">
+                                    <div style="color: #f85149; font-size: 2rem; margin-bottom: 1rem;">⚠️</div>
+                                    <h3 style="color: #58a6ff; margin-bottom: 1rem;">Map Loading Failed</h3>
+                                    <p style="color: #8b949e; margin-bottom: 1rem;">Unable to load map libraries. This may be due to network connectivity.</p>
+                                    <button onclick="retryMapInit()" style="background: #58a6ff; color: #0d1117; border: none; padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer; font-family: 'Exo 2', sans-serif; margin-right: 0.5rem;">Retry Loading</button>
+                                    <button onclick="location.reload()" style="background: #30363d; color: #c9d1d9; border: none; padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer; font-family: 'Exo 2', sans-serif;">Refresh Page</button>
+                                </div>
+                            </div>
+                        `;
                     }
                 }
-            }, 300);
+            };
+            checkLeaflet();
+        }
+
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, showing loading indicator...');
+            
+            // Show loading indicator immediately
+            showMapLoading();
+            
+            waitForLeaflet(() => {
+                console.log('Starting map initialization...');
+                
+                // Wait for layout to settle
+                setTimeout(() => {
+                    initMap();
+                    checkAPIStatus();
+                    
+                    // Initialize mobile map handling after map is created
+                    setTimeout(() => {
+                        if (typeof initializeMobileMapHandling === 'function') {
+                            initializeMobileMapHandling();
+                        }
+                    }, 800);
+                    
+                    // Check for selected site from dashboard
+                    const selectedSite = localStorage.getItem('selectedSite');
+                    if (selectedSite) {
+                        const site = JSON.parse(selectedSite);
+                        setTimeout(() => {
+                            loadSiteOnMap(site);
+                            localStorage.removeItem('selectedSite');
+                            
+                            // Auto-analyze if requested
+                            const autoAnalyze = localStorage.getItem('autoAnalyze');
+                            if (autoAnalyze === 'true') {
+                                localStorage.removeItem('autoAnalyze');
+                                setTimeout(() => analyzeNDVI(), 1000);
+                            }
+                        }, 1000);
+                    }
+                }, 500);
+            });
         });
         
         function loadSiteOnMap(site) {
