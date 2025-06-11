@@ -185,6 +185,10 @@
                                                      data-bs-parent="#ai-accordion-{{ insight.id }}">
                                                     <div class="accordion-body bg-dark text-light">
                                                         {% set ai_data = insight.get_ai_analysis() %}
+                                                        <!-- Debug: Show raw AI data -->
+                                                        <div class="mb-2 small text-muted">
+                                                            Debug: {{ ai_data | tojson }}
+                                                        </div>
                                                         {% if ai_data %}
                                                             <!-- Overall Health Assessment -->
                                                             {% if ai_data.overall_health_assessment %}
