@@ -1081,19 +1081,34 @@
                     if (data && data.length > 0) {
                         result = data[0];
                     } else {
-                        // Strategy 3: Try broader search without country restriction
-                        searchUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=5`;
-                        response = await fetch(searchUrl);
-                        data = await response.json();
+                        // Strategy 3: Try with just city and state
+                        const parts = address.split(',').map(p => p.trim());
+                        if (parts.length >= 2) {
+                            const cityState = parts.slice(-2).join(', ');
+                            searchUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cityState)}&countrycodes=us&limit=3`;
+                            response = await fetch(searchUrl);
+                            data = await response.json();
+                            
+                            if (data && data.length > 0) {
+                                result = data[0];
+                            }
+                        }
                         
-                        if (data && data.length > 0) {
-                            // Filter for US results
-                            const usResults = data.filter(item => 
-                                item.display_name.includes('United States') || 
-                                item.display_name.includes('California') ||
-                                item.display_name.includes('CA')
-                            );
-                            result = usResults.length > 0 ? usResults[0] : data[0];
+                        if (!result) {
+                            // Strategy 4: Try broader search without country restriction
+                            searchUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=5`;
+                            response = await fetch(searchUrl);
+                            data = await response.json();
+                            
+                            if (data && data.length > 0) {
+                                // Filter for US results
+                                const usResults = data.filter(item => 
+                                    item.display_name.includes('United States') || 
+                                    item.display_name.includes('California') ||
+                                    item.display_name.includes('CA')
+                                );
+                                result = usResults.length > 0 ? usResults[0] : data[0];
+                            }
                         }
                     }
                 }
@@ -1123,7 +1138,26 @@
                     document.getElementById('address-input').value = '';
                 } else {
                     console.log('No results found for:', address);
-                    alert(`Address "${address}" not found. Try:\n• Adding "California" or "CA"\n• Using just the city name\n• Including zip code\n• Being more specific with street names`);
+                    
+                    // If it's a street address, suggest trying just the city
+                    const isStreetAddress = address.toLowerCase().includes('road') || 
+                                          address.toLowerCase().includes('street') || 
+                                          address.toLowerCase().includes('ave') ||
+                                          address.toLowerCase().includes('dr') ||
+                                          address.toLowerCase().includes('blvd');
+                    
+                    if (isStreetAddress && address.includes(',')) {
+                        const parts = address.split(',').map(p => p.trim());
+                        if (parts.length >= 2) {
+                            const cityPart = parts.slice(-2).join(', ');
+                            alert(`Specific street address not found in database.\n\nTrying to find the general area: "${cityPart}"`);
+                            document.getElementById('address-input').value = cityPart;
+                            searchAddress();
+                            return;
+                        }
+                    }
+                    
+                    alert(`Address "${address}" not found. Try:\n• Using just the city name (e.g., "Live Oak, CA")\n• Adding state abbreviation\n• Including zip code\n• Using nearby landmarks`);
                 }
             } catch (error) {
                 console.error('Geocoding error:', error);
