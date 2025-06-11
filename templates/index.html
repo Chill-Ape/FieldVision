@@ -497,17 +497,47 @@
             }
             
             .map-container {
-                width: 100%;
-                height: 400px;
-                min-height: 400px;
-                order: 2;
-                position: relative;
+                display: none; /* Hide map container on mobile */
             }
             
-            #map {
+            /* Mobile site selection interface */
+            .mobile-site-selector {
                 width: 100%;
-                height: 100%;
-                min-height: 400px;
+                background: rgba(13, 17, 23, 0.95);
+                border: 1px solid rgba(88, 166, 255, 0.12);
+                border-radius: 8px;
+                padding: 1.5rem;
+                order: 2;
+                text-align: center;
+            }
+            
+            .draw-site-btn {
+                background: #58a6ff;
+                color: #0d1117;
+                border: none;
+                padding: 1rem 2rem;
+                border-radius: 8px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                width: 100%;
+                margin-bottom: 1rem;
+                font-family: 'Exo 2', sans-serif;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+            }
+            
+            .draw-site-btn:hover {
+                background: #4493f8;
+            }
+            
+            .mobile-help-text {
+                color: #8b949e;
+                font-size: 0.9rem;
+                line-height: 1.5;
+                margin-top: 1rem;
             }
             
             .section {
@@ -649,9 +679,98 @@
         /* Hide mobile map controls on desktop */
         @media (min-width: 768px) {
             .map-overlay,
-            .map-scroll-hint {
+            .map-scroll-hint,
+            .mobile-site-selector {
                 display: none !important;
             }
+        }
+        
+        /* Fullscreen Map Modal */
+        .fullscreen-map-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0d1117;
+            z-index: 10000;
+            display: none;
+        }
+        
+        .fullscreen-map-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: rgba(13, 17, 23, 0.95);
+            border-bottom: 1px solid rgba(88, 166, 255, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1rem;
+            z-index: 10001;
+        }
+        
+        .fullscreen-map-title {
+            color: #58a6ff;
+            font-family: 'Exo 2', sans-serif;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        .fullscreen-map-close {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Exo 2', sans-serif;
+            font-weight: 500;
+        }
+        
+        .fullscreen-map-container {
+            position: absolute;
+            top: 60px;
+            left: 0;
+            right: 0;
+            bottom: 80px;
+        }
+        
+        .fullscreen-map-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: rgba(13, 17, 23, 0.95);
+            border-top: 1px solid rgba(88, 166, 255, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            z-index: 10001;
+        }
+        
+        .fullscreen-confirm-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Exo 2', sans-serif;
+            font-weight: 600;
+            font-size: 16px;
+            display: none;
+        }
+        
+        .fullscreen-help-text {
+            color: #8b949e;
+            font-size: 0.9rem;
+            text-align: center;
+            font-family: 'Exo 2', sans-serif;
         }
     </style>
 {% endblock %}
@@ -812,6 +931,23 @@
         
         <div class="map-container">
             <div id="map"></div>
+        </div>
+        
+        <!-- Mobile Site Selector -->
+        <div class="mobile-site-selector">
+            <h3 style="color: #58a6ff; margin-bottom: 1rem; font-size: 1.2rem;">Select Field Area</h3>
+            <button class="draw-site-btn" onclick="openFullscreenMap()">
+                <i class="fas fa-draw-polygon"></i>
+                Draw Site Area
+            </button>
+            <div id="selected-area-info" style="display: none; background: rgba(30, 36, 61, 0.6); border: 1px solid rgba(88, 166, 255, 0.15); border-radius: 6px; padding: 1rem; margin-bottom: 1rem;">
+                <h4 style="color: #58a6ff; margin-bottom: 0.5rem;">Selected Area</h4>
+                <div id="mobile-coordinates-display" style="color: #c9d1d9; font-size: 0.9rem;"></div>
+                <button onclick="clearMobileSelection()" style="background: #dc3545; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; font-size: 0.8rem; margin-top: 0.5rem;">Clear Selection</button>
+            </div>
+            <p class="mobile-help-text">
+                Use the map interface to select your field area by drawing a polygon or rectangle around the crops you want to analyze.
+            </p>
         </div>
     </div>
     
@@ -1206,36 +1342,211 @@
             }
         }
         
-        // Mobile fallback map for when Leaflet fails
-        function createMobileFallbackMap() {
-            console.log('Creating mobile fallback map...');
-            const mapElement = document.getElementById('map');
+        // Mobile fullscreen map variables
+        let fullscreenMap = null;
+        let fullscreenDrawnItems = null;
+        let selectedPolygon = null;
+        
+        // Open fullscreen map modal
+        function openFullscreenMap() {
+            console.log('Opening fullscreen map modal...');
+            const modal = document.getElementById('fullscreenMapModal');
+            modal.style.display = 'block';
             
-            if (mapElement) {
-                mapElement.innerHTML = `
-                    <div style="position: relative; width: 100%; height: 100%; background: rgba(13, 17, 23, 0.95); color: #c9d1d9; font-family: 'Exo 2', sans-serif;">
-                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; width: 90%; max-width: 400px;">
-                            <div style="color: #58a6ff; font-size: 3rem; margin-bottom: 1.5rem;">🗺️</div>
-                            <h2 style="color: #58a6ff; margin-bottom: 1rem; font-size: 1.5rem;">Mobile Map Interface</h2>
-                            <p style="color: #8b949e; margin-bottom: 2rem; line-height: 1.5;">The interactive map is optimized for desktop use. On mobile, you can still access all field analysis features.</p>
-                            
-                            <div style="background: rgba(30, 36, 61, 0.6); border: 1px solid rgba(88, 166, 255, 0.15); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
-                                <h3 style="color: #58a6ff; margin-bottom: 1rem; font-size: 1.1rem;">Alternative Options:</h3>
-                                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                                    <button onclick="location.href='/dashboard'" style="background: #58a6ff; color: #0d1117; border: none; padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer; font-family: 'Exo 2', sans-serif; font-weight: 500;">View Saved Fields</button>
-                                    <button onclick="location.href='/reports'" style="background: rgba(88, 166, 255, 0.1); color: #58a6ff; border: 1px solid rgba(88, 166, 255, 0.3); padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer; font-family: 'Exo 2', sans-serif;">Field Reports</button>
-                                    <button onclick="retryMapInit()" style="background: #30363d; color: #c9d1d9; border: none; padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer; font-family: 'Exo 2', sans-serif;">Try Map Again</button>
-                                </div>
-                            </div>
-                            
-                            <p style="color: #6e7681; font-size: 0.85rem;">For the best mapping experience, please use a desktop or tablet device.</p>
-                        </div>
-                    </div>
-                `;
-                
-                mapInitialized = true; // Mark as initialized to prevent retries
-                console.log('Mobile fallback map created successfully');
+            // Prevent body scrolling
+            document.body.style.overflow = 'hidden';
+            
+            setTimeout(() => {
+                initializeFullscreenMap();
+            }, 300);
+        }
+        
+        // Close fullscreen map modal
+        function closeFullscreenMap() {
+            console.log('Closing fullscreen map modal...');
+            const modal = document.getElementById('fullscreenMapModal');
+            modal.style.display = 'none';
+            
+            // Re-enable body scrolling
+            document.body.style.overflow = 'auto';
+            
+            // Clean up fullscreen map
+            if (fullscreenMap) {
+                try {
+                    fullscreenMap.remove();
+                } catch (e) {
+                    console.log('Error removing fullscreen map:', e);
+                }
+                fullscreenMap = null;
+                fullscreenDrawnItems = null;
             }
+        }
+        
+        // Initialize the fullscreen map
+        function initializeFullscreenMap() {
+            console.log('Initializing fullscreen map...');
+            const mapElement = document.getElementById('fullscreen-map');
+            
+            if (!mapElement) {
+                console.error('Fullscreen map element not found');
+                return;
+            }
+            
+            try {
+                // Clear any existing map
+                mapElement.innerHTML = '';
+                
+                // Create fullscreen map with touch-optimized options
+                fullscreenMap = L.map(mapElement, {
+                    zoomControl: true,
+                    attributionControl: false,
+                    scrollWheelZoom: false,
+                    doubleClickZoom: true,
+                    touchZoom: true,
+                    dragging: true,
+                    tap: true,
+                    tapTolerance: 15,
+                    fadeAnimation: false,
+                    zoomAnimation: false
+                }).setView([37.7749, -122.4194], 10);
+                
+                // Add satellite layer
+                const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: '© Esri, Maxar, Earthstar Geographics',
+                    maxZoom: 18
+                });
+                
+                fullscreenMap.addLayer(satelliteLayer);
+                
+                // Create drawn items group
+                fullscreenDrawnItems = new L.FeatureGroup();
+                fullscreenMap.addLayer(fullscreenDrawnItems);
+                
+                // Add drawing controls
+                const drawControl = new L.Control.Draw({
+                    position: 'topright',
+                    draw: {
+                        polygon: {
+                            allowIntersection: false,
+                            drawError: {
+                                color: '#e1e100',
+                                message: '<strong>Draw error!</strong> Shape edges cannot cross!'
+                            },
+                            shapeOptions: {
+                                color: '#58a6ff',
+                                weight: 3,
+                                fillOpacity: 0.2
+                            }
+                        },
+                        rectangle: {
+                            shapeOptions: {
+                                color: '#58a6ff',
+                                weight: 3,
+                                fillOpacity: 0.2
+                            }
+                        },
+                        circle: false,
+                        circlemarker: false,
+                        marker: false,
+                        polyline: false
+                    },
+                    edit: {
+                        featureGroup: fullscreenDrawnItems,
+                        remove: true
+                    }
+                });
+                
+                fullscreenMap.addControl(drawControl);
+                
+                // Handle draw events
+                fullscreenMap.on(L.Draw.Event.CREATED, function(e) {
+                    console.log('Shape drawn in fullscreen map');
+                    const layer = e.layer;
+                    
+                    // Clear existing shapes
+                    fullscreenDrawnItems.clearLayers();
+                    
+                    // Add new shape
+                    fullscreenDrawnItems.addLayer(layer);
+                    selectedPolygon = layer;
+                    
+                    // Show confirm button
+                    document.getElementById('fullscreen-confirm-btn').style.display = 'block';
+                    document.getElementById('fullscreen-help-text').style.display = 'none';
+                });
+                
+                fullscreenMap.on(L.Draw.Event.DELETED, function(e) {
+                    console.log('Shape deleted in fullscreen map');
+                    selectedPolygon = null;
+                    document.getElementById('fullscreen-confirm-btn').style.display = 'none';
+                    document.getElementById('fullscreen-help-text').style.display = 'block';
+                });
+                
+                console.log('Fullscreen map initialized successfully');
+                
+            } catch (error) {
+                console.error('Error initializing fullscreen map:', error);
+                const mapElement = document.getElementById('fullscreen-map');
+                mapElement.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #c9d1d9; text-align: center;"><div><h3>Map Loading Error</h3><p>Unable to load the map interface.</p><button onclick="closeFullscreenMap()" style="background: #58a6ff; color: #0d1117; border: none; padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer;">Close</button></div></div>';
+            }
+        }
+        
+        // Confirm selection and close modal
+        function confirmSelection() {
+            if (selectedPolygon) {
+                console.log('Confirming selection...');
+                
+                // Get coordinates from selected polygon
+                let coordinates;
+                if (selectedPolygon instanceof L.Polygon) {
+                    coordinates = selectedPolygon.getLatLngs()[0].map(latlng => [latlng.lat, latlng.lng]);
+                } else if (selectedPolygon instanceof L.Rectangle) {
+                    const bounds = selectedPolygon.getBounds();
+                    coordinates = [
+                        [bounds.getNorth(), bounds.getWest()],
+                        [bounds.getNorth(), bounds.getEast()],
+                        [bounds.getSouth(), bounds.getEast()],
+                        [bounds.getSouth(), bounds.getWest()]
+                    ];
+                }
+                
+                if (coordinates && coordinates.length > 0) {
+                    // Update mobile coordinates display
+                    const coordsDisplay = document.getElementById('mobile-coordinates-display');
+                    const areaInfo = document.getElementById('selected-area-info');
+                    
+                    coordsDisplay.innerHTML = `
+                        <strong>Area Selected:</strong> ${coordinates.length} points<br>
+                        <strong>Center:</strong> ${coordinates[0][0].toFixed(4)}, ${coordinates[0][1].toFixed(4)}
+                    `;
+                    areaInfo.style.display = 'block';
+                    
+                    // Store coordinates globally for NDVI generation
+                    window.mobileSelectedCoordinates = coordinates;
+                    
+                    // Update currentBounds for NDVI generation
+                    const lats = coordinates.map(coord => coord[0]);
+                    const lngs = coordinates.map(coord => coord[1]);
+                    currentBounds = {
+                        north: Math.max(...lats),
+                        south: Math.min(...lats),
+                        east: Math.max(...lngs),
+                        west: Math.min(...lngs)
+                    };
+                    
+                    console.log('Mobile selection confirmed:', currentBounds);
+                }
+            }
+            
+            closeFullscreenMap();
+        }
+        
+        // Clear mobile selection
+        function clearMobileSelection() {
+            document.getElementById('selected-area-info').style.display = 'none';
+            window.mobileSelectedCoordinates = null;
+            currentBounds = null;
+            console.log('Mobile selection cleared');
         }
 
         function retryMapInit() {
@@ -2285,6 +2596,25 @@
         });
     </script>
     
+    <!-- Fullscreen Map Modal for Mobile -->
+    <div id="fullscreenMapModal" class="fullscreen-map-modal">
+        <div class="fullscreen-map-header">
+            <div class="fullscreen-map-title">Select Field Area</div>
+            <button class="fullscreen-map-close" onclick="closeFullscreenMap()">Close</button>
+        </div>
+        <div class="fullscreen-map-container">
+            <div id="fullscreen-map" style="width: 100%; height: 100%;"></div>
+        </div>
+        <div class="fullscreen-map-footer">
+            <button id="fullscreen-confirm-btn" class="fullscreen-confirm-btn" onclick="confirmSelection()" style="display: none;">
+                Confirm Selection
+            </button>
+            <div id="fullscreen-help-text" class="fullscreen-help-text">
+                Use the drawing tools to select your field area
+            </div>
+        </div>
+    </div>
+
     <!-- Full Screen Image Modal -->
     <div id="imageModal" class="image-modal">
         <div class="modal-content">
