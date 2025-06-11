@@ -37,8 +37,15 @@ def field_detail(field_id):
 @app.route('/reports')
 def reports():
     """Reports dashboard showing all field reports"""
-    fields = Field.query.order_by(Field.created_at.desc()).all()
-    return render_template('reports.html', fields=fields)
+    try:
+        fields = Field.query.order_by(Field.created_at.desc()).all()
+        logger.info(f"Found {len(fields)} fields for reports page")
+        for field in fields:
+            logger.info(f"Field: {field.name}, ID: {field.id}")
+        return render_template('reports.html', fields=fields)
+    except Exception as e:
+        logger.error(f"Error loading reports: {e}")
+        return render_template('reports.html', fields=[])
 
 @app.route('/field/<int:field_id>/report')
 def field_report(field_id):
@@ -243,10 +250,13 @@ def get_ndvi_image():
         
         # Check if credentials are available
         if not auth_handler.is_authenticated():
+            logger.error("Sentinel Hub authentication failed")
             return jsonify({
                 "error": "Sentinel Hub credentials not configured",
                 "message": "Please set SENTINEL_HUB_CLIENT_ID and SENTINEL_HUB_CLIENT_SECRET environment variables"
             }), 503
+        
+        logger.info("Sentinel Hub authentication successful")
         
         # Check if this is for a saved field and has cached NDVI
         field_id = None
