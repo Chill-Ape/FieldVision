@@ -3,6 +3,7 @@ Main Flask application for NDVI satellite imagery service
 Provides endpoints for fetching and displaying NDVI data from Sentinel Hub
 """
 
+import json
 import logging
 from datetime import datetime
 from flask import Flask, render_template, render_template_string, Response, jsonify, request

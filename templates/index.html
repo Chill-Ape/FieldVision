@@ -1210,6 +1210,44 @@
                     const blob = await response.blob();
                     const imageUrl = URL.createObjectURL(blob);
                     
+                    // Check if backend auto-saved a field and returned field ID
+                    const fieldId = response.headers.get('X-Field-Id');
+                    const fieldName = response.headers.get('X-Field-Name');
+                    
+                    if (fieldId && fieldName) {
+                        // Update localStorage with the database field ID
+                        const siteData = {
+                            id: fieldId,
+                            name: fieldName,
+                            description: 'Auto-saved after NDVI generation',
+                            geometry: currentLayer ? currentLayer.toGeoJSON().geometry : null,
+                            coordinates: {
+                                north: currentBounds.getNorth(),
+                                south: currentBounds.getSouth(),
+                                east: currentBounds.getEast(),
+                                west: currentBounds.getWest()
+                            },
+                            alerts: {
+                                lowNdvi: 0.3,
+                                highNdvi: 0.8
+                            },
+                            area: currentLayer ? (
+                                currentLayer instanceof L.Polygon ? 
+                                    calculatePolygonArea(currentLayer.getLatLngs()[0]) :
+                                    calculateRectangleArea(currentBounds)
+                            ) : 0,
+                            created: new Date().toISOString()
+                        };
+                        
+                        // Save to localStorage
+                        let savedSites = JSON.parse(localStorage.getItem('savedSites') || '[]');
+                        savedSites.push(siteData);
+                        localStorage.setItem('savedSites', JSON.stringify(savedSites));
+                        localStorage.setItem('selectedSite', JSON.stringify(siteData));
+                        
+                        console.log(`Auto-saved field '${fieldName}' with database ID: ${fieldId}`);
+                    }
+                    
                     const shapeType = currentLayer instanceof L.Polygon ? 'polygon' : 'rectangle';
                     const areaInfo = currentLayer ? formatArea(
                         currentLayer instanceof L.Polygon ? 
@@ -1237,9 +1275,6 @@
                     
                     // Show AI analysis button after NDVI is generated
                     document.getElementById('ai-analysis-section').style.display = 'block';
-                    
-                    // Auto-save the field if area is selected but not saved yet
-                    autoSaveField();
                 } else {
                     const error = await response.json();
                     document.getElementById('ndvi-result').innerHTML = `
