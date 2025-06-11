@@ -672,10 +672,10 @@
                 })
             };
             
-            // Add default layer (street map)
-            currentTileLayer = mapLayers.osm;
+            // Add default layer (satellite view)
+            currentTileLayer = mapLayers.satellite;
             currentTileLayer.addTo(mapInstance);
-            updateLayerButtons('osm');
+            updateLayerButtons('satellite');
             
             drawnItemsGroup = new L.FeatureGroup();
             mapInstance.addLayer(drawnItemsGroup);
