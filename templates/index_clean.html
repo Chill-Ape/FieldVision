@@ -61,6 +61,11 @@
             border-top: 1px solid rgba(88, 166, 255, 0.12);
         }
         
+        /* Mobile-first default styles */
+        .map-container {
+            display: none;
+        }
+        
         /* Desktop-specific styles */
         @media (min-width: 769px) {
             .container {
@@ -84,6 +89,7 @@
             }
             
             .map-container {
+                display: block !important;
                 flex: 1;
                 height: calc(100vh - 2rem);
                 background: rgba(13, 17, 23, 0.95);
