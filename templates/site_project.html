@@ -135,8 +135,8 @@
                 </div>
                 <div class="card-body">
                     {% if field.analyses %}
-                        <div class="timeline">
-                            {% for analysis in field.analyses[:10] %}
+                        <div class="timeline" id="analysis-timeline">
+                            {% for analysis in field.analyses|reverse[:10] %}
                             {% set ai_analysis = analysis.get_ai_analysis_data() %}
                             {% set has_ai_data = ai_analysis and ai_analysis.keys()|length > 0 %}
                             <div class="timeline-item mb-3">
@@ -346,6 +346,73 @@
     font-size: 0.85rem;
     padding: 0.4rem 0.6rem;
 }
+
+/* Loading animations */
+@keyframes slideDown {
+    0% {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.4;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+.dots-loading span {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: white;
+    margin: 0 2px;
+    animation: pulse 1.4s ease-in-out infinite both;
+}
+
+.dots-loading span:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.dots-loading span:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+.dots-loading span:nth-child(3) {
+    animation-delay: 0s;
+}
+
+/* Fix card styling issues */
+.timeline-item .card {
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.timeline-item .card-header {
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.timeline-item .card-header:hover {
+    background-color: rgba(255,255,255,0.05) !important;
+}
+
+/* Collapsible chevron animation */
+.timeline-item .card-header[aria-expanded="true"] .fa-chevron-down {
+    transform: rotate(180deg);
+    transition: transform 0.2s ease;
+}
+
+.timeline-item .card-header .fa-chevron-down {
+    transition: transform 0.2s ease;
+}
 </style>
 
 <script>
@@ -377,13 +444,18 @@ function updateNDVI(fieldId) {
 
 function runAIAnalysis(fieldId) {
     // Scroll to analysis history section
-    const historySection = document.querySelector('.card-body .timeline');
+    const historySection = document.querySelector('#analysis-timeline');
     if (historySection) {
         historySection.scrollIntoView({ behavior: 'smooth' });
     }
     
-    // Show loading overlay on history section
-    showHistoryLoading();
+    // Create and show loading analysis item
+    const loadingItem = createLoadingAnalysisItem();
+    const timeline = document.querySelector('#analysis-timeline');
+    if (timeline) {
+        timeline.insertBefore(loadingItem, timeline.firstChild);
+    }
+    
     showInfo('Running comprehensive AI analysis with weather integration...');
     
     fetch(`/api/analyze_field/${fieldId}`, {
@@ -394,7 +466,11 @@ function runAIAnalysis(fieldId) {
     })
     .then(response => response.json())
     .then(data => {
-        hideHistoryLoading();
+        // Remove loading item
+        if (loadingItem && loadingItem.parentNode) {
+            loadingItem.parentNode.removeChild(loadingItem);
+        }
+        
         if (data.success) {
             showSuccess('AI analysis completed successfully! Comprehensive insights generated.');
             // Reload the page to show new analysis
@@ -404,7 +480,10 @@ function runAIAnalysis(fieldId) {
         }
     })
     .catch(error => {
-        hideHistoryLoading();
+        // Remove loading item
+        if (loadingItem && loadingItem.parentNode) {
+            loadingItem.parentNode.removeChild(loadingItem);
+        }
         console.error('Error running AI analysis:', error);
         showError('Failed to run AI analysis. Please try again.');
     });
@@ -443,34 +522,47 @@ function hideLoading() {
     }
 }
 
-// History section loading
-function showHistoryLoading() {
-    const historyCard = document.querySelector('.card-body .timeline').closest('.card-body');
-    if (historyCard) {
-        const loadingDiv = document.createElement('div');
-        loadingDiv.id = 'history-loading-overlay';
-        loadingDiv.className = 'position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center';
-        loadingDiv.style.backgroundColor = 'rgba(13, 17, 23, 0.9)';
-        loadingDiv.style.zIndex = '100';
-        loadingDiv.innerHTML = `
-            <div class="text-center text-white">
-                <div class="spinner-border text-info mb-3" role="status">
-                    <span class="visually-hidden">Loading...</span>
+// Create seamless loading analysis item
+function createLoadingAnalysisItem() {
+    const loadingItem = document.createElement('div');
+    loadingItem.className = 'timeline-item mb-3 loading-analysis';
+    loadingItem.innerHTML = `
+        <div class="card bg-info border-0 shadow-lg" style="animation: slideDown 0.5s ease-out;">
+            <div class="card-header bg-transparent border-0 py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm text-white me-3" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <h6 class="mb-0 text-white">
+                            <i class="fas fa-brain me-2"></i>AI Analysis in Progress
+                        </h6>
+                        <span class="badge bg-white text-info ms-2">Processing</span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <div class="dots-loading me-2">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
                 </div>
-                <div class="h6">AI Analysis in Progress</div>
-                <div class="small text-muted">Analyzing satellite data, weather patterns, and generating insights...</div>
+                
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="progress mb-2" style="height: 4px;">
+                            <div class="progress-bar bg-white progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" style="width: 100%"></div>
+                        </div>
+                        <small class="text-white-50">
+                            <i class="fas fa-satellite me-1"></i>Fetching satellite imagery
+                            <i class="fas fa-cloud-sun ms-3 me-1"></i>Analyzing weather data
+                            <i class="fas fa-brain ms-3 me-1"></i>Generating AI insights
+                        </small>
+                    </div>
+                </div>
             </div>
-        `;
-        historyCard.style.position = 'relative';
-        historyCard.appendChild(loadingDiv);
-    }
-}
-
-function hideHistoryLoading() {
-    const loadingDiv = document.getElementById('history-loading-overlay');
-    if (loadingDiv) {
-        loadingDiv.remove();
-    }
+        </div>
+    `;
+    return loadingItem;
 }
 
 // Utility functions for notifications
