@@ -1650,12 +1650,22 @@
                 currentLayer = window.fullscreenSelectedLayer;
                 updateCoordinatesDisplay(currentLayer);
                 
-                // Check if elements exist before enabling them
-                const analyzeBtn = document.getElementById('simple-analyze-btn') || document.getElementById('analyze-btn');
+                // Debug: Check what elements are available
+                console.log('Looking for analyze button...');
+                const analyzeBtn = document.getElementById('simple-analyze-btn');
                 const saveSiteBtn = document.getElementById('save-site-btn');
                 
-                if (analyzeBtn) analyzeBtn.disabled = false;
-                if (saveSiteBtn) saveSiteBtn.disabled = false;
+                console.log('Analyze button found:', analyzeBtn);
+                console.log('Save button found:', saveSiteBtn);
+                
+                if (analyzeBtn) {
+                    analyzeBtn.disabled = false;
+                    console.log('Analyze button enabled');
+                }
+                if (saveSiteBtn) {
+                    saveSiteBtn.disabled = false;
+                    console.log('Save button enabled');
+                }
                 
                 console.log('Selection transferred to main interface');
                 closeFullscreenMap();
