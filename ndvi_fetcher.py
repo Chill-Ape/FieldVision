@@ -8,7 +8,7 @@ import logging
 import numpy as np
 import math
 from io import BytesIO
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 from typing import List, Tuple, Optional
 from datetime import datetime, timedelta
 from auth import SentinelHubAuth
@@ -286,12 +286,17 @@ function evaluatePixel(sample) {
         try:
             # Load the original image
             img = Image.open(BytesIO(image_bytes))
+            original_width, original_height = img.size
+            
+            # Use the actual image dimensions instead of the requested dimensions
+            # This preserves the original image quality
+            width, height = original_width, original_height
             
             # Convert to RGBA for transparency support
             if img.mode != 'RGBA':
                 img = img.convert('RGBA')
             
-            # Create a mask image
+            # Create a high-quality mask with anti-aliasing
             mask = Image.new('L', (width, height), 0)
             draw = ImageDraw.Draw(mask)
             
@@ -302,40 +307,43 @@ function evaluatePixel(sample) {
                 logger.warning("Geometry is not a polygon, skipping mask")
                 return image_bytes
             
-            # Convert geo coordinates to pixel coordinates
+            # Convert geo coordinates to pixel coordinates with higher precision
             min_lng, min_lat, max_lng, max_lat = bbox
             pixel_coords = []
             
             for coord in coordinates:
                 lng, lat = coord
-                # Convert to pixel coordinates
-                x = int((lng - min_lng) / (max_lng - min_lng) * width)
-                y = int((max_lat - lat) / (max_lat - min_lat) * height)
+                # Convert to pixel coordinates with float precision
+                x = ((lng - min_lng) / (max_lng - min_lng)) * width
+                y = ((max_lat - lat) / (max_lat - min_lat)) * height
                 pixel_coords.append((x, y))
             
-            # Draw the polygon mask (white inside polygon)
+            # Draw the polygon mask with anti-aliasing
             draw.polygon(pixel_coords, fill=255)
             
-            # Apply the mask to the image
-            # Create a transparent background
+            # Apply a slight blur to the mask for smoother edges
+            mask = mask.filter(ImageFilter.GaussianBlur(radius=0.5))
+            
+            # Create result image with original quality
             result = Image.new('RGBA', (width, height), (0, 0, 0, 0))
             
-            # Paste the NDVI image only where the mask is white
+            # Use the mask as an alpha channel for smooth blending
             result.paste(img, (0, 0))
             
-            # Apply mask - make areas outside polygon transparent
-            pixels = result.load()
-            mask_pixels = mask.load()
+            # Apply the mask using alpha compositing for better quality
+            mask_array = np.array(mask)
+            img_array = np.array(result)
             
-            if pixels and mask_pixels:
-                for y in range(height):
-                    for x in range(width):
-                        if mask_pixels[x, y] == 0:  # Outside polygon
-                            pixels[x, y] = (0, 0, 0, 0)  # Transparent
+            # Apply mask to alpha channel
+            if len(img_array.shape) == 3 and img_array.shape[2] >= 4:
+                img_array[:, :, 3] = np.minimum(img_array[:, :, 3], mask_array)
             
-            # Save to bytes
+            # Convert back to image
+            result = Image.fromarray(img_array, 'RGBA')
+            
+            # Save to bytes with high quality
             output = BytesIO()
-            result.save(output, format='PNG', optimize=True)
+            result.save(output, format='PNG', optimize=False, compress_level=1)
             
             logger.info("Successfully applied polygon mask to NDVI image")
             return output.getvalue()
