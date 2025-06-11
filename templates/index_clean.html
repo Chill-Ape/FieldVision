@@ -90,7 +90,8 @@
             
             .sidebar {
                 padding: 0.75rem;
-                max-height: 45vh;
+                max-height: none;
+                overflow-y: visible;
             }
             
             .map-container {
@@ -626,11 +627,10 @@
             </div>
         </div>
         
-        <div class="section">
+        <div class="section" style="margin-bottom: 2rem;">
             <h3 id="legend-title">Vegetation Index Legend</h3>
-            <div id="legend-content" style="display: grid; gap: 0.5rem; font-size: 0.8rem;">
+            <div id="legend-content" style="display: grid; gap: 0.5rem; font-size: 0.8rem; margin-bottom: 1rem;">
                 <!-- Dynamic legend content will be inserted here -->
-            </div>
             </div>
         </div>
     </div>
@@ -1541,6 +1541,11 @@
                 select.addEventListener('change', updateIndexDescription);
                 updateIndexDescription(); // Set initial description
             }
+            
+            // Initialize the map only after DOM is fully loaded
+            if (typeof initializeMap === 'function') {
+                initializeMap();
+            }
         });
         
         function closeImageModal() {
@@ -1661,7 +1666,7 @@
         }
         
         // Ensure all functions are globally available
-        window.analyzeNDVI = analyzeNDVI;
+        window.analyzeSelectedIndex = analyzeSelectedIndex;
         window.searchAddress = searchAddress;
         window.clearDrawings = clearDrawings;
         window.showSaveSiteModal = showSaveSiteModal;
