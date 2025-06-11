@@ -627,47 +627,10 @@
         </div>
         
         <div class="section">
-            <h3>NDVI Legend</h3>
-            <div style="display: grid; gap: 0.5rem; font-size: 0.8rem;">
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #8b4513;"></div>
-                    <span>Poor health - Stressed vegetation</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #daa520;"></div>
-                    <span>Fair health - Needs attention</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #9acd32;"></div>
-                    <span>Moderate health - Developing</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #66cc19;"></div>
-                    <span>Good health - Thriving crops</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #33b319;"></div>
-                    <span>Very healthy - Excellent conditions</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #199919;"></div>
-                    <span>Excellent health - Peak performance</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #0d660d;"></div>
-                    <span>Peak health - Optimal growth</span>
-                </div>
+            <h3 id="legend-title">Vegetation Index Legend</h3>
+            <div id="legend-content" style="display: grid; gap: 0.5rem; font-size: 0.8rem;">
+                <!-- Dynamic legend content will be inserted here -->
             </div>
-            
-            <div style="border-top: 1px solid rgba(88, 166, 255, 0.15); padding-top: 0.5rem;">
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #cc9966;"></div>
-                    <span>Bare soil/sand</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #6666aa;"></div>
-                    <span>Water bodies</span>
-                </div>
             </div>
         </div>
     </div>
@@ -1109,7 +1072,7 @@
         }
         
         function enableAnalysisButtons() {
-            const analyzeBtn = document.getElementById('simple-analyze-btn');
+            const analyzeBtn = document.getElementById('analyze-btn');
             const saveBtn = document.getElementById('save-site-btn');
             const clearBtn = document.getElementById('clear-btn');
             
@@ -1128,7 +1091,7 @@
             const coordsDisplay = document.getElementById('coordinates-display');
             const cropSelection = document.getElementById('crop-selection');
             const resultSection = document.getElementById('result-section');
-            const analyzeBtn = document.getElementById('simple-analyze-btn');
+            const analyzeBtn = document.getElementById('analyze-btn');
             const saveBtn = document.getElementById('save-site-btn');
             const clearBtn = document.getElementById('clear-btn');
             
@@ -1330,13 +1293,12 @@
             
             const loadingEl = document.getElementById('loading');
             const resultEl = document.getElementById('result-section');
-            const buttonId = indexType + '-btn';
-            const analyzeBtn = document.getElementById(buttonId);
+            const analyzeBtn = document.getElementById('analyze-btn');
             
             if (loadingEl) loadingEl.style.display = 'block';
             if (resultEl) resultEl.style.display = 'none';
             
-            // Disable the clicked button
+            // Disable the analyze button
             if (analyzeBtn) analyzeBtn.disabled = true;
             
             const requestData = { 
@@ -1473,6 +1435,96 @@
                 <div style="color: #58a6ff; font-weight: 500; margin-bottom: 0.25rem;">${info.title}</div>
                 <div style="color: #8b949e; font-size: 0.85rem; line-height: 1.4;">${info.description}</div>
             `;
+            
+            // Update legend
+            updateLegend(indexType);
+        }
+        
+        function updateLegend(indexType) {
+            const legendTitle = document.getElementById('legend-title');
+            const legendContent = document.getElementById('legend-content');
+            
+            if (!legendTitle || !legendContent) return;
+            
+            const legends = {
+                'ndvi': {
+                    title: 'NDVI Legend',
+                    items: [
+                        { color: '#cc3333', label: 'Very poor health - Severe stress' },
+                        { color: '#e65c00', label: 'Poor health - Stressed vegetation' },
+                        { color: '#ffcc33', label: 'Fair health - Needs attention' },
+                        { color: '#99cc33', label: 'Moderate health - Developing' },
+                        { color: '#66b319', label: 'Good health - Thriving crops' },
+                        { color: '#339933', label: 'Very healthy - Excellent conditions' },
+                        { color: '#0d4d0d', label: 'Peak health - Optimal growth' }
+                    ]
+                },
+                'ndre': {
+                    title: 'NDRE Legend',
+                    items: [
+                        { color: '#cc6633', label: 'Very low chlorophyll - Nutrient deficient' },
+                        { color: '#e69933', label: 'Low chlorophyll - Nitrogen stress' },
+                        { color: '#ffcc66', label: 'Moderate chlorophyll - Average health' },
+                        { color: '#99cc4d', label: 'Good chlorophyll - Healthy nitrogen' },
+                        { color: '#66b333', label: 'High chlorophyll - Excellent nutrition' },
+                        { color: '#339919', label: 'Very high chlorophyll - Optimal levels' }
+                    ]
+                },
+                'moisture': {
+                    title: 'Moisture Index Legend',
+                    items: [
+                        { color: '#cc2020', label: 'Very dry - Severe drought stress' },
+                        { color: '#e65833', label: 'Dry - Water stress evident' },
+                        { color: '#ffcc4d', label: 'Moderate moisture - Acceptable levels' },
+                        { color: '#66ccb3', label: 'Good moisture - Well hydrated' },
+                        { color: '#3399cc', label: 'High moisture - Excellent water status' },
+                        { color: '#1a66e6', label: 'Very high moisture - Saturated' }
+                    ]
+                },
+                'evi': {
+                    title: 'EVI Legend',
+                    items: [
+                        { color: '#b36633', label: 'Very low vegetation - Sparse/stressed' },
+                        { color: '#cc9966', label: 'Low vegetation - Developing crops' },
+                        { color: '#ffcc66', label: 'Moderate vegetation - Growing season' },
+                        { color: '#99cc33', label: 'Good vegetation - Healthy biomass' },
+                        { color: '#66b319', label: 'High vegetation - Dense canopy' },
+                        { color: '#336633', label: 'Very high vegetation - Peak biomass' }
+                    ]
+                },
+                'ndwi': {
+                    title: 'NDWI Legend',
+                    items: [
+                        { color: '#994d1a', label: 'Very dry soil - No water content' },
+                        { color: '#cc9966', label: 'Dry soil - Low moisture' },
+                        { color: '#b3cc99', label: 'Moist soil - Adequate water' },
+                        { color: '#66b3cc', label: 'Wet areas - High water content' },
+                        { color: '#3380e6', label: 'Water bodies - Surface water' },
+                        { color: '#1a4dcc', label: 'Deep water - Permanent water' }
+                    ]
+                },
+                'chlorophyll': {
+                    title: 'Chlorophyll Index Legend',
+                    items: [
+                        { color: '#cc3333', label: 'Very low chlorophyll - Severe stress' },
+                        { color: '#e65c1a', label: 'Low chlorophyll - Plant stress' },
+                        { color: '#ffcc33', label: 'Moderate chlorophyll - Average health' },
+                        { color: '#80cc4d', label: 'Good chlorophyll - Healthy plants' },
+                        { color: '#4db333', label: 'High chlorophyll - Vigorous growth' },
+                        { color: '#1a8019', label: 'Very high chlorophyll - Peak health' }
+                    ]
+                }
+            };
+            
+            const legend = legends[indexType] || legends['ndvi'];
+            legendTitle.textContent = legend.title;
+            
+            legendContent.innerHTML = legend.items.map(item => `
+                <div class="legend-item">
+                    <div class="legend-color" style="background: ${item.color};"></div>
+                    <span>${item.label}</span>
+                </div>
+            `).join('');
         }
         
         // Analyze using selected vegetation index
