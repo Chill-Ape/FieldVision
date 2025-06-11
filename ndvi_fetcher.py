@@ -62,34 +62,30 @@ function evaluatePixel(sample) {
     
 
     
-    // Continuous NDVI color mapping with enhanced variation
-    // Normalize NDVI to 0-1 range for color mapping
-    let normalizedNdvi = Math.max(0, Math.min(1, (ndvi + 0.2) / 1.0));
-    
-    let r, g, b;
-    
-    if (ndvi < -0.2) {
-        // Water - blue
-        r = 0.1; g = 0.3; b = 0.8;
-    } else if (ndvi < 0.1) {
-        // Bare soil/stressed - brown to red gradient
-        let t = (ndvi + 0.2) / 0.3;
-        r = 0.8; g = 0.4 * t; b = 0.2 * t;
-    } else if (ndvi < 0.3) {
-        // Low vegetation - red to yellow gradient
-        let t = (ndvi - 0.1) / 0.2;
-        r = 1.0; g = 0.4 + 0.6 * t; b = 0.2;
-    } else if (ndvi < 0.6) {
-        // Healthy vegetation - yellow to green gradient with variation
-        let t = (ndvi - 0.3) / 0.3;
-        r = 1.0 - 0.8 * t; g = 1.0 - 0.1 * t; b = 0.2 + 0.3 * t;
-    } else {
-        // Very healthy vegetation - green gradient with clear variation
-        let t = Math.min((ndvi - 0.6) / 0.3, 1.0);
-        r = 0.2 - 0.15 * t; g = 0.9 - 0.4 * t; b = 0.5 - 0.4 * t;
+    // Simple robust NDVI color mapping
+    if (isNaN(ndvi) || ndvi === undefined || ndvi === null) {
+        return [0.0, 0.0, 0.0]; // Black for invalid data
     }
     
-    return [r, g, b];
+    // Clamp NDVI to reasonable range
+    ndvi = Math.max(-1.0, Math.min(1.0, ndvi));
+    
+    // Simple color mapping with clear ranges
+    if (ndvi < -0.2) {
+        return [0.1, 0.1, 0.8]; // Blue for water
+    } else if (ndvi < 0.0) {
+        return [0.6, 0.4, 0.2]; // Brown for bare soil
+    } else if (ndvi < 0.2) {
+        return [0.8, 0.2, 0.2]; // Red for stressed vegetation
+    } else if (ndvi < 0.4) {
+        return [1.0, 1.0, 0.0]; // Yellow for recovering vegetation
+    } else if (ndvi < 0.6) {
+        return [0.5, 0.8, 0.2]; // Light green for moderate health
+    } else if (ndvi < 0.8) {
+        return [0.2, 0.6, 0.1]; // Green for good health
+    } else {
+        return [0.0, 0.4, 0.0]; // Dark green for excellent health
+    }
 }
 """
     
