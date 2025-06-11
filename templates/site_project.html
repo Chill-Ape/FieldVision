@@ -323,6 +323,16 @@ function updateNDVI(fieldId) {
     });
 }
 
+function showLoading() {
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
+}
+
+function hideLoading() {
+    // Reload will handle resetting the button state
+}
+
 function scheduleAutomation(fieldId) {
     showInfo('Automation scheduling feature coming soon! This will allow daily/weekly automated NDVI updates.');
 }

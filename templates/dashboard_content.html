@@ -44,9 +44,9 @@
                         <i class="fas fa-clock me-1"></i>
                         Last updated: <span id="current-time"></span>
                     </div>
-                    <button class="btn btn-success btn-sm" onclick="loadPage('/', event)">
+                    <a href="/" class="btn btn-success btn-sm">
                         <i class="fas fa-plus me-1"></i>Create New Site
-                    </button>
+                    </a>
                 </div>
             </div>
         </div>
@@ -98,7 +98,7 @@
     <div class="row">
         {% for field in fields %}
         <div class="col-lg-6 col-xl-4 mb-4">
-            <div class="card bg-dark border-secondary h-100 project-folder-card" onclick="openSiteProject({{ field.id }})">
+            <div class="card bg-dark border-secondary h-100 project-folder-card" onclick="window.location.href='/site/{{ field.id }}'" style="cursor: pointer;">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center">
                         <i class="fas fa-folder text-warning me-2"></i>
@@ -109,10 +109,10 @@
                             <i class="fas fa-ellipsis-v"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-dark">
-                            <li><a class="dropdown-item" href="#" onclick="openSiteProject({{ field.id }})">
+                            <li><a class="dropdown-item" href="/site/{{ field.id }}">
                                 <i class="fas fa-folder-open me-2"></i>Open Project
                             </a></li>
-                            <li><a class="dropdown-item" href="#" onclick="loadPage('/field/{{ field.id }}/report', event)">
+                            <li><a class="dropdown-item" href="/field/{{ field.id }}/report">
                                 <i class="fas fa-chart-bar me-2"></i>Generate Report
                             </a></li>
                             <li><a class="dropdown-item" href="#" onclick="scheduleAutomation({{ field.id }})">
