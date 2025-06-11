@@ -33,7 +33,7 @@ def get_zone_ndvi_values(analysis_results):
 
 def generate_recommendations(ndvi_data, zones):
     """
-    Generate AI-powered recommendations based on real NDVI data and zone analysis
+    Generate AI-powered recommendations based on NDVI data and zone analysis
     
     Args:
         ndvi_data: Dictionary with zone IDs and NDVI values
@@ -45,39 +45,27 @@ def generate_recommendations(ndvi_data, zones):
     try:
         recommendations = []
         
-        if not ndvi_data or not isinstance(ndvi_data, dict):
-            logging.error("Invalid or missing NDVI data for recommendations")
-            return []
+        if not ndvi_data:
+            return [{"type": "error", "message": "No NDVI data available for analysis"}]
         
-        # Filter out any invalid NDVI values
-        valid_ndvi_data = {k: v for k, v in ndvi_data.items() 
-                          if isinstance(v, (int, float)) and -1 <= v <= 1}
-        
-        if not valid_ndvi_data:
-            logging.error("No valid NDVI values found for recommendations")
-            return []
-        
-        # Analyze each zone with valid data
-        for zone_id, ndvi_value in valid_ndvi_data.items():
+        # Analyze each zone
+        for zone_id, ndvi_value in ndvi_data.items():
             zone_recommendations = analyze_zone_health(zone_id, ndvi_value)
             recommendations.extend(zone_recommendations)
         
-        # Add overall field recommendations based on real data
-        overall_recommendations = analyze_overall_field_health(valid_ndvi_data)
+        # Add overall field recommendations
+        overall_recommendations = analyze_overall_field_health(ndvi_data)
         recommendations.extend(overall_recommendations)
         
-        # Sort recommendations by priority (1 = highest, 5 = lowest)
+        # Sort recommendations by priority
         recommendations.sort(key=lambda x: x.get('priority', 5))
         
-        # Limit to top 5 most important recommendations
-        recommendations = recommendations[:5]
-        
-        logging.info(f"Generated {len(recommendations)} recommendations from real NDVI data")
+        logging.info(f"Generated {len(recommendations)} recommendations")
         return recommendations
         
     except Exception as e:
         logging.error(f"Error generating recommendations: {str(e)}")
-        return []
+        return [{"type": "error", "message": "Failed to generate recommendations"}]
 
 def analyze_zone_health(zone_id, ndvi_value):
     """
