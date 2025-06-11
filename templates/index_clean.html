@@ -623,9 +623,16 @@
                     mapInstance = null;
                 }
                 
+                // Reset variables
+                currentLayer = null;
+                currentBounds = null;
+                currentTileLayer = null;
+                
                 setTimeout(() => {
                     if (typeof L !== 'undefined' && L.Control && L.Control.Draw) {
                         initializeMap();
+                        // Ensure API status is checked
+                        checkAPIStatus();
                     } else {
                         console.error('Leaflet Draw not loaded');
                         loadLeafletDraw();
@@ -700,6 +707,9 @@
                 }
             });
             mapInstance.addControl(drawControl);
+            
+            // Add custom layer control widget
+            addLayerControlWidget();
             
             mapInstance.on(L.Draw.Event.CREATED, function (e) {
                 let layer = e.layer;
@@ -1129,6 +1139,67 @@
                 indicator.className = 'status-indicator status-warning';
                 indicator.innerHTML = '<span>●</span><span>Connection Error</span>';
             }
+        }
+        
+        function addLayerControlWidget() {
+            // Create layer control container
+            const layerControl = L.control({position: 'topright'});
+            
+            layerControl.onAdd = function(map) {
+                const div = L.DomUtil.create('div', 'layer-control');
+                div.innerHTML = `
+                    <div class="layer-control-header" onclick="toggleLayerControl()">
+                        <i class="fas fa-layer-group"></i>
+                        <span>Layers</span>
+                        <i class="fas fa-chevron-down toggle-icon"></i>
+                    </div>
+                    <div class="layer-control-content collapsed">
+                        <button class="layer-btn" data-layer="osm" onclick="changeMapLayer('osm')">Street</button>
+                        <button class="layer-btn active" data-layer="satellite" onclick="changeMapLayer('satellite')">Satellite</button>
+                        <button class="layer-btn" data-layer="hybrid" onclick="changeMapLayer('hybrid')">Hybrid</button>
+                        <button class="layer-btn" data-layer="topo" onclick="changeMapLayer('topo')">Topo</button>
+                        <button class="layer-btn" data-layer="terrain" onclick="changeMapLayer('terrain')">Terrain</button>
+                    </div>
+                `;
+                
+                // Prevent map interaction when clicking control
+                L.DomEvent.disableClickPropagation(div);
+                L.DomEvent.disableScrollPropagation(div);
+                
+                return div;
+            };
+            
+            layerControl.addTo(mapInstance);
+        }
+        
+        function toggleLayerControl() {
+            const content = document.querySelector('.layer-control-content');
+            const icon = document.querySelector('.toggle-icon');
+            
+            if (content && icon) {
+                content.classList.toggle('collapsed');
+                icon.classList.toggle('fa-chevron-down');
+                icon.classList.toggle('fa-chevron-up');
+            }
+        }
+        
+        function changeMapLayer(layerType) {
+            if (currentTileLayer) {
+                mapInstance.removeLayer(currentTileLayer);
+            }
+            
+            currentTileLayer = mapLayers[layerType];
+            currentTileLayer.addTo(mapInstance);
+            updateLayerButtons(layerType);
+        }
+        
+        function updateLayerButtons(activeLayer) {
+            document.querySelectorAll('.layer-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.layer === activeLayer) {
+                    btn.classList.add('active');
+                }
+            });
         }
         
         // Auto-initialize if we're on the index page
