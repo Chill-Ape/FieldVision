@@ -107,22 +107,22 @@
             transition: all 0.3s ease;
         }
         
-        /* Mobile menu button - only on mobile screens */
-        .mobile-menu-toggle {
+        /* Mobile menu button visibility control */
+        .navbar .mobile-menu-toggle {
             display: none !important;
         }
         
-        @media (max-width: 991.98px) {
-            .mobile-menu-toggle {
+        @media screen and (max-width: 991.98px) {
+            .navbar .mobile-menu-toggle {
                 display: block !important;
                 visibility: visible !important;
                 opacity: 1 !important;
+                position: relative !important;
             }
         }
         
-        /* Hide mobile menu button on desktop */
-        @media (min-width: 992px) {
-            .mobile-menu-toggle {
+        @media screen and (min-width: 992px) {
+            .navbar .mobile-menu-toggle {
                 display: none !important;
             }
         }
