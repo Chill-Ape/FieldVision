@@ -82,7 +82,11 @@
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <h3 class="text-info">{{ fields|sum(attribute='calculate_area_acres')|round(1) }}</h3>
+                            {% set total_acres = 0 %}
+                            {% for field in fields %}
+                                {% set total_acres = total_acres + field.calculate_area_acres() %}
+                            {% endfor %}
+                            <h3 class="text-info">{{ total_acres|round(1) }}</h3>
                             <p class="text-muted mb-0">Total Acres</p>
                         </div>
                     </div>
@@ -162,23 +166,10 @@
                     
                     <div class="mb-3">
                         {% if field.last_analyzed %}
-                            {% set days_since = (moment().datetime - field.last_analyzed).days %}
-                            {% if days_since <= 7 %}
-                                <div class="alert alert-success alert-sm mb-0 py-2">
-                                    <i class="fas fa-check-circle me-1"></i>
-                                    <small>Updated {{ days_since }} day{{ 's' if days_since != 1 else '' }} ago</small>
-                                </div>
-                            {% elif days_since <= 30 %}
-                                <div class="alert alert-warning alert-sm mb-0 py-2">
-                                    <i class="fas fa-clock me-1"></i>
-                                    <small>Updated {{ days_since }} days ago</small>
-                                </div>
-                            {% else %}
-                                <div class="alert alert-danger alert-sm mb-0 py-2">
-                                    <i class="fas fa-exclamation-triangle me-1"></i>
-                                    <small>Needs update ({{ days_since }} days)</small>
-                                </div>
-                            {% endif %}
+                            <div class="alert alert-success alert-sm mb-0 py-2">
+                                <i class="fas fa-check-circle me-1"></i>
+                                <small>Last analyzed: {{ field.last_analyzed.strftime('%m/%d/%Y') }}</small>
+                            </div>
                         {% else %}
                             <div class="alert alert-secondary alert-sm mb-0 py-2">
                                 <i class="fas fa-satellite me-1"></i>
