@@ -550,11 +550,12 @@
         <div class="map-layer-control">
             <div class="layer-control-header" onclick="toggleLayerControl()">
                 <span class="layer-control-title">Layers</span>
-                <span class="collapse-icon" id="collapse-icon">▼</span>
+                <span class="collapse-icon collapsed" id="collapse-icon">▶</span>
             </div>
-            <div class="layer-buttons" id="layer-buttons">
+            <div class="layer-buttons collapsed" id="layer-buttons">
                 <button class="layer-btn active" onclick="changeMapLayer('osm')" id="osm-btn">Street</button>
                 <button class="layer-btn" onclick="changeMapLayer('satellite')" id="satellite-btn">Satellite</button>
+                <button class="layer-btn" onclick="changeMapLayer('hybrid')" id="hybrid-btn">Hybrid</button>
                 <button class="layer-btn" onclick="changeMapLayer('topo')" id="topo-btn">Topo</button>
                 <button class="layer-btn" onclick="changeMapLayer('terrain')" id="terrain-btn">Terrain</button>
             </div>
@@ -654,11 +655,20 @@
                 satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                     attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
                 }),
+                hybrid: L.layerGroup([
+                    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                        attribution: 'Tiles © Esri'
+                    }),
+                    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+                        attribution: 'Labels © Esri'
+                    })
+                ]),
                 topo: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
                     attribution: 'Tiles © Esri — Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community'
                 }),
-                terrain: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}', {
-                    attribution: 'Tiles © Esri — Source: US National Park Service'
+                terrain: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                    attribution: 'Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)',
+                    maxZoom: 15
                 })
             };
             
@@ -863,7 +873,7 @@
         
         function updateLayerButtons(activeLayer) {
             // Reset all buttons
-            const buttons = ['osm-btn', 'satellite-btn', 'topo-btn', 'terrain-btn'];
+            const buttons = ['osm-btn', 'satellite-btn', 'hybrid-btn', 'topo-btn', 'terrain-btn'];
             buttons.forEach(btnId => {
                 const btn = document.getElementById(btnId);
                 if (btn) {
