@@ -51,12 +51,20 @@
                     </div>
                 </div>
                 <div class="card-body">
+                    <!-- Debug info -->
+                    <div class="small text-muted mb-2">
+                        Debug: has_cached_ndvi = {{ field.has_cached_ndvi() }}, 
+                        cached_ndvi_image = {{ 'Yes' if field.cached_ndvi_image else 'No' }},
+                        ndvi_cache_date = {{ field.ndvi_cache_date or 'None' }}
+                    </div>
+                    
                     {% if field.has_cached_ndvi() %}
                         <div class="text-center mb-3">
                             <img src="/field/{{ field.id }}/cached_ndvi" 
                                  alt="NDVI Analysis" 
                                  class="img-fluid rounded"
-                                 style="max-height: 400px; width: auto;">
+                                 style="max-height: 400px; width: auto;"
+                                 onerror="console.error('Failed to load NDVI image for field {{ field.id }}');">
                         </div>
                         
                         {% if latest_analysis %}
