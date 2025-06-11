@@ -26,7 +26,6 @@
             box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
             overflow-y: auto;
             position: relative;
-            z-index: 1000002;
         }
         
         .map-container {
@@ -296,20 +295,6 @@
         .btn:hover {
             transform: translateY(-1px);
             filter: brightness(1.1);
-        }
-        
-        /* Force high z-index for all sidebar interactive elements */
-        .sidebar *, .sidebar button, .sidebar input, .sidebar select, .sidebar a {
-            position: relative;
-            z-index: 1000003;
-            pointer-events: auto;
-        }
-        
-        /* Ensure specific elements remain interactive */
-        #saveSiteBtn, #clearSelectionBtn, .search-btn, .btn {
-            z-index: 1000004 !important;
-            pointer-events: auto !important;
-            cursor: pointer !important;
         }
         
         .btn:disabled {
@@ -974,39 +959,6 @@
                     });
                     
                     console.log('Applied z-index fixes for map interaction');
-                    
-                    // Force re-enable all sidebar interactions
-                    const sidebar = document.querySelector('.sidebar');
-                    if (sidebar) {
-                        sidebar.style.zIndex = '1000002';
-                        sidebar.style.pointerEvents = 'auto';
-                        
-                        // Force all sidebar buttons to be interactive
-                        const sidebarButtons = sidebar.querySelectorAll('button, .btn, input, select, a');
-                        sidebarButtons.forEach(btn => {
-                            btn.style.zIndex = '1000004';
-                            btn.style.pointerEvents = 'auto';
-                            btn.style.position = 'relative';
-                        });
-                        
-                        // Specifically fix save and clear buttons
-                        const saveSiteBtn = document.getElementById('saveSiteBtn');
-                        const clearBtn = document.getElementById('clearSelectionBtn');
-                        
-                        if (saveSiteBtn) {
-                            saveSiteBtn.style.zIndex = '1000005';
-                            saveSiteBtn.style.pointerEvents = 'auto';
-                            saveSiteBtn.style.cursor = 'pointer';
-                        }
-                        
-                        if (clearBtn) {
-                            clearBtn.style.zIndex = '1000005';
-                            clearBtn.style.pointerEvents = 'auto';
-                            clearBtn.style.cursor = 'pointer';
-                        }
-                        
-                        console.log('Re-enabled sidebar interactions');
-                    }
                     
                 }, 100);
             } catch (error) {
