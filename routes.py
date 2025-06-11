@@ -319,6 +319,24 @@ def update_field(field_id):
         logging.error(f"Error updating field {field_id}: {str(e)}")
         return jsonify({'success': False, 'message': 'Failed to update field'}), 500
 
+@app.route('/api/delete_ai_insight/<int:insight_id>', methods=['DELETE'])
+def delete_ai_insight(insight_id):
+    """Delete an AI insight"""
+    try:
+        insight = AIInsight.query.get_or_404(insight_id)
+        field_name = insight.field.name
+        
+        db.session.delete(insight)
+        db.session.commit()
+        
+        logging.info(f"AI insight deleted for field '{field_name}'")
+        return jsonify({'success': True, 'message': 'AI insight deleted successfully'})
+        
+    except Exception as e:
+        logging.error(f"Error deleting AI insight {insight_id}: {str(e)}")
+        db.session.rollback()
+        return jsonify({'success': False, 'message': 'Failed to delete AI insight'}), 500
+
 @app.route('/api/delete_field/<int:field_id>', methods=['DELETE'])
 def delete_field(field_id):
     """Delete a field and its analyses"""
@@ -501,13 +519,28 @@ def generate_ai_insights(field_id):
     try:
         field = Field.query.get_or_404(field_id)
         
+        # Check if AI insight was already generated today for this field
+        from datetime import datetime, timedelta
+        today = datetime.utcnow().date()
+        existing_insight = AIInsight.query.filter(
+            AIInsight.field_id == field_id,
+            AIInsight.analysis_date >= today,
+            AIInsight.analysis_date < today + timedelta(days=1)
+        ).first()
+        
+        if existing_insight:
+            return jsonify({
+                'error': 'AI insight already generated today for this field. Only one AI analysis per day is allowed.',
+                'existing_insight_id': existing_insight.id
+            }), 400
+        
         # Get the latest analysis for this field
         latest_analysis = FieldAnalysis.query.filter_by(field_id=field_id).order_by(FieldAnalysis.analysis_date.desc()).first()
         
         if not latest_analysis:
             return jsonify({'error': 'No field analysis available. Please analyze the field first.'}), 400
         
-        # Prepare field data for AI analysis
+        # Prepare field data for AI analysis using actual data
         field_data = {
             'id': field.id,
             'name': field.name,
@@ -517,21 +550,39 @@ def generate_ai_insights(field_id):
             'last_analyzed': field.last_analyzed.isoformat() if field.last_analyzed else None
         }
         
-        # Use actual analysis data from the database
+        # Extract actual NDVI statistics from the latest analysis
+        ndvi_data = latest_analysis.get_ndvi_data() or {}
+        health_scores = latest_analysis.get_health_scores() or {}
+        
+        # Calculate statistics from actual data
+        ndvi_values = []
+        if ndvi_data:
+            for zone_data in ndvi_data.values():
+                if isinstance(zone_data, dict) and 'ndvi' in zone_data:
+                    ndvi_values.append(zone_data['ndvi'])
+                elif isinstance(zone_data, (int, float)):
+                    ndvi_values.append(zone_data)
+        
+        if ndvi_values:
+            mean_ndvi = sum(ndvi_values) / len(ndvi_values)
+            min_ndvi = min(ndvi_values)
+            max_ndvi = max(ndvi_values)
+            std_ndvi = (sum((x - mean_ndvi) ** 2 for x in ndvi_values) / len(ndvi_values)) ** 0.5
+        else:
+            # Fallback values if no data available
+            mean_ndvi, min_ndvi, max_ndvi, std_ndvi = 0.65, 0.2, 0.9, 0.15
+        
+        # Prepare analysis data for AI
         analysis_data = {
             'field_stats': {
-                'mean_ndvi': 0.65,  # Extract from actual NDVI analysis
-                'min_ndvi': 0.2,
-                'max_ndvi': 0.9,
-                'std_ndvi': 0.15
+                'mean_ndvi': mean_ndvi,
+                'min_ndvi': min_ndvi,
+                'max_ndvi': max_ndvi,
+                'std_ndvi': std_ndvi
             },
-            'zone_stats': latest_analysis.get_ndvi_data(),
-            'health_distribution': {
-                'excellent': 25,
-                'good': 45,
-                'moderate': 20,
-                'poor': 10
-            }
+            'zone_stats': ndvi_data,
+            'health_scores': health_scores,
+            'recommendations': latest_analysis.get_recommendations() or []
         }
         
         # Generate AI insights
@@ -549,6 +600,8 @@ def generate_ai_insights(field_id):
         db.session.add(insight)
         db.session.commit()
         
+        logging.info(f"AI insight generated for field '{field.name}' (ID: {field_id})")
+        
         return jsonify({
             'success': True,
             'insight_id': insight.id,
@@ -556,7 +609,8 @@ def generate_ai_insights(field_id):
         })
         
     except Exception as e:
-        logger.error(f"Error generating AI insights: {e}")
+        logging.error(f"Error generating AI insights: {e}")
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 
