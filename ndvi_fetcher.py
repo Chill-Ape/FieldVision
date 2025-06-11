@@ -62,21 +62,34 @@ function evaluatePixel(sample) {
     
 
     
-    // Agricultural stress detection color mapping
-    if (ndvi < -0.3) return [0.2, 0.2, 0.4]; // Deep water - dark blue
-    if (ndvi < -0.1) return [0.4, 0.4, 0.6]; // Shallow water - blue
-    if (ndvi < 0.05) return [0.8, 0.7, 0.6]; // Bare soil/sand - tan
-    if (ndvi < 0.1) return [1.0, 0.2, 0.2]; // Critical stress/dying vegetation - bright red
-    if (ndvi < 0.15) return [1.0, 0.4, 0.2]; // Severe stress - red-orange
-    if (ndvi < 0.2) return [1.0, 0.6, 0.2]; // Moderate stress - orange
-    if (ndvi < 0.25) return [1.0, 0.8, 0.2]; // Mild stress - yellow-orange
-    if (ndvi < 0.3) return [1.0, 1.0, 0.2]; // Early stress - yellow
-    if (ndvi < 0.35) return [0.8, 1.0, 0.2]; // Recovery/low vigor - light green
-    if (ndvi < 0.45) return [0.6, 0.9, 0.1]; // Moderate health - green
-    if (ndvi < 0.55) return [0.4, 0.8, 0.1]; // Good health - darker green
-    if (ndvi < 0.65) return [0.2, 0.7, 0.1]; // Very healthy - dark green
-    if (ndvi < 0.75) return [0.1, 0.6, 0.1]; // Excellent health - very dark green
-    return [0.05, 0.4, 0.05]; // Peak health - deepest green
+    // Continuous NDVI color mapping with enhanced variation
+    // Normalize NDVI to 0-1 range for color mapping
+    let normalizedNdvi = Math.max(0, Math.min(1, (ndvi + 0.2) / 1.0));
+    
+    let r, g, b;
+    
+    if (ndvi < -0.2) {
+        // Water - blue
+        r = 0.1; g = 0.3; b = 0.8;
+    } else if (ndvi < 0.1) {
+        // Bare soil/stressed - brown to red gradient
+        let t = (ndvi + 0.2) / 0.3;
+        r = 0.8; g = 0.4 * t; b = 0.2 * t;
+    } else if (ndvi < 0.3) {
+        // Low vegetation - red to yellow gradient
+        let t = (ndvi - 0.1) / 0.2;
+        r = 1.0; g = 0.4 + 0.6 * t; b = 0.2;
+    } else if (ndvi < 0.6) {
+        // Healthy vegetation - yellow to green gradient with variation
+        let t = (ndvi - 0.3) / 0.3;
+        r = 1.0 - 0.8 * t; g = 1.0 - 0.1 * t; b = 0.2 + 0.3 * t;
+    } else {
+        // Very healthy vegetation - green gradient with clear variation
+        let t = Math.min((ndvi - 0.6) / 0.3, 1.0);
+        r = 0.2 - 0.15 * t; g = 0.9 - 0.4 * t; b = 0.5 - 0.4 * t;
+    }
+    
+    return [r, g, b];
 }
 """
     
