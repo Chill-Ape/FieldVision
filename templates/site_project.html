@@ -25,6 +25,9 @@
                     <button class="btn btn-primary" onclick="updateNDVI({{ field.id }})">
                         <i class="fas fa-sync me-1"></i>Update NDVI
                     </button>
+                    <button class="btn btn-info" onclick="runAIAnalysis({{ field.id }})">
+                        <i class="fas fa-brain me-1"></i>AI Analysis
+                    </button>
                     <a href="/field/{{ field.id }}/report" class="btn btn-success">
                         <i class="fas fa-chart-line me-1"></i>Generate Report
                     </a>
@@ -331,12 +334,64 @@ function updateNDVI(fieldId) {
     });
 }
 
+function runAIAnalysis(fieldId) {
+    showLoading();
+    showInfo('Running comprehensive AI analysis with weather integration...');
+    
+    fetch(`/api/analyze_field/${fieldId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideLoading();
+        if (data.success) {
+            showSuccess('AI analysis completed successfully! Comprehensive insights generated.');
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            showError('AI analysis failed: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        hideLoading();
+        console.error('Error running AI analysis:', error);
+        showError('Failed to run AI analysis. Please try again.');
+    });
+}
+
 function scheduleAutomation(fieldId) {
     showInfo('Automation scheduling feature coming soon! This will allow daily/weekly automated NDVI updates.');
 }
 
 function exportData(fieldId) {
     showInfo('Data export feature coming soon! This will allow you to download all analysis data as CSV/JSON.');
+}
+
+// Loading state management
+function showLoading() {
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = 'loading-overlay';
+    loadingDiv.className = 'position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center';
+    loadingDiv.style.backgroundColor = 'rgba(0,0,0,0.7)';
+    loadingDiv.style.zIndex = '9999';
+    loadingDiv.innerHTML = `
+        <div class="text-center text-white">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div>Processing analysis...</div>
+        </div>
+    `;
+    document.body.appendChild(loadingDiv);
+}
+
+function hideLoading() {
+    const loadingDiv = document.getElementById('loading-overlay');
+    if (loadingDiv) {
+        loadingDiv.remove();
+    }
 }
 
 // Utility functions for notifications
