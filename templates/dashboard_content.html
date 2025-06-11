@@ -3,11 +3,16 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h1 class="text-light">
-                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    <i class="fas fa-folder-open me-2"></i>Site Projects
                 </h1>
-                <div class="text-muted">
-                    <i class="fas fa-clock me-1"></i>
-                    Last updated: {{ moment().format('MMM DD, YYYY HH:mm') }}
+                <div class="d-flex align-items-center gap-3">
+                    <div class="text-muted">
+                        <i class="fas fa-clock me-1"></i>
+                        Last updated: <span id="current-time"></span>
+                    </div>
+                    <button class="btn btn-success btn-sm" onclick="loadPage('/', event)">
+                        <i class="fas fa-plus me-1"></i>Create New Site
+                    </button>
                 </div>
             </div>
         </div>
@@ -55,69 +60,112 @@
     <div class="row">
         {% for field in fields %}
         <div class="col-lg-6 col-xl-4 mb-4">
-            <div class="card bg-dark border-secondary h-100">
+            <div class="card bg-dark border-secondary h-100 project-folder-card" onclick="openSiteProject({{ field.id }})">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h6 class="card-title mb-0 text-truncate">{{ field.name }}</h6>
-                    <div class="dropdown">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-folder text-warning me-2"></i>
+                        <h6 class="card-title mb-0 text-truncate">{{ field.name }}</h6>
+                    </div>
+                    <div class="dropdown" onclick="event.stopPropagation()">
                         <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
                             <i class="fas fa-ellipsis-v"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-dark">
-                            <li><a class="dropdown-item" href="#" onclick="loadPage('/field/{{ field.id }}', event)">
-                                <i class="fas fa-eye me-2"></i>View Details
+                            <li><a class="dropdown-item" href="#" onclick="openSiteProject({{ field.id }})">
+                                <i class="fas fa-folder-open me-2"></i>Open Project
                             </a></li>
                             <li><a class="dropdown-item" href="#" onclick="loadPage('/field/{{ field.id }}/report', event)">
                                 <i class="fas fa-chart-bar me-2"></i>Generate Report
                             </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="scheduleAutomation({{ field.id }})">
+                                <i class="fas fa-clock me-2"></i>Schedule Updates
+                            </a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-danger" href="#" onclick="deleteField({{ field.id }})">
-                                <i class="fas fa-trash me-2"></i>Delete
+                                <i class="fas fa-trash me-2"></i>Delete Project
                             </a></li>
                         </ul>
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="mb-3">
+                    <div class="mb-3 position-relative">
                         {% if field.has_cached_ndvi() %}
-                            <img src="/api/fields/{{ field.id }}/ndvi-image" alt="NDVI Preview" class="img-fluid rounded mb-2" style="height: 120px; width: 100%; object-fit: cover;">
+                            <img src="/api/fields/{{ field.id }}/ndvi-image" alt="Latest NDVI" class="img-fluid rounded mb-2" style="height: 140px; width: 100%; object-fit: cover;">
+                            <div class="position-absolute top-0 end-0 m-2">
+                                <span class="badge bg-success">
+                                    <i class="fas fa-satellite me-1"></i>NDVI Ready
+                                </span>
+                            </div>
                         {% else %}
-                            <div class="bg-secondary rounded d-flex align-items-center justify-content-center" style="height: 120px;">
-                                <i class="fas fa-satellite-dish fa-2x text-muted"></i>
+                            <div class="bg-secondary rounded d-flex align-items-center justify-content-center position-relative" style="height: 140px;">
+                                <div class="text-center">
+                                    <i class="fas fa-satellite-dish fa-2x text-muted mb-2"></i>
+                                    <div class="small text-muted">No NDVI Data</div>
+                                </div>
+                                <div class="position-absolute top-0 end-0 m-2">
+                                    <span class="badge bg-warning">
+                                        <i class="fas fa-exclamation me-1"></i>Pending
+                                    </span>
+                                </div>
                             </div>
                         {% endif %}
                     </div>
                     
                     <div class="row text-center mb-3">
-                        <div class="col-6">
-                            <small class="text-muted">Area</small>
-                            <div class="fw-bold">{{ field.calculate_area_acres()|round(1) }} acres</div>
+                        <div class="col-4">
+                            <div class="small text-muted">Area</div>
+                            <div class="fw-bold text-info">{{ field.calculate_area_acres()|round(1) }} acres</div>
                         </div>
-                        <div class="col-6">
-                            <small class="text-muted">Created</small>
-                            <div class="fw-bold">{{ field.created_at.strftime('%m/%d/%Y') }}</div>
+                        <div class="col-4">
+                            <div class="small text-muted">Analyses</div>
+                            <div class="fw-bold text-success">{{ field.analyses|length }}</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="small text-muted">Created</div>
+                            <div class="fw-bold">{{ field.created_at.strftime('%m/%d') }}</div>
                         </div>
                     </div>
                     
-                    {% if field.last_analyzed %}
-                        <div class="alert alert-success alert-sm mb-3">
-                            <i class="fas fa-check-circle me-1"></i>
-                            Last analyzed: {{ field.last_analyzed.strftime('%m/%d/%Y') }}
+                    <div class="mb-3">
+                        {% if field.last_analyzed %}
+                            {% set days_since = (moment().datetime - field.last_analyzed).days %}
+                            {% if days_since <= 7 %}
+                                <div class="alert alert-success alert-sm mb-0 py-2">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    <small>Updated {{ days_since }} day{{ 's' if days_since != 1 else '' }} ago</small>
+                                </div>
+                            {% elif days_since <= 30 %}
+                                <div class="alert alert-warning alert-sm mb-0 py-2">
+                                    <i class="fas fa-clock me-1"></i>
+                                    <small>Updated {{ days_since }} days ago</small>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-danger alert-sm mb-0 py-2">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    <small>Needs update ({{ days_since }} days)</small>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="alert alert-secondary alert-sm mb-0 py-2">
+                                <i class="fas fa-satellite me-1"></i>
+                                <small>No analysis available</small>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="project-actions">
+                        <div class="row g-1">
+                            <div class="col-6">
+                                <button class="btn btn-outline-primary btn-sm w-100" onclick="event.stopPropagation(); analyzeField({{ field.id }})">
+                                    <i class="fas fa-sync me-1"></i>Update
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <button class="btn btn-outline-success btn-sm w-100" onclick="event.stopPropagation(); openSiteProject({{ field.id }})">
+                                    <i class="fas fa-arrow-right me-1"></i>Open
+                                </button>
+                            </div>
                         </div>
-                    {% else %}
-                        <div class="alert alert-warning alert-sm mb-3">
-                            <i class="fas fa-exclamation-triangle me-1"></i>
-                            No analysis available
-                        </div>
-                    {% endif %}
-                </div>
-                <div class="card-footer bg-dark border-secondary">
-                    <div class="btn-group w-100" role="group">
-                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="analyzeField({{ field.id }})">
-                            <i class="fas fa-satellite me-1"></i>Analyze
-                        </button>
-                        <button type="button" class="btn btn-outline-info btn-sm" onclick="loadPage('/field/{{ field.id }}/report', event)">
-                            <i class="fas fa-chart-line me-1"></i>Report
-                        </button>
                     </div>
                 </div>
             </div>
@@ -140,9 +188,52 @@
     {% endif %}
 </div>
 
+<style>
+.project-folder-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.project-folder-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(88, 166, 255, 0.2);
+    border-color: rgba(88, 166, 255, 0.5);
+}
+
+.project-actions {
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+}
+
+.project-folder-card:hover .project-actions {
+    opacity: 1;
+}
+
+.alert-sm {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+}
+</style>
+
 <script>
+// Update current time
+function updateCurrentTime() {
+    const now = new Date();
+    document.getElementById('current-time').textContent = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+}
+
+// Initialize time and update every minute
+document.addEventListener('DOMContentLoaded', function() {
+    updateCurrentTime();
+    setInterval(updateCurrentTime, 60000);
+});
+
+function openSiteProject(fieldId) {
+    showLoading();
+    loadPage(`/site/${fieldId}`);
+}
+
 function analyzeField(fieldId) {
-    // Show loading indicator
     showLoading();
     
     fetch(`/api/analyze_field/${fieldId}`, {
@@ -155,21 +246,27 @@ function analyzeField(fieldId) {
     .then(data => {
         hideLoading();
         if (data.success) {
-            // Reload dashboard to show updated analysis
-            loadPage('/dashboard');
+            // Show success message and reload
+            showSuccess('Field analysis updated successfully!');
+            setTimeout(() => loadPage('/dashboard'), 1500);
         } else {
-            alert('Analysis failed: ' + (data.message || 'Unknown error'));
+            showError('Analysis failed: ' + (data.message || 'Unknown error'));
         }
     })
     .catch(error => {
         hideLoading();
         console.error('Error analyzing field:', error);
-        alert('Failed to analyze field. Please try again.');
+        showError('Failed to analyze field. Please try again.');
     });
 }
 
+function scheduleAutomation(fieldId) {
+    // Show automation scheduling modal/interface
+    showInfo('Automation scheduling feature coming soon! This will allow daily/weekly automated NDVI updates.');
+}
+
 function deleteField(fieldId) {
-    if (confirm('Are you sure you want to delete this field? This action cannot be undone.')) {
+    if (confirm('Are you sure you want to delete this project? This will permanently remove all associated data and cannot be undone.')) {
         showLoading();
         
         fetch(`/api/delete_field/${fieldId}`, {
@@ -179,17 +276,48 @@ function deleteField(fieldId) {
         .then(data => {
             hideLoading();
             if (data.success) {
-                // Reload dashboard to show updated fields
-                loadPage('/dashboard');
+                showSuccess('Project deleted successfully');
+                setTimeout(() => loadPage('/dashboard'), 1500);
             } else {
-                alert('Delete failed: ' + (data.message || 'Unknown error'));
+                showError('Delete failed: ' + (data.message || 'Unknown error'));
             }
         })
         .catch(error => {
             hideLoading();
             console.error('Error deleting field:', error);
-            alert('Failed to delete field. Please try again.');
+            showError('Failed to delete project. Please try again.');
         });
     }
+}
+
+// Utility functions for notifications
+function showSuccess(message) {
+    showNotification(message, 'success');
+}
+
+function showError(message) {
+    showNotification(message, 'error');
+}
+
+function showInfo(message) {
+    showNotification(message, 'info');
+}
+
+function showNotification(message, type) {
+    const alertClass = type === 'success' ? 'alert-success' : type === 'error' ? 'alert-danger' : 'alert-info';
+    const notification = document.createElement('div');
+    notification.className = `alert ${alertClass} position-fixed top-0 start-50 translate-middle-x mt-3`;
+    notification.style.zIndex = '9999';
+    notification.innerHTML = `
+        <div class="d-flex align-items-center">
+            <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'exclamation-triangle' : 'info'}-circle me-2"></i>
+            ${message}
+        </div>
+    `;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 4000);
 }
 </script>

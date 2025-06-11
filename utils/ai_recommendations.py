@@ -1,6 +1,36 @@
 import logging
 from datetime import datetime
 
+def get_zone_ndvi_values(analysis_results):
+    """
+    Extract zone NDVI values for recommendation engine
+    
+    Args:
+        analysis_results: Results from analyze_field_ndvi
+        
+    Returns:
+        Dictionary mapping zone IDs to mean NDVI values
+    """
+    try:
+        zone_ndvi_values = {}
+        
+        if not analysis_results or 'zone_stats' not in analysis_results:
+            return {}
+        
+        zone_stats = analysis_results['zone_stats']
+        
+        for zone_id, stats in zone_stats.items():
+            if isinstance(stats, dict) and 'mean_ndvi' in stats:
+                zone_ndvi_values[zone_id] = stats['mean_ndvi']
+            elif isinstance(stats, (int, float)):
+                zone_ndvi_values[zone_id] = stats
+        
+        return zone_ndvi_values
+        
+    except Exception as e:
+        logging.error(f"Error extracting zone NDVI values: {str(e)}")
+        return {}
+
 def generate_recommendations(ndvi_data, zones):
     """
     Generate AI-powered recommendations based on NDVI data and zone analysis

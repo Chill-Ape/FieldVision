@@ -74,6 +74,16 @@ def reports():
         logger.error(f"Error loading reports: {e}")
         return render_spa_template('reports.html', fields=[])
 
+@app.route('/site/<int:field_id>')
+def site_project(field_id):
+    """Individual site project page with comprehensive data and controls"""
+    field = Field.query.get_or_404(field_id)
+    latest_analysis = FieldAnalysis.query.filter_by(field_id=field_id).order_by(FieldAnalysis.analysis_date.desc()).first()
+    
+    if is_ajax_request():
+        return render_template('site_project.html', field=field, latest_analysis=latest_analysis)
+    return render_template('site_project.html', field=field, latest_analysis=latest_analysis)
+
 @app.route('/field/<int:field_id>/report')
 def field_report(field_id):
     """Comprehensive field report page"""
@@ -119,6 +129,60 @@ def save_field():
         
         db.session.add(field)
         db.session.commit()
+        
+        # Generate initial NDVI analysis for the new field
+        try:
+            from ndvi_fetcher import NDVIFetcher
+            from auth import SentinelHubAuth
+            from utils.ndvi_analyzer import analyze_field_ndvi
+            from utils.ai_recommendations import generate_recommendations, get_zone_ndvi_values
+            
+            # Initialize NDVI fetcher
+            auth_handler = SentinelHubAuth()
+            if auth_handler.is_authenticated():
+                ndvi_fetcher = NDVIFetcher(auth_handler)
+                
+                # Calculate bounding box from coordinates
+                lats = [coord[0] for coord in coordinates]
+                lngs = [coord[1] for coord in coordinates]
+                bbox = [min(lngs), min(lats), max(lngs), max(lats)]
+                
+                # Create GeoJSON geometry for masking
+                geometry = {
+                    "type": "Polygon",
+                    "coordinates": [[[coord[1], coord[0]] for coord in coordinates + [coordinates[0]]]]
+                }
+                
+                # Fetch NDVI image
+                ndvi_image_bytes = ndvi_fetcher.fetch_ndvi_image(bbox, geometry=geometry)
+                
+                if ndvi_image_bytes:
+                    # Cache the NDVI image
+                    field.cache_ndvi_image(ndvi_image_bytes)
+                    
+                    # Analyze NDVI data
+                    analysis_results = analyze_field_ndvi(ndvi_image_bytes, geometry)
+                    
+                    # Generate AI recommendations
+                    zone_ndvi_values = get_zone_ndvi_values(analysis_results)
+                    recommendations = generate_recommendations(zone_ndvi_values, analysis_results.get('zones', {}))
+                    
+                    # Create initial field analysis record
+                    analysis = FieldAnalysis()
+                    analysis.field_id = field.id
+                    analysis.set_ndvi_data(zone_ndvi_values)
+                    analysis.set_health_scores(analysis_results.get('zone_stats', {}))
+                    analysis.set_recommendations(recommendations)
+                    analysis.analysis_date = datetime.utcnow()
+                    
+                    db.session.add(analysis)
+                    db.session.commit()
+                    
+                    logging.info(f"Generated initial NDVI analysis for field '{field.name}'")
+                
+        except Exception as e:
+            logging.warning(f"Could not generate initial NDVI analysis for field '{field.name}': {str(e)}")
+            # Don't fail the field creation if NDVI analysis fails
         
         logging.info(f"Field '{field.name}' saved successfully with ID {field.id}")
         return jsonify({'success': True, 'field_id': field.id})
