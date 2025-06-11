@@ -636,11 +636,8 @@
                         <option value="wheat">Wheat</option>
                     </select>
                 </div>
-                <button id="analyze-btn" class="btn btn-success" onclick="analyzeFieldWithAI()" disabled>
-                    🧠 AI Analysis
-                </button>
-                <button id="simple-analyze-btn" class="btn btn-secondary" onclick="analyzeNDVI()" disabled style="margin-top: 0.5rem; width: 100%;">
-                    📊 NDVI Only
+                <button id="simple-analyze-btn" class="btn btn-secondary" onclick="analyzeNDVI()" disabled style="width: 100%;">
+                    📊 Generate NDVI
                 </button>
             </div>
             
@@ -652,6 +649,11 @@
             <div id="result-section" class="section" style="display: none;">
                 <h3>Analysis Results</h3>
                 <div id="ndvi-result" class="ndvi-result"></div>
+                <div id="ai-analysis-section" style="display: none; margin-top: 1rem;">
+                    <button id="analyze-btn" class="btn btn-success" onclick="analyzeFieldWithAI()" style="width: 100%;">
+                        🧠 Generate AI Analysis
+                    </button>
+                </div>
                 <div id="ai-recommendations" style="display: none; margin-top: 1rem;"></div>
                 <div id="weather-context" style="display: none; margin-top: 1rem;"></div>
                 <div id="zone-analysis" style="display: none; margin-top: 1rem;"></div>
@@ -916,7 +918,7 @@
         function updateBounds(bounds) {
             currentBounds = bounds;
             updateCoordinatesDisplay();
-            document.getElementById('analyze-btn').disabled = false;
+            document.getElementById('simple-analyze-btn').disabled = false;
             document.getElementById('save-site-btn').disabled = false;
         }
         
@@ -924,7 +926,7 @@
             // For polygons, calculate bounding box and area
             currentBounds = layer.getBounds();
             updateCoordinatesDisplay();
-            document.getElementById('analyze-btn').disabled = false;
+            document.getElementById('simple-analyze-btn').disabled = false;
             document.getElementById('save-site-btn').disabled = false;
         }
         
@@ -1232,6 +1234,12 @@
                         </p>
                     `;
                     document.getElementById('result-section').style.display = 'block';
+                    
+                    // Show AI analysis button after NDVI is generated
+                    document.getElementById('ai-analysis-section').style.display = 'block';
+                    
+                    // Auto-save the field if area is selected but not saved yet
+                    autoSaveField();
                 } else {
                     const error = await response.json();
                     document.getElementById('ndvi-result').innerHTML = `
@@ -1646,7 +1654,6 @@
             
             // Update display and enable controls
             updateCoordinatesDisplay();
-            document.getElementById('analyze-btn').disabled = false;
             document.getElementById('simple-analyze-btn').disabled = false;
             document.getElementById('crop-selection').style.display = 'block';
             document.getElementById('save-site-btn').disabled = false;
@@ -1656,6 +1663,96 @@
             const siteDescEl = document.getElementById('site-description');
             if (siteNameEl) siteNameEl.value = site.name || '';
             if (siteDescEl) siteDescEl.value = site.description || '';
+            
+            // Check if this site has a cached NDVI and show AI button if it does
+            checkAndShowCachedNDVI(site.id);
+        }
+        
+        async function checkAndShowCachedNDVI(siteId) {
+            try {
+                const response = await fetch(`/field/${siteId}/cached_ndvi`);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const imageUrl = URL.createObjectURL(blob);
+                    
+                    // Display the cached NDVI image
+                    const shapeType = currentLayer instanceof L.Polygon ? 'polygon' : 'rectangle';
+                    const areaInfo = currentLayer ? formatArea(
+                        currentLayer instanceof L.Polygon ? 
+                            calculatePolygonArea(currentLayer.getLatLngs()[0]) :
+                            calculateRectangleArea(currentBounds)
+                    ) : '';
+                    
+                    document.getElementById('ndvi-result').innerHTML = `
+                        <div style="position: relative; display: inline-block;">
+                            <img src="${imageUrl}" alt="NDVI Analysis" class="ndvi-image" style="cursor: pointer; width: 100%;" onclick="openImageModal('${imageUrl}', '📍 ${shapeType.toUpperCase()}: ${areaInfo}<br>Cached NDVI analysis')">
+                            <div style="position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.8); color: white; padding: 0.5rem; border-radius: 4px; font-size: 0.75rem;">
+                                📍 ${shapeType.toUpperCase()}: ${areaInfo}
+                            </div>
+                            <div style="position: absolute; top: 5px; right: 5px; background: rgba(40, 167, 69, 0.9); color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem;">
+                                CACHED
+                            </div>
+                            <button onclick="openImageModal('${imageUrl}', 'Cached NDVI Analysis')" style="position: absolute; bottom: 5px; right: 5px; background: rgba(88, 166, 255, 0.9); color: white; border: none; padding: 0.5rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 500;">🔍 Fullscreen</button>
+                        </div>
+                    `;
+                    
+                    // Show the results section and AI analysis button
+                    document.getElementById('result-section').style.display = 'block';
+                    document.getElementById('ai-analysis-section').style.display = 'block';
+                }
+            } catch (error) {
+                console.log('No cached NDVI found for this site');
+            }
+        }
+        
+        function autoSaveField() {
+            // Check if this is already a saved site
+            const selectedSite = localStorage.getItem('selectedSite');
+            if (selectedSite) {
+                return; // Already saved, don't auto-save again
+            }
+            
+            if (!currentBounds || !currentLayer) {
+                return; // No area selected
+            }
+            
+            // Generate auto-save name based on coordinates and timestamp
+            const center_lat = (currentBounds.getSouth() + currentBounds.getNorth()) / 2;
+            const center_lng = (currentBounds.getWest() + currentBounds.getEast()) / 2;
+            const timestamp = new Date().toLocaleString().replace(/[:/]/g, '-');
+            const autoName = `Field_${center_lat.toFixed(4)}_${center_lng.toFixed(4)}_${timestamp}`;
+            
+            // Create site data
+            const siteData = {
+                name: autoName,
+                description: 'Auto-saved after NDVI generation',
+                geometry: currentLayer.toGeoJSON().geometry,
+                coordinates: {
+                    north: currentBounds.getNorth(),
+                    south: currentBounds.getSouth(),
+                    east: currentBounds.getEast(),
+                    west: currentBounds.getWest()
+                },
+                alerts: {
+                    lowNdvi: 0.3,
+                    highNdvi: 0.8
+                },
+                area: currentLayer instanceof L.Polygon ? 
+                    calculatePolygonArea(currentLayer.getLatLngs()[0]) :
+                    calculateRectangleArea(currentBounds),
+                created: new Date().toISOString()
+            };
+            
+            // Save to localStorage
+            let savedSites = JSON.parse(localStorage.getItem('savedSites') || '[]');
+            siteData.id = Date.now().toString();
+            savedSites.push(siteData);
+            localStorage.setItem('savedSites', JSON.stringify(savedSites));
+            
+            // Set as currently selected site for caching
+            localStorage.setItem('selectedSite', JSON.stringify(siteData));
+            
+            console.log(`Auto-saved field: ${autoName}`);
         }
         
         // Full-screen image modal functions
