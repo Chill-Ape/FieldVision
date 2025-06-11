@@ -267,10 +267,11 @@ function evaluatePixel(sample) {
             pixels = result.load()
             mask_pixels = mask.load()
             
-            for y in range(height):
-                for x in range(width):
-                    if mask_pixels[x, y] == 0:  # Outside polygon
-                        pixels[x, y] = (0, 0, 0, 0)  # Transparent
+            if pixels and mask_pixels:
+                for y in range(height):
+                    for x in range(width):
+                        if mask_pixels[x, y] == 0:  # Outside polygon
+                            pixels[x, y] = (0, 0, 0, 0)  # Transparent
             
             # Save to bytes
             output = BytesIO()

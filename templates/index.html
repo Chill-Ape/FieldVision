@@ -122,6 +122,92 @@
             background: rgba(88, 166, 255, 0.15);
         }
         
+        .image-modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(4px);
+        }
+        
+        .modal-content {
+            position: relative;
+            margin: auto;
+            padding: 20px;
+            width: 90%;
+            height: 90%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        
+        .modal-image {
+            max-width: 100%;
+            max-height: 80%;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 40px;
+            color: #fff;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 10000;
+        }
+        
+        .modal-close:hover {
+            color: #58a6ff;
+        }
+        
+        .modal-info {
+            color: #fff;
+            text-align: center;
+            margin-top: 20px;
+            background: rgba(13, 17, 23, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(88, 166, 255, 0.2);
+        }
+        
+        .zoom-controls {
+            position: absolute;
+            top: 80px;
+            right: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .zoom-btn {
+            background: rgba(13, 17, 23, 0.9);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            color: #58a6ff;
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.2s ease;
+        }
+        
+        .zoom-btn:hover {
+            background: rgba(88, 166, 255, 0.1);
+            border-color: #58a6ff;
+        }
+        
         @keyframes pulse {
             0% { opacity: 0.6; }
             100% { opacity: 1; }
@@ -1110,16 +1196,18 @@
                     
                     document.getElementById('ndvi-result').innerHTML = `
                         <div style="position: relative; display: inline-block;">
-                            <img src="${imageUrl}" alt="NDVI Analysis" class="ndvi-image">
+                            <img src="${imageUrl}" alt="NDVI Analysis" class="ndvi-image" style="cursor: pointer; width: 100%;" onclick="openImageModal('${imageUrl}', '📍 ${shapeType.toUpperCase()}: ${areaInfo}<br>Maximum resolution NDVI analysis at 2500x2500 pixels<br>${currentLayer instanceof L.Polygon ? 'Polygon area analyzed - masked to selected boundaries' : 'Rectangle area analyzed'}')">
                             <div style="position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.8); color: white; padding: 0.5rem; border-radius: 4px; font-size: 0.75rem;">
                                 📍 ${shapeType.toUpperCase()}: ${areaInfo}
                             </div>
+                            <button onclick="openImageModal('${imageUrl}', '📍 ${shapeType.toUpperCase()}: ${areaInfo}<br>Maximum resolution NDVI analysis at 2500x2500 pixels<br>${currentLayer instanceof L.Polygon ? 'Polygon area analyzed - masked to selected boundaries' : 'Rectangle area analyzed'}')" style="position: absolute; top: 5px; right: 5px; background: rgba(88, 166, 255, 0.9); color: white; border: none; padding: 0.5rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 500;" title="View fullscreen">🔍 Fullscreen</button>
                         </div>
                         <p style="font-size: 0.9rem; color: #8b949e; margin-top: 0.5rem;">
                             Maximum resolution NDVI analysis at 2500x2500 pixels<br>
                             ${currentLayer instanceof L.Polygon ? 
-                                'Polygon area analyzed - area outside shape shows context' : 
-                                'Rectangle area analyzed'}
+                                'Polygon area analyzed - masked to selected boundaries' : 
+                                'Rectangle area analyzed'}<br>
+                            <span style="color: #58a6ff; cursor: pointer;" onclick="openImageModal('${imageUrl}', '📍 ${shapeType.toUpperCase()}: ${areaInfo}<br>Maximum resolution NDVI analysis at 2500x2500 pixels<br>${currentLayer instanceof L.Polygon ? 'Polygon area analyzed - masked to selected boundaries' : 'Rectangle area analyzed'}')">Click image to view fullscreen with zoom controls</span>
                         </p>
                     `;
                     document.getElementById('result-section').style.display = 'block';
@@ -1227,6 +1315,88 @@
                 notification.remove();
             }, 3000);
         }
+        
+        // Full-screen image modal functions
+        let currentZoom = 1;
+        
+        function openImageModal(imageSrc, imageInfo) {
+            const modal = document.getElementById('imageModal');
+            const modalImage = document.getElementById('modalImage');
+            const modalImageInfo = document.getElementById('modalImageInfo');
+            
+            modalImage.src = imageSrc;
+            modalImageInfo.innerHTML = imageInfo;
+            modal.style.display = 'block';
+            currentZoom = 1;
+            modalImage.style.transform = 'scale(1)';
+            
+            // Add keyboard listener for ESC
+            document.addEventListener('keydown', handleModalKeydown);
+        }
+        
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            modal.style.display = 'none';
+            document.removeEventListener('keydown', handleModalKeydown);
+        }
+        
+        function handleModalKeydown(event) {
+            if (event.key === 'Escape') {
+                closeImageModal();
+            }
+        }
+        
+        function zoomImage(factor) {
+            currentZoom *= factor;
+            const modalImage = document.getElementById('modalImage');
+            modalImage.style.transform = `scale(${currentZoom})`;
+            modalImage.style.cursor = currentZoom > 1 ? 'grab' : 'default';
+        }
+        
+        function resetZoom() {
+            currentZoom = 1;
+            const modalImage = document.getElementById('modalImage');
+            modalImage.style.transform = 'scale(1)';
+            modalImage.style.cursor = 'default';
+        }
+        
+        // Add mouse wheel zoom support
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('imageModal');
+            modal.addEventListener('wheel', function(event) {
+                if (modal.style.display === 'block') {
+                    event.preventDefault();
+                    const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1;
+                    zoomImage(zoomFactor);
+                }
+            });
+            
+            // Close modal when clicking outside image
+            modal.addEventListener('click', function(event) {
+                if (event.target === modal) {
+                    closeImageModal();
+                }
+            });
+        });
     </script>
+    
+    <!-- Full Screen Image Modal -->
+    <div id="imageModal" class="image-modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeImageModal()">&times;</span>
+            <div class="zoom-controls">
+                <button class="zoom-btn" onclick="zoomImage(1.2)" title="Zoom In">+</button>
+                <button class="zoom-btn" onclick="zoomImage(0.8)" title="Zoom Out">-</button>
+                <button class="zoom-btn" onclick="resetZoom()" title="Reset Zoom">⌂</button>
+            </div>
+            <img id="modalImage" class="modal-image" src="" alt="NDVI Analysis">
+            <div class="modal-info">
+                <div id="modalImageInfo"></div>
+                <p style="margin-top: 10px; color: #8b949e; font-size: 0.9rem;">
+                    Use zoom controls or mouse wheel to examine details • ESC to close
+                </p>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
