@@ -859,7 +859,7 @@
                 <p style="font-size: 0.85rem; color: #8b949e; margin-bottom: 1rem;">
                     Use rectangle or polygon tools to define analysis area
                 </p>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
                     <button id="clear-btn" class="btn btn-warning" onclick="clearDrawings()">
                         Clear Selection
                     </button>
@@ -867,6 +867,10 @@
                         Save as Site
                     </button>
                 </div>
+                <button id="draw-site-btn" class="btn" onclick="openFullscreenMap()" style="width: 100%; background: #58a6ff; margin-bottom: 0.5rem;">
+                    <i class="fas fa-draw-polygon" style="margin-right: 0.5rem;"></i>
+                    Draw Site on Map
+                </button>
             </div>
             
             <div class="section">
@@ -2718,6 +2722,152 @@
             const modalImage = document.getElementById('modalImage');
             modalImage.style.transform = 'scale(1)';
             modalImage.style.cursor = 'default';
+        }
+        
+        // Fullscreen Map Functions
+        function openFullscreenMap() {
+            console.log('Opening fullscreen map modal...');
+            const modal = document.getElementById('fullscreenMapModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                // Initialize fullscreen map after modal is shown
+                setTimeout(() => {
+                    initializeFullscreenMap();
+                }, 100);
+            } else {
+                console.error('Fullscreen map modal not found');
+            }
+        }
+        
+        function closeFullscreenMap() {
+            console.log('Closing fullscreen map modal...');
+            const modal = document.getElementById('fullscreenMapModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+            
+            // Clean up fullscreen map
+            if (window.fullscreenMap) {
+                window.fullscreenMap.remove();
+                window.fullscreenMap = null;
+            }
+        }
+        
+        function initializeFullscreenMap() {
+            console.log('Initializing fullscreen map...');
+            
+            // Clean up existing map
+            if (window.fullscreenMap) {
+                window.fullscreenMap.remove();
+            }
+            
+            // Create new map instance
+            window.fullscreenMap = L.map('fullscreen-map', {
+                zoomControl: true,
+                attributionControl: false
+            }).setView([37.7749, -122.4194], 10);
+            
+            // Add satellite tile layer
+            const satelliteLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+                attribution: '© Google',
+                maxZoom: 20
+            });
+            satelliteLayer.addTo(window.fullscreenMap);
+            
+            // Create drawn items group
+            window.fullscreenDrawnItems = new L.FeatureGroup();
+            window.fullscreenMap.addLayer(window.fullscreenDrawnItems);
+            
+            // Add draw controls
+            const drawControl = new L.Control.Draw({
+                edit: {
+                    featureGroup: window.fullscreenDrawnItems
+                },
+                draw: {
+                    polygon: {
+                        shapeOptions: {
+                            color: '#58a6ff',
+                            weight: 2,
+                            fillOpacity: 0.1
+                        }
+                    },
+                    polyline: false,
+                    circle: false,
+                    marker: false,
+                    circlemarker: false,
+                    rectangle: {
+                        shapeOptions: {
+                            color: '#58a6ff',
+                            weight: 2,
+                            fillOpacity: 0.1
+                        }
+                    }
+                }
+            });
+            window.fullscreenMap.addControl(drawControl);
+            
+            // Handle draw events
+            window.fullscreenMap.on('draw:created', function (e) {
+                const layer = e.layer;
+                window.fullscreenDrawnItems.addLayer(layer);
+                window.fullscreenSelectedLayer = layer;
+                
+                // Show confirm button
+                document.getElementById('fullscreen-confirm-btn').style.display = 'block';
+                document.getElementById('fullscreen-help-text').textContent = 'Selection made - click Confirm to use this area';
+                
+                console.log('Area selected in fullscreen map');
+            });
+            
+            // Force map size update
+            setTimeout(() => {
+                window.fullscreenMap.invalidateSize();
+            }, 200);
+            
+            console.log('Fullscreen map initialized successfully');
+        }
+        
+        function confirmSelection() {
+            console.log('Confirming fullscreen map selection...');
+            
+            if (window.fullscreenSelectedLayer) {
+                // Transfer selection to main interface
+                if (window.fullscreenSelectedLayer instanceof L.Rectangle) {
+                    const bounds = window.fullscreenSelectedLayer.getBounds();
+                    window.mobileSelectedCoordinates = [
+                        [bounds.getSouth(), bounds.getWest()],
+                        [bounds.getNorth(), bounds.getEast()]
+                    ];
+                    currentBounds = bounds;
+                } else if (window.fullscreenSelectedLayer instanceof L.Polygon) {
+                    const coords = window.fullscreenSelectedLayer.getLatLngs()[0];
+                    window.mobileSelectedCoordinates = coords.map(coord => [coord.lat, coord.lng]);
+                    currentBounds = window.fullscreenSelectedLayer.getBounds();
+                }
+                
+                currentLayer = window.fullscreenSelectedLayer;
+                
+                // Update main interface
+                updateCoordinatesDisplay();
+                document.getElementById('simple-analyze-btn').disabled = false;
+                document.getElementById('save-site-btn').disabled = false;
+                
+                // Show mobile selection in sidebar
+                const mobileInfo = document.getElementById('selected-area-info-mobile');
+                if (mobileInfo) {
+                    mobileInfo.style.display = 'block';
+                    updateMobileCoordinatesDisplay();
+                }
+                
+                console.log('Selection transferred to main interface');
+                
+                // Close fullscreen map
+                closeFullscreenMap();
+                
+                alert('Area selection confirmed! You can now analyze this field.');
+            } else {
+                alert('Please select an area first using the drawing tools.');
+            }
         }
         
         // Add mouse wheel zoom support
