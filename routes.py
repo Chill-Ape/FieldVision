@@ -34,6 +34,12 @@ def field_detail(field_id):
     latest_analysis = FieldAnalysis.query.filter_by(field_id=field_id).order_by(FieldAnalysis.analysis_date.desc()).first()
     return render_template('field_detail.html', field=field, analysis=latest_analysis)
 
+@app.route('/sites')
+def sites():
+    """Sites management dashboard (alias for dashboard)"""
+    fields = Field.query.order_by(Field.created_at.desc()).all()
+    return render_template('dashboard.html', fields=fields)
+
 @app.route('/reports')
 def reports():
     """Reports dashboard showing all field reports"""
