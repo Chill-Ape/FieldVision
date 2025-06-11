@@ -1029,8 +1029,12 @@
         
         // Initialize map
         function initMap() {
+            console.log('initMap() called - checking device type');
+            console.log('Window width in initMap():', window.innerWidth);
+            
             // Check if mobile device first
             const isMobile = window.innerWidth <= 767.98;
+            console.log('isMobile in initMap():', isMobile);
             
             if (isMobile) {
                 console.log('Mobile device detected - skipping map initialization and showing mobile interface');
@@ -1638,6 +1642,15 @@
 
         function retryMapInit() {
             console.log('Retrying map initialization...');
+            
+            // Check if mobile device - don't retry map init on mobile
+            const isMobile = window.innerWidth <= 767.98;
+            if (isMobile) {
+                console.log('Mobile device detected - skipping map retry, using mobile interface');
+                setupMobileInterface();
+                return;
+            }
+            
             mapInitialized = false;
             
             // Complete cleanup
@@ -2519,9 +2532,11 @@
         // Initialize everything when page loads
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, checking device type...');
+            console.log('Window width:', window.innerWidth);
             
             // Check if mobile device first
             const isMobile = window.innerWidth <= 767.98;
+            console.log('Is mobile device:', isMobile);
             
             if (isMobile) {
                 console.log('Mobile device detected - setting up mobile interface');
