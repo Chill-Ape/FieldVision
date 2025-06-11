@@ -337,7 +337,8 @@
                                         <div class="row">
                                             {% set ndvi_data = analysis.get_ndvi_data() %}
                                             {% if ndvi_data %}
-                                                {% set avg_ndvi = ndvi_data.values() | list | avg %}
+                                                {% set ndvi_values = ndvi_data.values() | list %}
+                                                {% set avg_ndvi = (ndvi_values | sum) / (ndvi_values | length) %}
                                                 <div class="col-md-6">
                                                     <small class="text-muted">Average NDVI:</small>
                                                     <span class="fw-bold text-info">{{ "%.3f"|format(avg_ndvi) }}</span>
