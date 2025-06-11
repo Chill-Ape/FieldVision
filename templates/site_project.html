@@ -7,48 +7,52 @@
     <!-- Project Header -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center">
-                    <a href="/dashboard" class="btn btn-outline-secondary me-3">
-                        <i class="fas fa-arrow-left me-1"></i>Back to Projects
-                    </a>
-                    <div>
-                        <h1 class="text-light mb-1">
-                            <i class="fas fa-folder-open me-2 text-warning"></i>{{ field.name }}
-                        </h1>
-                        <p class="text-muted mb-0">
-                            {{ field.calculate_area_acres()|round(1) }} acres • Created {{ field.created_at.strftime('%B %d, %Y') }}
-                        </p>
-                    </div>
+            <!-- Back Button and Title Row -->
+            <div class="d-flex align-items-center mb-3">
+                <a href="/dashboard" class="btn btn-outline-secondary btn-sm me-3">
+                    <i class="fas fa-arrow-left me-1"></i><span class="d-none d-sm-inline">Back to Projects</span>
+                </a>
+                <div class="flex-grow-1">
+                    <h1 class="text-light mb-1 h3">
+                        <i class="fas fa-folder-open me-2 text-warning"></i>{{ field.name }}
+                    </h1>
+                    <p class="text-muted mb-0 small">
+                        {{ field.calculate_area_acres()|round(1) }} acres • Created {{ field.created_at.strftime('%B %d, %Y') }}
+                    </p>
                 </div>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-info" onclick="generateAIInsights({{ field.id }})">
-                        <i class="fas fa-brain me-1"></i>AI Insights
-                    </button>
-                    <button class="btn btn-primary" onclick="updateNDVI({{ field.id }})">
-                        <i class="fas fa-sync me-1"></i>Update NDVI
-                    </button>
-                    <a href="/field/{{ field.id }}/report" class="btn btn-success">
-                        <i class="fas fa-chart-line me-1"></i>Generate Report
-                    </a>
-                </div>
+            </div>
+            
+            <!-- Action Buttons Row -->
+            <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-info btn-sm" onclick="generateAIInsights({{ field.id }})">
+                    <i class="fas fa-brain me-1"></i><span class="d-none d-md-inline">AI Insights</span>
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="updateNDVI({{ field.id }})">
+                    <i class="fas fa-sync me-1"></i><span class="d-none d-md-inline">Update NDVI</span>
+                </button>
+                <a href="/field/{{ field.id }}/report" class="btn btn-success btn-sm">
+                    <i class="fas fa-chart-line me-1"></i><span class="d-none d-md-inline">Generate Report</span>
+                </a>
+                <button class="btn btn-secondary btn-sm" onclick="scheduleAutomation({{ field.id }})">
+                    <i class="fas fa-clock me-1"></i><span class="d-none d-lg-inline">Schedule</span>
+                </button>
             </div>
         </div>
     </div>
 
     <div class="row">
         <!-- Left Column - Current NDVI & Analytics -->
-        <div class="col-lg-8">
+        <div class="col-12 col-lg-8 mb-4">
             <!-- Current NDVI Display -->
             <div class="card bg-dark border-secondary mb-4">
                 <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center">
+                        <h5 class="mb-1 mb-sm-0">
                             <i class="fas fa-satellite me-2"></i>Current NDVI Analysis
                         </h5>
                         {% if field.ndvi_cache_date %}
-                        <span class="badge bg-success">
-                            Last updated: {{ field.ndvi_cache_date.strftime('%m/%d/%Y %H:%M') }}
+                        <span class="badge bg-success text-nowrap">
+                            <span class="d-none d-md-inline">Last updated: </span>{{ field.ndvi_cache_date.strftime('%m/%d/%Y %H:%M') }}
                         </span>
                         {% endif %}
                     </div>
@@ -181,7 +185,7 @@
         </div>
 
         <!-- Right Column - Site Information & Controls -->
-        <div class="col-lg-4">
+        <div class="col-12 col-lg-4">
             <!-- Site Details -->
             <div class="card bg-dark border-secondary mb-4">
                 <div class="card-header">
@@ -310,6 +314,35 @@
 
 .ai-insight-header:hover {
     background-color: rgba(23, 162, 184, 0.8) !important;
+}
+
+/* Mobile Responsive Improvements */
+@media (max-width: 768px) {
+    .timeline-item .row {
+        margin: 0;
+    }
+    
+    .timeline-item .col-md-6 {
+        padding: 0.25rem 0;
+    }
+    
+    .card-header h5 {
+        font-size: 1rem;
+    }
+    
+    .badge {
+        font-size: 0.7rem;
+    }
+    
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+    }
+    
+    .container-fluid {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
 }
 </style>
 
