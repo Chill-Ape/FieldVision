@@ -341,10 +341,10 @@ function evaluatePixel(sample) {
                     }
                 }]
             },
-            "evalscript": self.get_evalscript(index_type)
+            "evalscript": self.get_ndvi_evalscript()
         }
     
-    def fetch_ndvi_image(self, bbox: List[float], width: int = 2500, height: int = 2500, geometry: Optional[dict] = None, index_type: str = 'ndvi') -> Optional[bytes]:
+    def fetch_ndvi_image(self, bbox: List[float], width: int = 2500, height: int = 2500, geometry: Optional[dict] = None) -> Optional[bytes]:
         """
         Fetch NDVI image for the given bounding box with proper aspect ratio
         
@@ -370,7 +370,7 @@ function evaluatePixel(sample) {
             return None
         
         # Create request payload with calculated dimensions and geometry
-        payload = self.create_request_payload(bbox, width, height, geometry, index_type)
+        payload = self.create_request_payload(bbox, width, height, geometry)
         
         headers = {
             'Authorization': f'Bearer {token}',
