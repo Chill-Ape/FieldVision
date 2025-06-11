@@ -126,6 +126,7 @@
             border-radius: 8px;
             position: relative;
             z-index: 1;
+            pointer-events: auto !important;
         }
         
         /* Ensure Leaflet tiles are visible */
@@ -134,27 +135,46 @@
             opacity: 1 !important;
             visibility: visible !important;
             position: relative !important;
+            pointer-events: auto !important;
+            cursor: grab !important;
+        }
+        
+        .leaflet-container.leaflet-drag {
+            cursor: grabbing !important;
         }
         
         .leaflet-tile-pane {
             z-index: 10 !important;
             opacity: 1 !important;
             visibility: visible !important;
+            pointer-events: auto !important;
         }
         
         .leaflet-map-pane {
             z-index: 10 !important;
             opacity: 1 !important;
             visibility: visible !important;
+            pointer-events: auto !important;
         }
         
         .leaflet-tile {
             opacity: 1 !important;
             visibility: visible !important;
+            pointer-events: auto !important;
         }
         
         .leaflet-control-container {
             pointer-events: auto !important;
+        }
+        
+        /* Ensure no overlaying elements block map interaction */
+        .map-container * {
+            pointer-events: auto !important;
+        }
+        
+        .map-container::before,
+        .map-container::after {
+            pointer-events: none !important;
         }
         
         .section {
