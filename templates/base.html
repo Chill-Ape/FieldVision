@@ -140,7 +140,7 @@
     
     <!-- SPA JavaScript -->
     <script>
-        let currentPage = window.location.pathname;
+        window.currentPage = window.location.pathname;
         
         function showLoading() {
             document.getElementById('loadingOverlay').style.display = 'flex';
@@ -168,7 +168,7 @@
                 event.preventDefault();
             }
             
-            if (page === currentPage) {
+            if (page === window.currentPage) {
                 return; // Already on this page
             }
             
@@ -185,7 +185,7 @@
                 
                 // Update browser URL without page reload
                 history.pushState({page: page}, '', page);
-                currentPage = page;
+                window.currentPage = page;
                 
                 // Update active navigation
                 updateActiveNav(page);
@@ -231,17 +231,17 @@
         // Handle browser back/forward buttons
         window.addEventListener('popstate', function(event) {
             const page = event.state ? event.state.page : '/';
-            currentPage = '';  // Force reload
+            window.currentPage = '';  // Force reload
             loadPage(page);
         });
         
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
-            currentPage = window.location.pathname;
-            updateActiveNav(currentPage);
+            window.currentPage = window.location.pathname;
+            updateActiveNav(window.currentPage);
             
             // Set initial state
-            history.replaceState({page: currentPage}, '', currentPage);
+            history.replaceState({page: window.currentPage}, '', window.currentPage);
         });
     </script>
     

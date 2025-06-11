@@ -1,0 +1,401 @@
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="text-light">
+                    <i class="fas fa-chart-bar me-2"></i>Field Reports
+                </h1>
+                <div class="text-muted">
+                    <i class="fas fa-calendar me-1"></i>
+                    Generated: {{ moment().format('MMM DD, YYYY HH:mm') }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if fields %}
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ fields|length }}</h4>
+                            <p class="mb-0">Total Fields</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-map fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ fields|selectattr('last_analyzed')|list|length }}</h4>
+                            <p class="mb-0">Analyzed Fields</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-satellite fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ fields|sum(attribute='calculate_area_acres')|round(0) }}</h4>
+                            <p class="mb-0">Total Acres</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-expand-arrows-alt fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ fields|selectattr('analyses')|list|length }}</h4>
+                            <p class="mb-0">With History</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-history fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Field Reports Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card bg-dark border-secondary">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-file-alt me-2"></i>Detailed Field Reports
+                    </h5>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="exportAllReports()">
+                            <i class="fas fa-download me-1"></i>Export All
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="refreshReports()">
+                            <i class="fas fa-sync-alt me-1"></i>Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover mb-0">
+                            <thead class="table-secondary">
+                                <tr>
+                                    <th>Field Name</th>
+                                    <th>Area</th>
+                                    <th>Created</th>
+                                    <th>Last Analysis</th>
+                                    <th>Health Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for field in fields %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if field.has_cached_ndvi() %}
+                                                <img src="/api/fields/{{ field.id }}/ndvi-image" alt="NDVI" class="rounded me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                                            {% else %}
+                                                <div class="bg-secondary rounded me-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                    <i class="fas fa-seedling text-muted"></i>
+                                                </div>
+                                            {% endif %}
+                                            <div>
+                                                <div class="fw-bold">{{ field.name }}</div>
+                                                <small class="text-muted">ID: {{ field.id }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold">{{ field.calculate_area_acres()|round(1) }}</div>
+                                        <small class="text-muted">acres</small>
+                                    </td>
+                                    <td>
+                                        <div>{{ field.created_at.strftime('%m/%d/%Y') }}</div>
+                                        <small class="text-muted">{{ field.created_at.strftime('%I:%M %p') }}</small>
+                                    </td>
+                                    <td>
+                                        {% if field.last_analyzed %}
+                                            <div class="text-success">{{ field.last_analyzed.strftime('%m/%d/%Y') }}</div>
+                                            <small class="text-muted">{{ field.last_analyzed.strftime('%I:%M %p') }}</small>
+                                        {% else %}
+                                            <div class="text-warning">
+                                                <i class="fas fa-clock me-1"></i>Pending
+                                            </div>
+                                            <small class="text-muted">No analysis yet</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if field.last_analyzed %}
+                                            {% set latest_analysis = field.analyses|sort(attribute='analysis_date', reverse=true)|first %}
+                                            {% if latest_analysis %}
+                                                {% set health_scores = latest_analysis.get_health_scores() %}
+                                                {% if health_scores and health_scores.overall_score %}
+                                                    {% set score = health_scores.overall_score %}
+                                                    {% if score >= 80 %}
+                                                        <span class="badge bg-success">Excellent ({{ score }}%)</span>
+                                                    {% elif score >= 60 %}
+                                                        <span class="badge bg-info">Good ({{ score }}%)</span>
+                                                    {% elif score >= 40 %}
+                                                        <span class="badge bg-warning">Fair ({{ score }}%)</span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger">Poor ({{ score }}%)</span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Unknown</span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="badge bg-secondary">No Data</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-outline-warning">Not Analyzed</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="loadPage('/field/{{ field.id }}/report', event)" title="View Report">
+                                                <i class="fas fa-chart-line"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-success btn-sm" onclick="analyzeField({{ field.id }})" title="Run Analysis">
+                                                <i class="fas fa-satellite"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-info btn-sm" onclick="exportFieldReport({{ field.id }})" title="Export Report">
+                                                <i class="fas fa-download"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Analysis Activity -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card bg-dark border-secondary">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-clock me-2"></i>Recent Analysis Activity
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% set recent_analyses = [] %}
+                    {% for field in fields %}
+                        {% for analysis in field.analyses|sort(attribute='analysis_date', reverse=true)[:3] %}
+                            {% set _ = recent_analyses.append((field, analysis)) %}
+                        {% endfor %}
+                    {% endfor %}
+                    
+                    {% if recent_analyses %}
+                        <div class="timeline">
+                            {% for field, analysis in recent_analyses|sort(attribute='1.analysis_date', reverse=true)[:10] %}
+                            <div class="timeline-item mb-3">
+                                <div class="d-flex">
+                                    <div class="flex-shrink-0">
+                                        <div class="timeline-marker bg-primary"></div>
+                                    </div>
+                                    <div class="flex-grow-1 ms-3">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <h6 class="mb-1">{{ field.name }}</h6>
+                                                <p class="mb-1 text-muted">Analysis completed</p>
+                                                <small class="text-muted">{{ analysis.analysis_date.strftime('%m/%d/%Y at %I:%M %p') }}</small>
+                                            </div>
+                                            <button class="btn btn-outline-primary btn-sm" onclick="loadPage('/field/{{ field.id }}/report', event)">
+                                                View Report
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Analysis History</h5>
+                            <p class="text-muted">Field analyses will appear here once completed.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Empty State -->
+    <div class="row">
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="fas fa-chart-bar fa-5x text-muted mb-4"></i>
+                <h3 class="text-muted">No Field Reports Available</h3>
+                <p class="text-muted mb-4">Create your first field using the Map Interface to generate reports.</p>
+                <div class="d-flex justify-content-center gap-3">
+                    <button class="btn btn-primary" onclick="loadPage('/', event)">
+                        <i class="fas fa-map me-2"></i>Go to Map Interface
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="loadPage('/dashboard', event)">
+                        <i class="fas fa-tachometer-alt me-2"></i>View Dashboard
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.timeline-marker {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-top: 4px;
+}
+
+.timeline-item {
+    position: relative;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 20px;
+    bottom: -15px;
+    width: 2px;
+    background: #6c757d;
+}
+
+.timeline-item:last-child::before {
+    display: none;
+}
+
+.table th {
+    border-bottom: 2px solid #495057;
+}
+
+.card-header {
+    border-bottom: 1px solid #495057;
+}
+
+.btn-group .btn {
+    border-radius: 0.25rem;
+    margin-right: 2px;
+}
+
+.btn-group .btn:last-child {
+    margin-right: 0;
+}
+</style>
+
+<script>
+function analyzeField(fieldId) {
+    showLoading();
+    
+    fetch(`/api/analyze_field/${fieldId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideLoading();
+        if (data.success) {
+            loadPage('/reports');
+        } else {
+            alert('Analysis failed: ' + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        hideLoading();
+        console.error('Error analyzing field:', error);
+        alert('Failed to analyze field. Please try again.');
+    });
+}
+
+function exportFieldReport(fieldId) {
+    showLoading();
+    
+    fetch(`/api/export_field_report/${fieldId}`)
+    .then(response => {
+        hideLoading();
+        if (response.ok) {
+            return response.blob();
+        }
+        throw new Error('Export failed');
+    })
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `field_report_${fieldId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    })
+    .catch(error => {
+        hideLoading();
+        console.error('Error exporting report:', error);
+        alert('Failed to export report. Please try again.');
+    });
+}
+
+function exportAllReports() {
+    showLoading();
+    
+    fetch('/api/export_all_reports')
+    .then(response => {
+        hideLoading();
+        if (response.ok) {
+            return response.blob();
+        }
+        throw new Error('Export failed');
+    })
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `all_field_reports_${new Date().getTime()}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    })
+    .catch(error => {
+        hideLoading();
+        console.error('Error exporting all reports:', error);
+        alert('Failed to export reports. Please try again.');
+    });
+}
+
+function refreshReports() {
+    loadPage('/reports');
+}
+</script>
