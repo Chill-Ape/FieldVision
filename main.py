@@ -219,16 +219,44 @@ def get_ndvi_image():
                 "message": "Please set SENTINEL_HUB_CLIENT_ID and SENTINEL_HUB_CLIENT_SECRET environment variables"
             }), 503
         
-        # Fetch NDVI image
+        # Check if this is for a saved field and has cached NDVI
+        field_id = None
+        if request.method == 'POST' and data:
+            field_id = data.get('field_id')
+        
+        # Try to use cached image if available and fresh
+        if field_id:
+            from models import Field
+            field = Field.query.get(field_id)
+            if field and field.has_cached_ndvi() and field.is_ndvi_cache_fresh():
+                logger.info(f"Serving cached NDVI for field {field_id}")
+                return Response(
+                    field.get_cached_ndvi_image(),
+                    mimetype='image/png',
+                    headers={
+                        'Content-Disposition': f'inline; filename="ndvi_{field.name}.png"',
+                        'Cache-Control': 'public, max-age=86400'
+                    }
+                )
+        
+        # Fetch NDVI image from API
         image_data = ndvi_fetcher.fetch_ndvi_image(bbox, geometry=geometry)
         
         if image_data:
+            # Cache the image if this is for a saved field
+            if field_id:
+                from models import Field
+                field = Field.query.get(field_id)
+                if field:
+                    field.cache_ndvi_image(image_data)
+                    logger.info(f"Cached NDVI image for field {field_id}")
+            
             return Response(
                 image_data,
                 mimetype='image/png',
                 headers={
                     'Content-Disposition': f'inline; filename="ndvi_{bbox[0]}_{bbox[1]}.png"',
-                    'Cache-Control': 'no-cache'
+                    'Cache-Control': 'public, max-age=3600'
                 }
             )
         else:

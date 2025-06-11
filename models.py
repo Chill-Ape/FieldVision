@@ -10,6 +10,8 @@ class Field(db.Model):
     center_lng = db.Column(db.Float, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_analyzed = db.Column(db.DateTime)
+    cached_ndvi_image = db.Column(db.LargeBinary)  # Store NDVI image bytes
+    ndvi_cache_date = db.Column(db.DateTime)  # When NDVI was cached
     
     # Relationship to analyses
     analyses = db.relationship('FieldAnalysis', backref='field', lazy=True, cascade='all, delete-orphan')
@@ -45,6 +47,28 @@ class Field(db.Model):
         area_sq_meters = abs(total_area) * 6378137 * 6378137 / 2
         area_acres = area_sq_meters * 0.000247105  # Convert sq meters to acres
         return area_acres
+    
+    def cache_ndvi_image(self, image_bytes):
+        """Cache NDVI image bytes for this field"""
+        self.cached_ndvi_image = image_bytes
+        self.ndvi_cache_date = datetime.utcnow()
+        self.last_analyzed = datetime.utcnow()
+        db.session.commit()
+    
+    def get_cached_ndvi_image(self):
+        """Get cached NDVI image if available"""
+        return self.cached_ndvi_image
+    
+    def has_cached_ndvi(self):
+        """Check if field has a cached NDVI image"""
+        return self.cached_ndvi_image is not None
+    
+    def is_ndvi_cache_fresh(self, max_age_days=30):
+        """Check if cached NDVI is still fresh (within max_age_days)"""
+        if not self.ndvi_cache_date:
+            return False
+        age = datetime.utcnow() - self.ndvi_cache_date
+        return age.days <= max_age_days
 
 class FieldAnalysis(db.Model):
     id = db.Column(db.Integer, primary_key=True)

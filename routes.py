@@ -1,4 +1,4 @@
-from flask import render_template, request, jsonify, flash, redirect, url_for
+from flask import render_template, request, jsonify, flash, redirect, url_for, Response
 from app import app, db
 from models import Field, FieldAnalysis
 from utils.sentinel_hub import fetch_ndvi_image
@@ -170,3 +170,20 @@ def field_history(field_id):
     except Exception as e:
         logging.error(f"Error getting field history for {field_id}: {str(e)}")
         return jsonify({'error': 'Failed to get field history'}), 500
+
+@app.route('/field/<int:field_id>/cached_ndvi')
+def get_cached_ndvi(field_id):
+    """Serve cached NDVI image for a field"""
+    field = Field.query.get_or_404(field_id)
+    
+    if not field.has_cached_ndvi():
+        return jsonify({"error": "No cached NDVI image available"}), 404
+    
+    return Response(
+        field.get_cached_ndvi_image(),
+        mimetype='image/png',
+        headers={
+            'Content-Disposition': f'inline; filename="ndvi_{field.name}.png"',
+            'Cache-Control': 'public, max-age=86400'
+        }
+    )
