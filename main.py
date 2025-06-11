@@ -4,6 +4,7 @@ Provides endpoints for fetching and displaying NDVI data from Sentinel Hub
 """
 
 import logging
+from datetime import datetime
 from flask import Flask, render_template, render_template_string, Response, jsonify, request
 from auth import SentinelHubAuth
 from ndvi_fetcher import NDVIFetcher
@@ -348,7 +349,7 @@ def analyze_field_with_ai():
                 'bbox': bbox,
                 'center_coordinates': [center_lat, center_lng],
                 'crop_type': crop_type,
-                'analysis_timestamp': f"{datetime.now().isoformat()}"
+                'analysis_timestamp': f"{datetime.utcnow().isoformat()}"
             }
         }
         

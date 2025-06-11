@@ -628,8 +628,19 @@
                 <div id="coordinates-display" class="coordinates-display">
                     No area selected
                 </div>
-                <button id="analyze-btn" class="btn btn-success" onclick="analyzeNDVI()" disabled>
-                    Analyze NDVI
+                <div id="crop-selection" style="display: none; margin: 1rem 0;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: #8b949e; font-size: 0.9rem;">Crop Type:</label>
+                    <select id="crop-type-select" style="width: 100%; padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(88, 166, 255, 0.3); background: rgba(13, 17, 23, 0.8); color: #f0f6fc;">
+                        <option value="grapevine">Grapevine</option>
+                        <option value="corn">Corn</option>
+                        <option value="wheat">Wheat</option>
+                    </select>
+                </div>
+                <button id="analyze-btn" class="btn btn-success" onclick="analyzeFieldWithAI()" disabled>
+                    🧠 AI Analysis
+                </button>
+                <button id="simple-analyze-btn" class="btn btn-secondary" onclick="analyzeNDVI()" disabled style="margin-top: 0.5rem; width: 100%;">
+                    📊 NDVI Only
                 </button>
             </div>
             
@@ -641,6 +652,9 @@
             <div id="result-section" class="section" style="display: none;">
                 <h3>Analysis Results</h3>
                 <div id="ndvi-result" class="ndvi-result"></div>
+                <div id="ai-recommendations" style="display: none; margin-top: 1rem;"></div>
+                <div id="weather-context" style="display: none; margin-top: 1rem;"></div>
+                <div id="zone-analysis" style="display: none; margin-top: 1rem;"></div>
             </div>
             
             <div class="legend">
@@ -1239,6 +1253,295 @@
             // Hide loading
             document.getElementById('loading').style.display = 'none';
             document.getElementById('analyze-btn').disabled = false;
+            document.getElementById('simple-analyze-btn').disabled = false;
+        }
+        
+        // AI-Powered Field Analysis
+        async function analyzeFieldWithAI() {
+            if (!currentBounds) {
+                alert('Please select an area first');
+                return;
+            }
+            
+            const bbox = [
+                currentBounds.getWest(),
+                currentBounds.getSouth(),
+                currentBounds.getEast(),
+                currentBounds.getNorth()
+            ];
+            
+            const cropType = document.getElementById('crop-type-select').value;
+            
+            // Prepare request data
+            const requestData = { 
+                bbox: bbox,
+                crop_type: cropType
+            };
+            
+            if (currentLayer && currentLayer instanceof L.Polygon) {
+                requestData.geometry = currentLayer.toGeoJSON().geometry;
+            }
+            
+            // Add field ID if available
+            const selectedSite = localStorage.getItem('selectedSite');
+            if (selectedSite) {
+                const site = JSON.parse(selectedSite);
+                requestData.field_id = site.id;
+            }
+            
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('analyze-btn').disabled = true;
+            document.getElementById('simple-analyze-btn').disabled = true;
+            document.getElementById('result-section').style.display = 'none';
+            
+            try {
+                const response = await fetch('/analyze_field', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                if (response.ok) {
+                    const analysisData = await response.json();
+                    displayAIAnalysisResults(analysisData);
+                } else {
+                    const error = await response.json();
+                    document.getElementById('ndvi-result').innerHTML = `
+                        <div style="color: #e74c3c; padding: 1rem; background: #fdf2f2; border-radius: 8px;">
+                            <strong>Analysis Failed:</strong> ${error.message || 'Unable to complete analysis'}
+                        </div>
+                    `;
+                    document.getElementById('result-section').style.display = 'block';
+                }
+            } catch (error) {
+                document.getElementById('ndvi-result').innerHTML = `
+                    <div style="color: #e74c3c; padding: 1rem; background: #fdf2f2; border-radius: 8px;">
+                        <strong>Error:</strong> Network connection failed
+                    </div>
+                `;
+                document.getElementById('result-section').style.display = 'block';
+            }
+            
+            // Hide loading
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('analyze-btn').disabled = false;
+            document.getElementById('simple-analyze-btn').disabled = false;
+        }
+        
+        function displayAIAnalysisResults(data) {
+            const shapeType = currentLayer instanceof L.Polygon ? 'polygon' : 'rectangle';
+            const areaInfo = currentLayer ? formatArea(
+                currentLayer instanceof L.Polygon ? 
+                    calculatePolygonArea(currentLayer.getLatLngs()[0]) :
+                    calculateRectangleArea(currentBounds)
+            ) : '';
+            
+            // Display NDVI image (same as before)
+            const imageUrl = '/ndvi';
+            document.getElementById('ndvi-result').innerHTML = `
+                <div style="position: relative; display: inline-block;">
+                    <img src="${imageUrl}" alt="NDVI Analysis" class="ndvi-image" style="cursor: pointer; width: 100%;" onclick="openImageModal('${imageUrl}', 'AI-Enhanced NDVI Analysis<br>Crop: ${data.field_metadata.crop_type}<br>Analysis: ${data.field_metadata.analysis_timestamp}')">
+                    <div style="position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.8); color: white; padding: 0.5rem; border-radius: 4px; font-size: 0.75rem;">
+                        📍 ${shapeType.toUpperCase()}: ${areaInfo}
+                    </div>
+                    <button onclick="openImageModal('${imageUrl}', 'AI-Enhanced NDVI Analysis')" style="position: absolute; top: 5px; right: 5px; background: rgba(88, 166, 255, 0.9); color: white; border: none; padding: 0.5rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 500;">🔍 Fullscreen</button>
+                </div>
+            `;
+            
+            // Display AI Recommendations
+            displayAIRecommendations(data.ai_recommendations);
+            
+            // Display Weather Context
+            displayWeatherContext(data.weather_data);
+            
+            // Display Zone Analysis
+            displayZoneAnalysis(data.ndvi_analysis);
+            
+            document.getElementById('result-section').style.display = 'block';
+        }
+        
+        function displayAIRecommendations(recommendations) {
+            const fieldHealth = recommendations.field_health;
+            const fieldRecs = recommendations.field_recommendations;
+            const priorityActions = recommendations.priority_actions;
+            
+            let html = `
+                <div style="background: rgba(13, 17, 23, 0.8); border: 1px solid rgba(88, 166, 255, 0.3); border-radius: 8px; padding: 1rem;">
+                    <h4 style="margin: 0 0 1rem 0; color: #58a6ff;">🧠 AI Recommendations</h4>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <span style="font-size: 1.5rem;">${fieldHealth.icon}</span>
+                            <strong style="color: #f0f6fc;">Field Health: ${fieldHealth.status.toUpperCase()}</strong>
+                            <span style="background: rgba(88, 166, 255, 0.2); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">${fieldHealth.score}%</span>
+                        </div>
+                        <p style="color: #8b949e; margin: 0; font-size: 0.9rem;">${fieldHealth.description}</p>
+                    </div>
+            `;
+            
+            // Priority Actions
+            if (priorityActions && priorityActions.length > 0) {
+                html += `
+                    <div style="background: rgba(220, 20, 60, 0.1); border: 1px solid rgba(220, 20, 60, 0.3); border-radius: 6px; padding: 0.75rem; margin-bottom: 1rem;">
+                        <h5 style="margin: 0 0 0.5rem 0; color: #ff6b6b;">⚠️ Priority Actions</h5>
+                `;
+                priorityActions.forEach(action => {
+                    html += `
+                        <div style="margin-bottom: 0.5rem;">
+                            <strong style="color: #ff6b6b;">${action.action}</strong>
+                            <div style="font-size: 0.85rem; color: #8b949e;">${action.details} - ${action.deadline}</div>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+            
+            // Field Recommendations
+            if (fieldRecs && fieldRecs.length > 0) {
+                html += `<div style="margin-top: 1rem;">`;
+                fieldRecs.forEach(rec => {
+                    const priorityColor = rec.priority === 'high' ? '#ff6b6b' : rec.priority === 'medium' ? '#ffa500' : '#58a6ff';
+                    html += `
+                        <div style="border-left: 3px solid ${priorityColor}; padding-left: 0.75rem; margin-bottom: 1rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                                <span>${rec.icon}</span>
+                                <strong style="color: #f0f6fc;">${rec.title}</strong>
+                                <span style="background: ${priorityColor}; color: white; padding: 0.125rem 0.375rem; border-radius: 3px; font-size: 0.7rem; text-transform: uppercase;">${rec.priority}</span>
+                            </div>
+                            <p style="color: #8b949e; margin: 0.25rem 0; font-size: 0.9rem;">${rec.description}</p>
+                            <p style="color: #58a6ff; margin: 0; font-size: 0.85rem; font-weight: 500;">Action: ${rec.action}</p>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+            
+            html += `</div>`;
+            
+            document.getElementById('ai-recommendations').innerHTML = html;
+            document.getElementById('ai-recommendations').style.display = 'block';
+        }
+        
+        function displayWeatherContext(weatherData) {
+            const current = weatherData.current;
+            const summary = weatherData.agricultural_summary;
+            
+            const html = `
+                <div style="background: rgba(13, 17, 23, 0.8); border: 1px solid rgba(88, 166, 255, 0.3); border-radius: 8px; padding: 1rem;">
+                    <h4 style="margin: 0 0 1rem 0; color: #58a6ff;">🌦️ Weather Context</h4>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <h5 style="margin: 0 0 0.5rem 0; color: #f0f6fc;">Current Conditions</h5>
+                            <div style="font-size: 0.9rem; color: #8b949e;">
+                                <div>Temperature: <span style="color: #f0f6fc;">${current.temperature}°C</span></div>
+                                <div>Humidity: <span style="color: #f0f6fc;">${current.humidity}%</span></div>
+                                <div>Conditions: <span style="color: #f0f6fc;">${current.description}</span></div>
+                            </div>
+                        </div>
+                        <div>
+                            <h5 style="margin: 0 0 0.5rem 0; color: #f0f6fc;">7-Day Summary</h5>
+                            <div style="font-size: 0.9rem; color: #8b949e;">
+                                <div>Rainfall: <span style="color: #f0f6fc;">${summary.total_rainfall_7d}mm</span></div>
+                                <div>Avg Temp: <span style="color: #f0f6fc;">${summary.avg_temperature_7d}°C</span></div>
+                                <div>Growing Conditions: <span style="color: #f0f6fc;">${summary.growing_conditions}</span></div>
+                                <div>Drought Risk: <span style="color: ${summary.drought_risk === 'high' ? '#ff6b6b' : summary.drought_risk === 'moderate' ? '#ffa500' : '#58a6ff'};">${summary.drought_risk}</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('weather-context').innerHTML = html;
+            document.getElementById('weather-context').style.display = 'block';
+        }
+        
+        function displayZoneAnalysis(ndviAnalysis) {
+            const zoneStats = ndviAnalysis.zone_statistics;
+            const fieldStats = ndviAnalysis.field_statistics;
+            
+            let html = `
+                <div style="background: rgba(13, 17, 23, 0.8); border: 1px solid rgba(88, 166, 255, 0.3); border-radius: 8px; padding: 1rem;">
+                    <h4 style="margin: 0 0 1rem 0; color: #58a6ff;">📊 Zone Analysis</h4>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <h5 style="margin: 0 0 0.5rem 0; color: #f0f6fc;">Field Overview</h5>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.5rem; font-size: 0.85rem;">
+                            <div style="text-align: center; padding: 0.5rem; background: rgba(88, 166, 255, 0.1); border-radius: 4px;">
+                                <div style="color: #58a6ff; font-weight: bold;">${fieldStats.field_mean_ndvi}</div>
+                                <div style="color: #8b949e;">Avg NDVI</div>
+                            </div>
+                            <div style="text-align: center; padding: 0.5rem; background: rgba(40, 167, 69, 0.1); border-radius: 4px;">
+                                <div style="color: #28a745; font-weight: bold;">${fieldStats.healthy_zones}</div>
+                                <div style="color: #8b949e;">Healthy Zones</div>
+                            </div>
+                            <div style="text-align: center; padding: 0.5rem; background: rgba(220, 53, 69, 0.1); border-radius: 4px;">
+                                <div style="color: #dc3545; font-weight: bold;">${fieldStats.stressed_zones}</div>
+                                <div style="color: #8b949e;">Stressed Zones</div>
+                            </div>
+                            <div style="text-align: center; padding: 0.5rem; background: rgba(88, 166, 255, 0.1); border-radius: 4px;">
+                                <div style="color: #58a6ff; font-weight: bold;">${fieldStats.field_uniformity}%</div>
+                                <div style="color: #8b949e;">Uniformity</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h5 style="margin: 0 0 0.5rem 0; color: #f0f6fc;">Zone Details</h5>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; font-size: 0.8rem;">
+            `;
+            
+            // Display zone grid
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 3; col++) {
+                    const zoneId = `zone_${row}_${col}`;
+                    const zoneData = zoneStats[zoneId];
+                    if (zoneData) {
+                        const healthColor = getHealthColor(zoneData.health_classification);
+                        const zoneName = getZoneName(row, col);
+                        
+                        html += `
+                            <div style="padding: 0.5rem; border: 1px solid ${healthColor}; border-radius: 4px; text-align: center;">
+                                <div style="font-weight: bold; color: ${healthColor};">${zoneName}</div>
+                                <div style="color: #f0f6fc;">NDVI: ${zoneData.mean_ndvi}</div>
+                                <div style="color: #8b949e; text-transform: capitalize;">${zoneData.health_classification}</div>
+                            </div>
+                        `;
+                    }
+                }
+            }
+            
+            html += `
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('zone-analysis').innerHTML = html;
+            document.getElementById('zone-analysis').style.display = 'block';
+        }
+        
+        function getHealthColor(health) {
+            const colors = {
+                'excellent': '#2d5a3d',
+                'good': '#4a7c59',
+                'fair': '#8fbc8f',
+                'poor': '#daa520',
+                'critical': '#dc143c'
+            };
+            return colors[health] || '#8b949e';
+        }
+        
+        function getZoneName(row, col) {
+            const names = [
+                ['NW', 'N', 'NE'],
+                ['W', 'Center', 'E'],
+                ['SW', 'S', 'SE']
+            ];
+            return names[row][col];
         }
         
         // Check API status on load
