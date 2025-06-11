@@ -4,14 +4,17 @@ import io
 import logging
 from shapely.geometry import Polygon, Point
 import math
+from .field_geometry import create_field_zones_accurate, calculate_zone_ndvi_accurate
 
-def process_ndvi_data(image_data, zones):
+def process_ndvi_data(image_data, zones, field_coordinates=None, field_bbox=None):
     """
     Process real NDVI image data and calculate average values for each zone
     
     Args:
         image_data: Raw image data from satellite API
         zones: Dictionary of zone polygons
+        field_coordinates: List of [lat, lng] coordinate pairs defining the field polygon
+        field_bbox: Field bounding box [minx, miny, maxx, maxy] in geographic coordinates
     
     Returns:
         Dictionary with zone IDs as keys and NDVI values as values
@@ -72,39 +75,53 @@ def process_ndvi_data(image_data, zones):
             # Already grayscale - convert to NDVI range
             ndvi_array = (img_array.astype(float) / 255.0) * 1.6 - 0.3
         
-        # Calculate NDVI values for each zone by sampling image regions
-        zone_ndvi = {}
-        image_height, image_width = ndvi_array.shape[:2]
+        # Use accurate geometric zone mapping if field coordinates are available
+        if field_coordinates and field_bbox:
+            try:
+                # Create accurate field zones accounting for rotation and geometry
+                accurate_zones = create_field_zones_accurate(field_coordinates)
+                zone_ndvi = calculate_zone_ndvi_accurate(ndvi_array, accurate_zones, field_bbox)
+                logging.info("Using accurate geometric zone mapping for NDVI calculations")
+            except Exception as e:
+                logging.warning(f"Geometric zone mapping failed, using fallback: {e}")
+                zone_ndvi = None
+        else:
+            zone_ndvi = None
         
-        # Create a 3x3 grid mapping to image coordinates
-        for zone_id in zones.keys():
-            # Parse zone coordinates (zone_row_col format)
-            parts = zone_id.split('_')
-            if len(parts) == 3:
-                row, col = int(parts[1]), int(parts[2])
-                
-                # Map zone to image region
-                y_start = int((row / 3) * image_height)
-                y_end = int(((row + 1) / 3) * image_height)
-                x_start = int((col / 3) * image_width)
-                x_end = int(((col + 1) / 3) * image_width)
-                
-                # Extract zone region and calculate mean NDVI
-                zone_region = ndvi_array[y_start:y_end, x_start:x_end]
-                
-                if zone_region.size > 0:
-                    # Remove any invalid values
-                    valid_pixels = zone_region[np.isfinite(zone_region)]
-                    if len(valid_pixels) > 0:
-                        zone_mean = np.mean(valid_pixels)
-                        zone_ndvi[zone_id] = round(float(zone_mean), 3)
+        # Fallback to enhanced grid-based sampling if geometric mapping unavailable
+        if zone_ndvi is None:
+            zone_ndvi = {}
+            image_height, image_width = ndvi_array.shape[:2]
+            
+            for zone_id in zones.keys():
+                parts = zone_id.split('_')
+                if len(parts) == 3:
+                    row, col = int(parts[1]), int(parts[2])
+                    
+                    # Enhanced sampling with higher resolution for better accuracy
+                    sample_points = []
+                    samples_per_axis = 15  # Increased sampling density
+                    
+                    for i in range(samples_per_axis):
+                        for j in range(samples_per_axis):
+                            zone_y = (row + i / samples_per_axis) / 3
+                            zone_x = (col + j / samples_per_axis) / 3
+                            
+                            img_y = int(zone_y * image_height)
+                            img_x = int(zone_x * image_width)
+                            
+                            img_y = max(0, min(img_y, image_height - 1))
+                            img_x = max(0, min(img_x, image_width - 1))
+                            
+                            if np.isfinite(ndvi_array[img_y, img_x]):
+                                sample_points.append(ndvi_array[img_y, img_x])
+                    
+                    if sample_points:
+                        zone_ndvi[zone_id] = round(float(np.mean(sample_points)), 3)
                     else:
                         zone_ndvi[zone_id] = 0.0
                 else:
-                    zone_ndvi[zone_id] = 0.0
-            else:
-                # Fallback for malformed zone IDs
-                zone_ndvi[zone_id] = round(float(np.mean(ndvi_array)), 3)
+                    zone_ndvi[zone_id] = round(float(np.mean(ndvi_array)), 3)
         
         logging.info(f"Processed real NDVI data for {len(zone_ndvi)} zones from satellite imagery")
         return zone_ndvi
