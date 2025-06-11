@@ -172,9 +172,9 @@ function evaluatePixel(sample) {
             if response.status_code == 200:
                 logger.info(f"Successfully fetched NDVI image ({len(response.content)} bytes)")
                 
-                # Temporarily disable polygon masking to debug NDVI generation
-                # if geometry:
-                #     return self._apply_polygon_mask(response.content, bbox, geometry, width, height)
+                # Apply polygon masking if geometry is provided
+                if geometry:
+                    return self._apply_polygon_mask(response.content, bbox, geometry, width, height)
                 
                 return response.content
             else:
@@ -321,25 +321,12 @@ function evaluatePixel(sample) {
             # Draw the polygon mask with anti-aliasing
             draw.polygon(pixel_coords, fill=255)
             
-            # Apply a slight blur to the mask for smoother edges
-            mask = mask.filter(ImageFilter.GaussianBlur(radius=0.5))
-            
-            # Create result image with original quality
+            # Apply mask using paste method for better quality preservation
+            # Create a transparent background
             result = Image.new('RGBA', (width, height), (0, 0, 0, 0))
             
-            # Use the mask as an alpha channel for smooth blending
-            result.paste(img, (0, 0))
-            
-            # Apply the mask using alpha compositing for better quality
-            mask_array = np.array(mask)
-            img_array = np.array(result)
-            
-            # Apply mask to alpha channel
-            if len(img_array.shape) == 3 and img_array.shape[2] >= 4:
-                img_array[:, :, 3] = np.minimum(img_array[:, :, 3], mask_array)
-            
-            # Convert back to image
-            result = Image.fromarray(img_array, 'RGBA')
+            # Use the mask to composite the original image onto transparent background
+            result.paste(img, (0, 0), mask)
             
             # Save to bytes with high quality
             output = BytesIO()
