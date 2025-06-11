@@ -228,18 +228,32 @@ def get_ndvi_image():
         
         # Try to use cached image if available and fresh
         if field_id:
-            from models import Field
-            field = Field.query.get(field_id)
-            if field and field.has_cached_ndvi() and field.is_ndvi_cache_fresh():
-                logger.info(f"Serving cached NDVI for field {field_id}")
-                return Response(
-                    field.get_cached_ndvi_image(),
-                    mimetype='image/png',
-                    headers={
-                        'Content-Disposition': f'inline; filename="ndvi_{field.name}.png"',
-                        'Cache-Control': 'public, max-age=86400'
-                    }
-                )
+            try:
+                from app import db
+                field = db.session.execute(db.text("SELECT * FROM field WHERE id = :id"), {"id": field_id}).fetchone()
+                if field:
+                    # Check if there's cached NDVI data
+                    cached_data = db.session.execute(
+                        db.text("SELECT cached_ndvi_image, ndvi_cache_date FROM field WHERE id = :id AND cached_ndvi_image IS NOT NULL"), 
+                        {"id": field_id}
+                    ).fetchone()
+                    
+                    if cached_data and cached_data[1]:
+                        # Check if cache is fresh (within 30 days)
+                        from datetime import timedelta
+                        cache_age = datetime.utcnow() - cached_data[1]
+                        if cache_age < timedelta(days=30):
+                            logger.info(f"Serving cached NDVI for field {field_id}")
+                            return Response(
+                                cached_data[0],
+                                mimetype='image/png',
+                                headers={
+                                    'Content-Disposition': f'inline; filename="ndvi_field_{field_id}.png"',
+                                    'Cache-Control': 'public, max-age=86400'
+                                }
+                            )
+            except Exception as e:
+                logger.warning(f"Could not check cached NDVI: {e}")
         
         # Fetch NDVI image from API
         image_data = ndvi_fetcher.fetch_ndvi_image(bbox, geometry=geometry)
@@ -247,11 +261,16 @@ def get_ndvi_image():
         if image_data:
             # Cache the image if this is for a saved field
             if field_id:
-                from models import Field
-                field = Field.query.get(field_id)
-                if field:
-                    field.cache_ndvi_image(image_data)
+                try:
+                    from app import db
+                    db.session.execute(
+                        db.text("UPDATE field SET cached_ndvi_image = :image_data, ndvi_cache_date = :cache_date WHERE id = :id"),
+                        {"image_data": image_data, "cache_date": datetime.utcnow(), "id": field_id}
+                    )
+                    db.session.commit()
                     logger.info(f"Cached NDVI image for field {field_id}")
+                except Exception as e:
+                    logger.warning(f"Could not cache NDVI: {e}")
             
             return Response(
                 image_data,
@@ -333,11 +352,16 @@ def analyze_field_with_ai():
         
         # Step 5: Cache results if this is a saved field
         if field_id:
-            from models import Field
-            field = Field.query.get(field_id)
-            if field:
-                field.cache_ndvi_image(image_data)
+            try:
+                from app import db
+                db.session.execute(
+                    db.text("UPDATE field SET cached_ndvi_image = :image_data, ndvi_cache_date = :cache_date WHERE id = :id"),
+                    {"image_data": image_data, "cache_date": datetime.utcnow(), "id": field_id}
+                )
+                db.session.commit()
                 logger.info(f"Cached analysis for field {field_id}")
+            except Exception as e:
+                logger.warning(f"Could not cache analysis: {e}")
         
         # Return comprehensive analysis
         analysis_results = {

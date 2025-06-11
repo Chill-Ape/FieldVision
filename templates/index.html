@@ -1651,9 +1651,11 @@
             document.getElementById('crop-selection').style.display = 'block';
             document.getElementById('save-site-btn').disabled = false;
             
-            // Set site name in the interface
-            document.getElementById('site-name').value = site.name || '';
-            document.getElementById('site-description').value = site.description || '';
+            // Set site name in the interface if elements exist
+            const siteNameEl = document.getElementById('site-name');
+            const siteDescEl = document.getElementById('site-description');
+            if (siteNameEl) siteNameEl.value = site.name || '';
+            if (siteDescEl) siteDescEl.value = site.description || '';
         }
         
         // Full-screen image modal functions
