@@ -584,9 +584,27 @@
                     <option value="wheat">Wheat</option>
                 </select>
             </div>
-            <button id="simple-analyze-btn" class="btn btn-secondary" onclick="analyzeNDVI()" disabled style="width: 100%;">
-                📊 Generate NDVI
-            </button>
+            <!-- Vegetation Index Buttons -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem;">
+                <button id="ndvi-btn" class="btn btn-secondary" onclick="analyzeIndex('ndvi')" disabled style="font-size: 0.8rem; padding: 0.6rem;">
+                    📊 NDVI
+                </button>
+                <button id="ndre-btn" class="btn btn-secondary" onclick="analyzeIndex('ndre')" disabled style="font-size: 0.8rem; padding: 0.6rem;">
+                    🌿 NDRE
+                </button>
+                <button id="moisture-btn" class="btn btn-secondary" onclick="analyzeIndex('moisture')" disabled style="font-size: 0.8rem; padding: 0.6rem;">
+                    💧 Moisture
+                </button>
+                <button id="evi-btn" class="btn btn-secondary" onclick="analyzeIndex('evi')" disabled style="font-size: 0.8rem; padding: 0.6rem;">
+                    🌾 EVI
+                </button>
+                <button id="ndwi-btn" class="btn btn-secondary" onclick="analyzeIndex('ndwi')" disabled style="font-size: 0.8rem; padding: 0.6rem;">
+                    🏞️ NDWI
+                </button>
+                <button id="chlorophyll-btn" class="btn btn-secondary" onclick="analyzeIndex('chlorophyll')" disabled style="font-size: 0.8rem; padding: 0.6rem;">
+                    🍃 Chlorophyll
+                </button>
+            </div>
         </div>
         
         <div id="loading" class="loading">
@@ -1301,7 +1319,7 @@
             });
         }
         
-        async function analyzeNDVI() {
+        async function analyzeIndex(indexType) {
             if (!currentLayer || !currentBounds) {
                 alert('Please select an area first');
                 return;
@@ -1309,10 +1327,13 @@
             
             const loadingEl = document.getElementById('loading');
             const resultEl = document.getElementById('result-section');
-            const analyzeBtn = document.getElementById('simple-analyze-btn');
+            const buttonId = indexType + '-btn';
+            const analyzeBtn = document.getElementById(buttonId);
             
             if (loadingEl) loadingEl.style.display = 'block';
             if (resultEl) resultEl.style.display = 'none';
+            
+            // Disable the clicked button
             if (analyzeBtn) analyzeBtn.disabled = true;
             
             const requestData = { 
@@ -1321,7 +1342,8 @@
                     currentBounds.getSouth(),
                     currentBounds.getEast(),
                     currentBounds.getNorth()
-                ]
+                ],
+                index_type: indexType
             };
             
             if (currentLayer instanceof L.Polygon) {
@@ -1329,7 +1351,7 @@
             }
             
             try {
-                const response = await fetch('/ndvi', {
+                const response = await fetch('/vegetation-index', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1344,17 +1366,32 @@
                     const shapeType = currentLayer instanceof L.Polygon ? 'polygon' : 'rectangle';
                     const areaInfo = formatArea(calculateArea(currentLayer));
                     
+                    const indexNames = {
+                        'ndvi': 'NDVI - Vegetation Health',
+                        'ndre': 'NDRE - Chlorophyll & Nitrogen',
+                        'moisture': 'Moisture Index - Water Content',
+                        'evi': 'EVI - Enhanced Vegetation',
+                        'ndwi': 'NDWI - Water Detection',
+                        'chlorophyll': 'Chlorophyll Index - Plant Health'
+                    };
+                    
                     const ndviResultEl = document.getElementById('ndvi-result');
                     if (ndviResultEl) {
                         ndviResultEl.innerHTML = `
                             <div style="position: relative; display: inline-block;">
-                                <img src="${imageUrl}" alt="NDVI Analysis" class="ndvi-image" style="cursor: pointer; width: 100%;" onclick="openImageModal('${imageUrl}', 'NDVI Vegetation Health Analysis<br>Shape: ${shapeType.toUpperCase()}<br>Area: ${areaInfo}')">
+                                <img src="${imageUrl}" alt="${indexNames[indexType]} Analysis" class="ndvi-image" style="cursor: pointer; width: 100%;" onclick="openImageModal('${imageUrl}', '${indexNames[indexType]} Analysis<br>Shape: ${shapeType.toUpperCase()}<br>Area: ${areaInfo}')">
                                 <div style="position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.8); color: white; padding: 0.5rem; border-radius: 4px; font-size: 0.75rem;">
                                     📍 ${shapeType.toUpperCase()}: ${areaInfo}
                                 </div>
-                                <button onclick="openImageModal('${imageUrl}', 'NDVI Vegetation Health Analysis')" style="position: absolute; top: 5px; right: 5px; background: rgba(88, 166, 255, 0.9); color: white; border: none; padding: 0.5rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 500;">🔍 Fullscreen</button>
+                                <button onclick="openImageModal('${imageUrl}', '${indexNames[indexType]} Analysis')" style="position: absolute; top: 5px; right: 5px; background: rgba(88, 166, 255, 0.9); color: white; border: none; padding: 0.5rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 500;">🔍 Fullscreen</button>
                             </div>
                         `;
+                    }
+                    
+                    // Update result section title
+                    const titleEl = document.querySelector('#result-section h3');
+                    if (titleEl) {
+                        titleEl.textContent = indexNames[indexType] || 'Vegetation Analysis';
                     }
                     
                     if (resultEl) resultEl.style.display = 'block';
@@ -1632,18 +1669,18 @@
                 currentLayer = window.fullscreenSelectedLayer;
                 updateCoordinatesDisplay(currentLayer);
                 
-                // Debug: Check what elements are available
-                console.log('Looking for analyze button...');
-                const analyzeBtn = document.getElementById('simple-analyze-btn');
+                // Enable all vegetation index buttons
+                const indexButtons = ['ndvi-btn', 'ndre-btn', 'moisture-btn', 'evi-btn', 'ndwi-btn', 'chlorophyll-btn'];
                 const saveSiteBtn = document.getElementById('save-site-btn');
                 
-                console.log('Analyze button found:', analyzeBtn);
-                console.log('Save button found:', saveSiteBtn);
+                indexButtons.forEach(btnId => {
+                    const btn = document.getElementById(btnId);
+                    if (btn) {
+                        btn.disabled = false;
+                        console.log(`${btnId} enabled`);
+                    }
+                });
                 
-                if (analyzeBtn) {
-                    analyzeBtn.disabled = false;
-                    console.log('Analyze button enabled');
-                }
                 if (saveSiteBtn) {
                     saveSiteBtn.disabled = false;
                     console.log('Save button enabled');

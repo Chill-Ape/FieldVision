@@ -28,6 +28,31 @@ class NDVIFetcher:
         self.auth = auth_handler
         self.process_url = "https://services.sentinel-hub.com/api/v1/process"
     
+    def get_evalscript(self, index_type: str) -> str:
+        """
+        Return the evalscript for calculating different vegetation indices
+        
+        Args:
+            index_type: Type of vegetation index ('ndvi', 'ndre', 'moisture', 'evi', 'ndwi', 'chlorophyll')
+            
+        Returns:
+            Evalscript string for the specified index calculation
+        """
+        if index_type == 'ndvi':
+            return self.get_ndvi_evalscript()
+        elif index_type == 'ndre':
+            return self.get_ndre_evalscript()
+        elif index_type == 'moisture':
+            return self.get_moisture_evalscript()
+        elif index_type == 'evi':
+            return self.get_evi_evalscript()
+        elif index_type == 'ndwi':
+            return self.get_ndwi_evalscript()
+        elif index_type == 'chlorophyll':
+            return self.get_chlorophyll_evalscript()
+        else:
+            return self.get_ndvi_evalscript()  # Default to NDVI
+    
     def get_ndvi_evalscript(self) -> str:
         """
         Return the evalscript for calculating NDVI from Sentinel-2 data
@@ -77,8 +102,183 @@ function evaluatePixel(sample) {
     return [0.05, 0.4, 0.05]; // Peak health - deepest green
 }
 """
+
+    def get_ndre_evalscript(self) -> str:
+        """NDRE (Normalized Difference Red Edge Index) - Sensitive to chlorophyll and nitrogen"""
+        return """
+//VERSION=3
+function setup() {
+    return {
+        input: [{
+            bands: ["B05", "B06", "SCL"],
+            units: "DN"
+        }],
+        output: {
+            bands: 3,
+            sampleType: "AUTO"
+        }
+    };
+}
+
+function evaluatePixel(sample) {
+    var ndre = (sample.B06 - sample.B05) / (sample.B06 + sample.B05);
     
-    def create_request_payload(self, bbox: List[float], width: int = 2500, height: int = 2500, geometry: Optional[dict] = None) -> dict:
+    // Apply cloud masking
+    if (sample.SCL === 3 || sample.SCL === 8 || sample.SCL === 9 || sample.SCL === 10 || sample.SCL === 11) {
+        return [0.5, 0.5, 0.5]; // Gray for clouds/shadows
+    }
+    
+    // NDRE color mapping (enhanced for chlorophyll detection)
+    if (ndre < 0.1) return [0.8, 0.4, 0.2]; // Very low chlorophyll - brown
+    if (ndre < 0.2) return [0.9, 0.6, 0.3]; // Low chlorophyll - orange
+    if (ndre < 0.3) return [0.9, 0.8, 0.4]; // Moderate chlorophyll - yellow
+    if (ndre < 0.4) return [0.6, 0.8, 0.3]; // Good chlorophyll - light green
+    if (ndre < 0.5) return [0.4, 0.7, 0.2]; // High chlorophyll - green
+    return [0.2, 0.6, 0.1]; // Very high chlorophyll - dark green
+}
+"""
+
+    def get_moisture_evalscript(self) -> str:
+        """Moisture Index (NDMI) - Estimates water content in vegetation"""
+        return """
+//VERSION=3
+function setup() {
+    return {
+        input: [{
+            bands: ["B08", "B11", "SCL"],
+            units: "DN"
+        }],
+        output: {
+            bands: 3,
+            sampleType: "AUTO"
+        }
+    };
+}
+
+function evaluatePixel(sample) {
+    var ndmi = (sample.B08 - sample.B11) / (sample.B08 + sample.B11);
+    
+    // Apply cloud masking
+    if (sample.SCL === 3 || sample.SCL === 8 || sample.SCL === 9 || sample.SCL === 10 || sample.SCL === 11) {
+        return [0.5, 0.5, 0.5]; // Gray for clouds/shadows
+    }
+    
+    // NDMI color mapping (blue to red scale for moisture)
+    if (ndmi < -0.4) return [0.8, 0.2, 0.1]; // Very dry - red
+    if (ndmi < -0.2) return [0.9, 0.5, 0.2]; // Dry - orange
+    if (ndmi < 0.0) return [0.9, 0.8, 0.3]; // Moderate moisture - yellow
+    if (ndmi < 0.2) return [0.4, 0.8, 0.6]; // Good moisture - light blue
+    if (ndmi < 0.4) return [0.2, 0.6, 0.8]; // High moisture - blue
+    return [0.1, 0.4, 0.9]; // Very high moisture - dark blue
+}
+"""
+
+    def get_evi_evalscript(self) -> str:
+        """EVI (Enhanced Vegetation Index) - Better for high biomass areas"""
+        return """
+//VERSION=3
+function setup() {
+    return {
+        input: [{
+            bands: ["B02", "B04", "B08", "SCL"],
+            units: "DN"
+        }],
+        output: {
+            bands: 3,
+            sampleType: "AUTO"
+        }
+    };
+}
+
+function evaluatePixel(sample) {
+    var evi = 2.5 * ((sample.B08 - sample.B04) / (sample.B08 + 6 * sample.B04 - 7.5 * sample.B02 + 1));
+    
+    // Apply cloud masking
+    if (sample.SCL === 3 || sample.SCL === 8 || sample.SCL === 9 || sample.SCL === 10 || sample.SCL === 11) {
+        return [0.5, 0.5, 0.5]; // Gray for clouds/shadows
+    }
+    
+    // EVI color mapping (optimized for dense vegetation)
+    if (evi < 0.1) return [0.7, 0.4, 0.2]; // Very low vegetation - brown
+    if (evi < 0.2) return [0.8, 0.6, 0.3]; // Low vegetation - tan
+    if (evi < 0.3) return [0.9, 0.8, 0.4]; // Moderate vegetation - yellow
+    if (evi < 0.4) return [0.6, 0.8, 0.2]; // Good vegetation - light green
+    if (evi < 0.6) return [0.4, 0.7, 0.1]; // High vegetation - green
+    return [0.2, 0.5, 0.05]; // Very high vegetation - dark green
+}
+"""
+
+    def get_ndwi_evalscript(self) -> str:
+        """NDWI (Normalized Difference Water Index) - Detects water presence"""
+        return """
+//VERSION=3
+function setup() {
+    return {
+        input: [{
+            bands: ["B03", "B08", "SCL"],
+            units: "DN"
+        }],
+        output: {
+            bands: 3,
+            sampleType: "AUTO"
+        }
+    };
+}
+
+function evaluatePixel(sample) {
+    var ndwi = (sample.B03 - sample.B08) / (sample.B03 + sample.B08);
+    
+    // Apply cloud masking
+    if (sample.SCL === 3 || sample.SCL === 8 || sample.SCL === 9 || sample.SCL === 10 || sample.SCL === 11) {
+        return [0.5, 0.5, 0.5]; // Gray for clouds/shadows
+    }
+    
+    // NDWI color mapping (blue scale for water detection)
+    if (ndwi < -0.3) return [0.6, 0.3, 0.1]; // Very dry soil - brown
+    if (ndwi < -0.1) return [0.8, 0.6, 0.4]; // Dry soil - tan
+    if (ndwi < 0.1) return [0.7, 0.8, 0.6]; // Moist soil - light green
+    if (ndwi < 0.3) return [0.4, 0.7, 0.8]; // Wet areas - light blue
+    if (ndwi < 0.5) return [0.2, 0.5, 0.9]; // Water bodies - blue
+    return [0.1, 0.3, 0.8]; // Deep water - dark blue
+}
+"""
+
+    def get_chlorophyll_evalscript(self) -> str:
+        """Chlorophyll Index (CIrededge) - Tracks chlorophyll concentration"""
+        return """
+//VERSION=3
+function setup() {
+    return {
+        input: [{
+            bands: ["B05", "B07", "SCL"],
+            units: "DN"
+        }],
+        output: {
+            bands: 3,
+            sampleType: "AUTO"
+        }
+    };
+}
+
+function evaluatePixel(sample) {
+    var cire = (sample.B07 / sample.B05) - 1;
+    
+    // Apply cloud masking
+    if (sample.SCL === 3 || sample.SCL === 8 || sample.SCL === 9 || sample.SCL === 10 || sample.SCL === 11) {
+        return [0.5, 0.5, 0.5]; // Gray for clouds/shadows
+    }
+    
+    // Chlorophyll index color mapping (green scale for chlorophyll content)
+    if (cire < 0.5) return [0.8, 0.2, 0.2]; // Very low chlorophyll - red
+    if (cire < 1.0) return [0.9, 0.5, 0.1]; // Low chlorophyll - orange
+    if (cire < 1.5) return [0.9, 0.8, 0.2]; // Moderate chlorophyll - yellow
+    if (cire < 2.0) return [0.5, 0.8, 0.3]; // Good chlorophyll - light green
+    if (cire < 3.0) return [0.3, 0.7, 0.2]; // High chlorophyll - green
+    return [0.1, 0.5, 0.1]; // Very high chlorophyll - dark green
+}
+"""
+    
+    def create_request_payload(self, bbox: List[float], width: int = 2500, height: int = 2500, geometry: Optional[dict] = None, index_type: str = 'ndvi') -> dict:
         """
         Create the request payload for Sentinel Hub Process API
         
