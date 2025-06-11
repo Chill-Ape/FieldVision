@@ -500,6 +500,16 @@
                 display: none !important; /* Hide map container on mobile */
             }
             
+            /* Hide all desktop sidebar sections except status on mobile */
+            .sidebar .section:not(:first-child) {
+                display: none !important;
+            }
+            
+            /* Show mobile-specific content in sidebar */
+            .mobile-only {
+                display: block !important;
+            }
+            
             /* Mobile site selection interface */
             .mobile-site-selector {
                 display: block !important; /* Ensure mobile selector is visible */
@@ -784,6 +794,23 @@
                     <span>●</span>
                     <span>API Connected</span>
                 </div>
+            </div>
+            
+            <!-- Mobile-only section -->
+            <div class="section mobile-only" style="display: none;">
+                <h3 style="color: #58a6ff; margin-bottom: 1rem; font-size: 1.2rem;">Select Field Area</h3>
+                <button class="draw-site-btn" onclick="openFullscreenMap()">
+                    <i class="fas fa-draw-polygon"></i>
+                    Draw Site Area
+                </button>
+                <div id="selected-area-info-mobile" style="display: none; background: rgba(30, 36, 61, 0.6); border: 1px solid rgba(88, 166, 255, 0.15); border-radius: 6px; padding: 1rem; margin-top: 1rem;">
+                    <h4 style="color: #58a6ff; margin-bottom: 0.5rem;">Selected Area</h4>
+                    <div id="mobile-coordinates-display-sidebar" style="color: #c9d1d9; font-size: 0.9rem;"></div>
+                    <button onclick="clearMobileSelectionSidebar()" style="background: #dc3545; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; font-size: 0.8rem; margin-top: 0.5rem;">Clear Selection</button>
+                </div>
+                <p style="color: #8b949e; font-size: 0.9rem; line-height: 1.5; margin-top: 1rem;">
+                    Use the map interface to select your field area by drawing a polygon or rectangle around the crops you want to analyze.
+                </p>
             </div>
             
             <div class="section">
@@ -1522,15 +1549,32 @@
                 }
                 
                 if (coordinates && coordinates.length > 0) {
-                    // Update mobile coordinates display
+                    // Update mobile coordinates display in main area
                     const coordsDisplay = document.getElementById('mobile-coordinates-display');
                     const areaInfo = document.getElementById('selected-area-info');
                     
-                    coordsDisplay.innerHTML = `
+                    // Update mobile coordinates display in sidebar
+                    const coordsDisplaySidebar = document.getElementById('mobile-coordinates-display-sidebar');
+                    const areaInfoSidebar = document.getElementById('selected-area-info-mobile');
+                    
+                    const displayText = `
                         <strong>Area Selected:</strong> ${coordinates.length} points<br>
                         <strong>Center:</strong> ${coordinates[0][0].toFixed(4)}, ${coordinates[0][1].toFixed(4)}
                     `;
-                    areaInfo.style.display = 'block';
+                    
+                    if (coordsDisplay) {
+                        coordsDisplay.innerHTML = displayText;
+                    }
+                    if (areaInfo) {
+                        areaInfo.style.display = 'block';
+                    }
+                    
+                    if (coordsDisplaySidebar) {
+                        coordsDisplaySidebar.innerHTML = displayText;
+                    }
+                    if (areaInfoSidebar) {
+                        areaInfoSidebar.style.display = 'block';
+                    }
                     
                     // Store coordinates globally for NDVI generation
                     window.mobileSelectedCoordinates = coordinates;
@@ -1564,24 +1608,32 @@
         function setupMobileInterface() {
             console.log('Setting up mobile interface...');
             
-            // Ensure map container is hidden and mobile selector is visible
+            // Ensure map container is hidden
             const mapContainer = document.querySelector('.map-container');
-            const mobileSelector = document.querySelector('.mobile-site-selector');
-            
             if (mapContainer) {
                 mapContainer.style.display = 'none';
                 console.log('Map container hidden on mobile');
             }
             
-            if (mobileSelector) {
-                mobileSelector.style.display = 'block';
-                console.log('Mobile site selector shown');
+            // Show mobile-only section in sidebar
+            const mobileOnlySection = document.querySelector('.mobile-only');
+            if (mobileOnlySection) {
+                mobileOnlySection.style.display = 'block';
+                console.log('Mobile-only section shown');
             } else {
-                console.error('Mobile site selector not found');
+                console.error('Mobile-only section not found');
             }
             
             // Initialize any mobile-specific functionality
             console.log('Mobile interface setup complete');
+        }
+        
+        // Clear mobile selection from sidebar
+        function clearMobileSelectionSidebar() {
+            document.getElementById('selected-area-info-mobile').style.display = 'none';
+            window.mobileSelectedCoordinates = null;
+            currentBounds = null;
+            console.log('Mobile selection cleared from sidebar');
         }
 
         function retryMapInit() {
