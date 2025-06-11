@@ -61,11 +61,6 @@
             border-top: 1px solid rgba(88, 166, 255, 0.12);
         }
         
-        /* Mobile-first default styles */
-        .map-container {
-            display: none;
-        }
-        
         /* Desktop-specific styles */
         @media (min-width: 769px) {
             .container {
@@ -89,7 +84,7 @@
             }
             
             .map-container {
-                display: block !important;
+                display: block;
                 flex: 1;
                 height: calc(100vh - 2rem);
                 background: rgba(13, 17, 23, 0.95);
@@ -125,11 +120,16 @@
             }
             
             .main-content {
-                display: none;
+                display: block;
+                width: 100%;
+                margin-top: 1rem;
             }
             
             .map-container {
-                display: none;
+                display: block;
+                height: 400px;
+                width: 100%;
+                margin-bottom: 1rem;
             }
             
             .results-container {
