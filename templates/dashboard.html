@@ -60,7 +60,11 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="fw-bold">{{ "%.1f"|format(fields|sum(attribute='calculate_area_acres')) }}</h4>
+                            {% set total_acres = 0 %}
+                            {% for field in fields %}
+                                {% set total_acres = total_acres + field.calculate_area_acres() %}
+                            {% endfor %}
+                            <h4 class="fw-bold">{{ "%.1f"|format(total_acres) }}</h4>
                             <p class="mb-0">Total Acres</p>
                         </div>
                         <div class="align-self-center">
