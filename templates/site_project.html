@@ -61,78 +61,30 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="text-center mb-3 position-relative">
-                        {% if field.has_cached_ndvi() or latest_analysis %}
-                            <div class="form-check form-check-inline mb-2">
-                                <input class="form-check-input" type="checkbox" id="zoneOverlay" onchange="toggleZoneOverlay()">
-                                <label class="form-check-label text-light" for="zoneOverlay">
-                                    <small>Show Zone Boundaries</small>
-                                </label>
+                    {% if field.has_cached_ndvi() %}
+                        <div class="text-center mb-3">
+                            <img src="{{ url_for('get_cached_ndvi', field_id=field.id) }}" 
+                                 alt="NDVI Analysis for {{ field.name }}" 
+                                 class="img-fluid rounded"
+                                 style="max-height: 400px; width: auto;"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <div class="alert alert-warning" style="display: none;">
+                                <strong>NDVI Image Unavailable</strong><br>
+                                The satellite analysis image could not be loaded. Please try regenerating the analysis.
                             </div>
-                        {% endif %}
-                        
-                        {% if field.has_cached_ndvi() %}
-                            <div class="position-relative d-inline-block" id="ndvi-container">
-                                <img id="ndvi-image" 
-                                     src="{{ url_for('get_cached_ndvi', field_id=field.id) }}" 
-                                     alt="NDVI Analysis for {{ field.name }}" 
-                                     class="img-fluid rounded"
-                                     style="max-height: 400px; width: auto;"
-                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                                <canvas id="zone-overlay" 
-                                        class="position-absolute top-0 start-0" 
-                                        style="display: none; pointer-events: none; border-radius: 6px;"></canvas>
-                                <div class="alert alert-warning" style="display: none;">
-                                    <strong>NDVI Image Unavailable</strong><br>
-                                    The satellite analysis image could not be loaded. Please try regenerating the analysis.
-                                </div>
-                            </div>
-                        {% else %}
-                            <div class="text-center py-5">
-                                <i class="fas fa-satellite-dish fa-3x text-muted mb-3"></i>
-                                <h5 class="text-muted">No NDVI Data Available</h5>
-                                <p class="text-muted">Run "Update NDVI Analysis" to generate satellite imagery and zone data.</p>
-                            </div>
-                        {% endif %}
-                    </div>
+                        </div>
                         
                         {% if latest_analysis %}
                         <div class="row">
                             <div class="col-md-6">
                                 <h6 class="text-light mb-3">Zone Health Summary</h6>
                                 {% set health_scores = latest_analysis.get_health_scores() %}
-                                {% if health_scores and health_scores is mapping %}
+                                {% if health_scores %}
                                     {% for zone_id, stats in health_scores.items() %}
                                     <div class="d-flex justify-content-between align-items-center mb-2">
-                                        {% set zone_name = zone_id %}
-                                        {% if zone_id == 'zone_0_0' %}
-                                            {% set zone_name = 'Northwest' %}
-                                        {% elif zone_id == 'zone_0_1' %}
-                                            {% set zone_name = 'North' %}
-                                        {% elif zone_id == 'zone_0_2' %}
-                                            {% set zone_name = 'Northeast' %}
-                                        {% elif zone_id == 'zone_1_0' %}
-                                            {% set zone_name = 'West' %}
-                                        {% elif zone_id == 'zone_1_1' %}
-                                            {% set zone_name = 'Center' %}
-                                        {% elif zone_id == 'zone_1_2' %}
-                                            {% set zone_name = 'East' %}
-                                        {% elif zone_id == 'zone_2_0' %}
-                                            {% set zone_name = 'Southwest' %}
-                                        {% elif zone_id == 'zone_2_1' %}
-                                            {% set zone_name = 'South' %}
-                                        {% elif zone_id == 'zone_2_2' %}
-                                            {% set zone_name = 'Southeast' %}
-                                        {% endif %}
-                                        <span class="text-muted">{{ zone_name }}</span>
+                                        <span class="text-muted">{{ zone_id.replace('_', ' ').title() }}</span>
                                         <div class="d-flex align-items-center">
-                                            {% if stats is mapping and 'mean_ndvi' in stats %}
-                                                {% set avg_ndvi = stats.mean_ndvi %}
-                                            {% elif stats is number %}
-                                                {% set avg_ndvi = stats %}
-                                            {% else %}
-                                                {% set avg_ndvi = 0 %}
-                                            {% endif %}
+                                            {% set avg_ndvi = stats.get('mean_ndvi', 0) %}
                                             {% if avg_ndvi >= 0.7 %}
                                                 <span class="badge bg-success me-2">Excellent</span>
                                             {% elif avg_ndvi >= 0.5 %}
@@ -146,11 +98,6 @@
                                         </div>
                                     </div>
                                     {% endfor %}
-                                {% else %}
-                                    <div class="text-center text-muted py-3">
-                                        <i class="fas fa-exclamation-triangle me-2"></i>
-                                        No zone data available. Run NDVI analysis first.
-                                    </div>
                                 {% endif %}
                             </div>
                             <div class="col-md-6">
@@ -166,16 +113,17 @@
                                 {% endif %}
                             </div>
                         </div>
-                        {% else %}
-                            <div class="text-center py-5">
-                                <i class="fas fa-satellite-dish fa-3x text-muted mb-3"></i>
-                                <h5 class="text-muted">No Analysis Data Available</h5>
-                                <p class="text-muted mb-4">Generate your first NDVI analysis to start monitoring crop health.</p>
-                                <button class="btn btn-primary" onclick="updateNDVI({{ field.id }})">
-                                    <i class="fas fa-satellite me-1"></i>Generate NDVI Analysis
-                                </button>
-                            </div>
                         {% endif %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-satellite-dish fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No NDVI Data Available</h5>
+                            <p class="text-muted mb-4">Generate your first NDVI analysis to start monitoring crop health.</p>
+                            <button class="btn btn-primary" onclick="updateNDVI({{ field.id }})">
+                                <i class="fas fa-satellite me-1"></i>Generate NDVI Analysis
+                            </button>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -357,20 +305,12 @@
                                         </div>
                                         <div class="row">
                                             {% set ndvi_data = analysis.get_ndvi_data() %}
-                                            {% if ndvi_data and ndvi_data is mapping %}
-                                                {% set ndvi_values = [] %}
-                                                {% for value in ndvi_data.values() %}
-                                                    {% if value is number %}
-                                                        {% set _ = ndvi_values.append(value) %}
-                                                    {% endif %}
-                                                {% endfor %}
-                                                {% if ndvi_values %}
-                                                    {% set avg_ndvi = (ndvi_values | sum) / (ndvi_values | length) %}
-                                                    <div class="col-md-6">
-                                                        <small class="text-muted">Average NDVI:</small>
-                                                        <span class="fw-bold text-info">{{ "%.3f"|format(avg_ndvi) }}</span>
-                                                    </div>
-                                                {% endif %}
+                                            {% if ndvi_data %}
+                                                {% set avg_ndvi = ndvi_data.values() | list | avg %}
+                                                <div class="col-md-6">
+                                                    <small class="text-muted">Average NDVI:</small>
+                                                    <span class="fw-bold text-info">{{ "%.3f"|format(avg_ndvi) }}</span>
+                                                </div>
                                             {% endif %}
                                             <div class="col-md-6">
                                                 {% set recommendations = analysis.get_recommendations() %}
@@ -963,7 +903,6 @@ function deleteAIInsight(insightId) {
 // Check if AI insight was already generated today when page loads
 document.addEventListener('DOMContentLoaded', function() {
     checkDailyAILimit({{ field.id }});
-    setupZoneOverlay();
 });
 
 function checkDailyAILimit(fieldId) {
@@ -989,103 +928,5 @@ function checkDailyAILimit(fieldId) {
         }
     }
 }
-
-function setupZoneOverlay() {
-    const ndviImage = document.getElementById('ndvi-image');
-    if (ndviImage) {
-        ndviImage.onload = function() {
-            resizeZoneOverlay();
-        };
-        // If image is already loaded
-        if (ndviImage.complete) {
-            resizeZoneOverlay();
-        }
-    }
-}
-
-function resizeZoneOverlay() {
-    const ndviImage = document.getElementById('ndvi-image');
-    const canvas = document.getElementById('zone-overlay');
-    
-    if (ndviImage && canvas) {
-        canvas.width = ndviImage.offsetWidth;
-        canvas.height = ndviImage.offsetHeight;
-        canvas.style.width = ndviImage.offsetWidth + 'px';
-        canvas.style.height = ndviImage.offsetHeight + 'px';
-    }
-}
-
-function toggleZoneOverlay() {
-    const checkbox = document.getElementById('zoneOverlay');
-    const canvas = document.getElementById('zone-overlay');
-    
-    if (checkbox.checked) {
-        drawZoneOverlay();
-        canvas.style.display = 'block';
-    } else {
-        canvas.style.display = 'none';
-    }
-}
-
-function drawZoneOverlay() {
-    const canvas = document.getElementById('zone-overlay');
-    const ctx = canvas.getContext('2d');
-    
-    if (!canvas || !ctx) return;
-    
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Zone labels and their positions in the 3x3 grid
-    const zones = [
-        ['Northwest', 'North', 'Northeast'],
-        ['West', 'Center', 'East'], 
-        ['Southwest', 'South', 'Southeast']
-    ];
-    
-    // Calculate zone dimensions
-    const zoneWidth = canvas.width / 3;
-    const zoneHeight = canvas.height / 3;
-    
-    // Draw zone boundaries and labels
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.lineWidth = 2;
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.font = 'bold 12px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    
-    for (let row = 0; row < 3; row++) {
-        for (let col = 0; col < 3; col++) {
-            const x = col * zoneWidth;
-            const y = row * zoneHeight;
-            
-            // Draw zone boundary
-            ctx.strokeRect(x, y, zoneWidth, zoneHeight);
-            
-            // Calculate label position (center of zone)
-            const labelX = x + zoneWidth / 2;
-            const labelY = y + zoneHeight / 2;
-            
-            // Draw label background
-            const labelText = zones[row][col];
-            const textMetrics = ctx.measureText(labelText);
-            const textWidth = textMetrics.width;
-            const textHeight = 16;
-            
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            ctx.fillRect(labelX - textWidth/2 - 4, labelY - textHeight/2 - 2, textWidth + 8, textHeight + 4);
-            
-            // Draw label text
-            ctx.fillStyle = 'white';
-            ctx.fillText(labelText, labelX, labelY);
-        }
-    }
-}
-
-// Resize overlay when window resizes
-window.addEventListener('resize', function() {
-    setTimeout(resizeZoneOverlay, 100);
-});
 </script>
 {% endblock %}

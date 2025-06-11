@@ -4,17 +4,14 @@ import io
 import logging
 from shapely.geometry import Polygon, Point
 import math
-from .field_geometry import create_field_zones_accurate, calculate_zone_ndvi_accurate
 
-def process_ndvi_data(image_data, zones, field_coordinates=None, field_bbox=None):
+def process_ndvi_data(image_data, zones):
     """
     Process real NDVI image data and calculate average values for each zone
     
     Args:
         image_data: Raw image data from satellite API
         zones: Dictionary of zone polygons
-        field_coordinates: List of [lat, lng] coordinate pairs defining the field polygon
-        field_bbox: Field bounding box [minx, miny, maxx, maxy] in geographic coordinates
     
     Returns:
         Dictionary with zone IDs as keys and NDVI values as values
@@ -33,124 +30,63 @@ def process_ndvi_data(image_data, zones, field_coordinates=None, field_bbox=None
         # Convert to numpy array for processing
         img_array = np.array(image)
         
-        # Handle different image formats - Sentinel Hub returns colorized NDVI images
+        # Handle different image formats
         if len(img_array.shape) == 3:
-            # For colorized NDVI images from Sentinel Hub
-            # Convert RGB color to NDVI values based on standard color mapping
+            # For RGB images from Sentinel Hub, NDVI is typically in the red channel
+            # or we need to convert the colorized NDVI back to values
             if img_array.shape[2] >= 3:
-                r = img_array[:, :, 0].astype(float)
-                g = img_array[:, :, 1].astype(float) 
-                b = img_array[:, :, 2].astype(float)
+                # Extract NDVI from colorized image
+                # Green areas typically have higher values
+                green_channel = img_array[:, :, 1].astype(float)
+                red_channel = img_array[:, :, 0].astype(float)
                 
-                # Improved color-to-NDVI mapping for accurate interpretation
-                # Based on standard NDVI visualization: Red=Poor, Yellow=Moderate, Green=Good
-                
-                # Calculate color dominance for accurate classification
-                total_intensity = r + g + b + 1e-6  # Avoid division by zero
-                r_ratio = r / total_intensity
-                g_ratio = g / total_intensity
-                b_ratio = b / total_intensity
-                
-                # Create NDVI array based on precise color analysis
-                ndvi_array = np.zeros_like(r, dtype=np.float32)
-                
-                # Bright green areas (healthy vegetation) - high green dominance
-                bright_green_mask = (g > 180) & (g > r + 50) & (g > b + 50)
-                ndvi_array[bright_green_mask] = 0.6 + (g[bright_green_mask] - 180) / 75.0 * 0.2  # 0.6 to 0.8
-                
-                # Medium green areas (good vegetation) - moderate green dominance
-                medium_green_mask = (g > 120) & (g > r + 20) & (g > b + 20) & (~bright_green_mask)
-                ndvi_array[medium_green_mask] = 0.4 + (g[medium_green_mask] - 120) / 60.0 * 0.2  # 0.4 to 0.6
-                
-                # Yellow-green areas (moderate vegetation) - mixed green and red
-                yellow_mask = (g > 100) & (r > 80) & (abs(g - r) < 50) & (~bright_green_mask) & (~medium_green_mask)
-                ndvi_array[yellow_mask] = 0.2 + (g[yellow_mask] - 100) / 100.0 * 0.2  # 0.2 to 0.4
-                
-                # Orange areas (stressed vegetation) - more red than green
-                orange_mask = (r > g) & (r > 100) & (g > 50) & (~yellow_mask)
-                ndvi_array[orange_mask] = 0.1 + (g[orange_mask] / 255.0) * 0.1  # 0.1 to 0.2
-                
-                # Red areas (poor/bare soil) - high red dominance
-                red_mask = (r > g + 30) & (r > b + 30) & (r > 80)
-                ndvi_array[red_mask] = -0.1 + (g[red_mask] / 255.0) * 0.2  # -0.1 to 0.1
-                
-                # Very dark red areas (very poor conditions)
-                dark_red_mask = (r > g + 20) & (r > b + 20) & (r > 50) & (r <= 80)
-                ndvi_array[dark_red_mask] = -0.2 + (g[dark_red_mask] / 255.0) * 0.1  # -0.2 to -0.1
-                
-                # Blue/water areas (negative NDVI)
-                water_mask = (b > r) & (b > g) & (b > 100)
-                ndvi_array[water_mask] = -0.3 + (b[water_mask] / 255.0) * 0.1  # -0.3 to -0.2
-                
-                # Very dark areas (shadows or bare soil)
-                dark_mask = (r + g + b < 100) & (~water_mask)
-                ndvi_array[dark_mask] = -0.1
-                
-                # Fill any remaining pixels with basic color ratio
-                unassigned_mask = (ndvi_array == 0) & (~bright_green_mask) & (~medium_green_mask) & (~yellow_mask) & (~orange_mask) & (~red_mask) & (~dark_red_mask) & (~water_mask) & (~dark_mask)
-                if np.any(unassigned_mask):
-                    # Use green-red ratio for unassigned pixels
-                    color_ratio = (g[unassigned_mask] - r[unassigned_mask]) / (g[unassigned_mask] + r[unassigned_mask] + 1e-6)
-                    ndvi_array[unassigned_mask] = color_ratio * 0.4 + 0.2
-                
-                # Ensure values are in valid NDVI range
-                ndvi_array = np.clip(ndvi_array, -1.0, 1.0)
-                
-                logging.info(f"NDVI color analysis - Red pixels: {np.sum(red_mask)}, Green pixels: {np.sum(bright_green_mask + medium_green_mask)}, Yellow pixels: {np.sum(yellow_mask)}")
+                # Convert RGB back to NDVI approximation
+                # Higher green = higher NDVI, lower red = higher NDVI
+                ndvi_array = (green_channel - red_channel) / (green_channel + red_channel + 1e-8)
+                # Normalize to proper NDVI range
+                ndvi_array = np.clip(ndvi_array, -1, 1)
             else:
-                # Grayscale image - convert to NDVI range
-                ndvi_array = (img_array[:, :, 0].astype(float) / 255.0) * 1.6 - 0.3  # Map to typical NDVI range
+                # Grayscale image
+                ndvi_array = img_array[:, :, 0].astype(float) / 255.0 * 2 - 1
         else:
-            # Already grayscale - convert to NDVI range
-            ndvi_array = (img_array.astype(float) / 255.0) * 1.6 - 0.3
+            # Already grayscale
+            ndvi_array = img_array.astype(float)
+            if ndvi_array.max() > 1:
+                ndvi_array = ndvi_array / 255.0 * 2 - 1
         
-        # Use accurate geometric zone mapping if field coordinates are available
-        if field_coordinates and field_bbox:
-            try:
-                # Create accurate field zones accounting for rotation and geometry
-                accurate_zones = create_field_zones_accurate(field_coordinates)
-                zone_ndvi = calculate_zone_ndvi_accurate(ndvi_array, accurate_zones, field_bbox)
-                logging.info("Using accurate geometric zone mapping for NDVI calculations")
-            except Exception as e:
-                logging.warning(f"Geometric zone mapping failed, using fallback: {e}")
-                zone_ndvi = None
-        else:
-            zone_ndvi = None
+        # Calculate NDVI values for each zone by sampling image regions
+        zone_ndvi = {}
+        image_height, image_width = ndvi_array.shape[:2]
         
-        # Fallback to enhanced grid-based sampling if geometric mapping unavailable
-        if zone_ndvi is None:
-            zone_ndvi = {}
-            image_height, image_width = ndvi_array.shape[:2]
-            
-            for zone_id in zones.keys():
-                parts = zone_id.split('_')
-                if len(parts) == 3:
-                    row, col = int(parts[1]), int(parts[2])
-                    
-                    # Enhanced sampling with higher resolution for better accuracy
-                    sample_points = []
-                    samples_per_axis = 15  # Increased sampling density
-                    
-                    for i in range(samples_per_axis):
-                        for j in range(samples_per_axis):
-                            zone_y = (row + i / samples_per_axis) / 3
-                            zone_x = (col + j / samples_per_axis) / 3
-                            
-                            img_y = int(zone_y * image_height)
-                            img_x = int(zone_x * image_width)
-                            
-                            img_y = max(0, min(img_y, image_height - 1))
-                            img_x = max(0, min(img_x, image_width - 1))
-                            
-                            if np.isfinite(ndvi_array[img_y, img_x]):
-                                sample_points.append(ndvi_array[img_y, img_x])
-                    
-                    if sample_points:
-                        zone_ndvi[zone_id] = round(float(np.mean(sample_points)), 3)
+        # Create a 3x3 grid mapping to image coordinates
+        for zone_id in zones.keys():
+            # Parse zone coordinates (zone_row_col format)
+            parts = zone_id.split('_')
+            if len(parts) == 3:
+                row, col = int(parts[1]), int(parts[2])
+                
+                # Map zone to image region
+                y_start = int((row / 3) * image_height)
+                y_end = int(((row + 1) / 3) * image_height)
+                x_start = int((col / 3) * image_width)
+                x_end = int(((col + 1) / 3) * image_width)
+                
+                # Extract zone region and calculate mean NDVI
+                zone_region = ndvi_array[y_start:y_end, x_start:x_end]
+                
+                if zone_region.size > 0:
+                    # Remove any invalid values
+                    valid_pixels = zone_region[np.isfinite(zone_region)]
+                    if len(valid_pixels) > 0:
+                        zone_mean = np.mean(valid_pixels)
+                        zone_ndvi[zone_id] = round(float(zone_mean), 3)
                     else:
                         zone_ndvi[zone_id] = 0.0
                 else:
-                    zone_ndvi[zone_id] = round(float(np.mean(ndvi_array)), 3)
+                    zone_ndvi[zone_id] = 0.0
+            else:
+                # Fallback for malformed zone IDs
+                zone_ndvi[zone_id] = round(float(np.mean(ndvi_array)), 3)
         
         logging.info(f"Processed real NDVI data for {len(zone_ndvi)} zones from satellite imagery")
         return zone_ndvi
