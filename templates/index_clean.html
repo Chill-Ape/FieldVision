@@ -845,8 +845,17 @@
             
             try {
                 console.log('Creating Leaflet map instance');
-                mapInstance = L.map('map').setView([37.7749, -122.4194], 10);
-                console.log('Map instance created:', mapInstance);
+                mapInstance = L.map('map', {
+                    dragging: true,
+                    touchZoom: true,
+                    scrollWheelZoom: true,
+                    doubleClickZoom: true,
+                    boxZoom: true,
+                    keyboard: true,
+                    zoomControl: true,
+                    attributionControl: true
+                }).setView([37.7749, -122.4194], 10);
+                console.log('Map instance created with dragging enabled:', mapInstance);
                 
                 // Force map to recalculate its size
                 setTimeout(() => {
