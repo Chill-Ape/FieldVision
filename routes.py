@@ -73,8 +73,13 @@ def reports():
 @app.route('/site/<int:field_id>')
 def site_project(field_id):
     """Individual site project page with comprehensive data and controls"""
-    field = Field.query.get_or_404(field_id)
-    latest_analysis = FieldAnalysis.query.filter_by(field_id=field_id).order_by(FieldAnalysis.analysis_date.desc()).first()
+    from sqlalchemy.orm import joinedload
+    field = Field.query.options(joinedload(Field.analyses)).get_or_404(field_id)
+    
+    # Sort analyses by date descending (newest first) in Python since template filter isn't working
+    field.analyses = sorted(field.analyses, key=lambda x: x.analysis_date, reverse=True)
+    
+    latest_analysis = field.analyses[0] if field.analyses else None
     
     if is_ajax_request():
         return render_template('site_project.html', field=field, latest_analysis=latest_analysis)

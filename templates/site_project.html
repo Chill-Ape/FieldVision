@@ -136,7 +136,7 @@
                 <div class="card-body">
                     {% if field.analyses %}
                         <div class="timeline" id="analysis-timeline">
-                            {% for analysis in field.analyses|reverse[:10] %}
+                            {% for analysis in field.analyses[:10] %}
                             {% set ai_analysis = analysis.get_ai_analysis_data() %}
                             {% set has_ai_data = ai_analysis and ai_analysis.keys()|length > 0 %}
                             <div class="timeline-item mb-3">
