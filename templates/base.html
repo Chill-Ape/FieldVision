@@ -225,7 +225,7 @@
                     updateActiveNav(page);
                     
                     // Initialize page-specific functionality
-                    initializePage(page);
+                    initializeSPAPage(page);
                 } else {
                     // Fallback to full page reload if content block not found
                     window.location.href = page;
@@ -265,13 +265,15 @@
             });
         }
         
-        function initializePage(page) {
+        function initializeSPAPage(page) {
             // Wait for DOM content to be ready
             setTimeout(() => {
                 // Initialize page-specific functionality based on the current page
                 if (page === '/' || page === '/index') {
-                    // Initialize map for main page
-                    if (typeof initializeMap === 'function') {
+                    // For map interface, call its specific initialization
+                    if (typeof window.initializePage === 'function') {
+                        window.initializePage(page);
+                    } else if (typeof initializeMap === 'function') {
                         initializeMap();
                     } else if (typeof L !== 'undefined' && document.getElementById('map')) {
                         // Fallback map initialization
@@ -293,7 +295,7 @@
                         initializeReports();
                     }
                 }
-            }, 100);
+            }, 300);
         }
         
         function initializeMapFallback() {
