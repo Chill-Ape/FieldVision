@@ -221,7 +221,8 @@ def get_ndvi_image():
         
         # Check if this is for a saved field and has cached NDVI
         field_id = None
-        if request.method == 'POST' and data:
+        if request.method == 'POST':
+            data = request.get_json() or {}
             field_id = data.get('field_id')
         
         # Try to use cached image if available and fresh

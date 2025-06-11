@@ -438,6 +438,13 @@
                             </div>
                         </div>
                         
+                        <div class="ndvi-preview" id="ndvi-preview-${site.id}" style="margin: 10px 0; display: none;">
+                            <img style="width: 100%; border-radius: 6px; cursor: pointer;" onclick="viewFullscreenNDVI('${site.id}')" />
+                            <div style="font-size: 0.8rem; color: #8b949e; margin-top: 5px; text-align: center;">
+                                Click to view fullscreen
+                            </div>
+                        </div>
+                        
                         <div class="site-actions">
                             <button class="btn btn-small" onclick="openSite('${site.id}')">
                                 Open Site
@@ -452,6 +459,40 @@
                     </div>
                 `;
             }).join('');
+            
+            // Load cached NDVI images for each site
+            savedSites.forEach(site => {
+                loadCachedNDVI(site.id);
+            });
+        }
+        
+        async function loadCachedNDVI(siteId) {
+            try {
+                const response = await fetch(`/field/${siteId}/cached_ndvi`);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const imageUrl = URL.createObjectURL(blob);
+                    
+                    const preview = document.getElementById(`ndvi-preview-${siteId}`);
+                    if (preview) {
+                        const img = preview.querySelector('img');
+                        img.src = imageUrl;
+                        preview.style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                // No cached image available, which is fine
+            }
+        }
+        
+        function viewFullscreenNDVI(siteId) {
+            const preview = document.getElementById(`ndvi-preview-${siteId}`);
+            if (preview) {
+                const img = preview.querySelector('img');
+                if (img.src) {
+                    openImageModal(img.src, `Cached NDVI Analysis for Site ${siteId}<br>Last analysis result - no new API call needed`);
+                }
+            }
         }
         
         function formatArea(areaSqMeters) {
@@ -537,6 +578,68 @@
             
             loadSavedSites();
         });
+        
+        // Full-screen image modal functions
+        let currentZoom = 1;
+        
+        function openImageModal(imageSrc, imageInfo) {
+            const modal = document.getElementById('imageModal');
+            const modalImage = document.getElementById('modalImage');
+            const modalImageInfo = document.getElementById('modalImageInfo');
+            
+            modalImage.src = imageSrc;
+            modalImageInfo.innerHTML = imageInfo;
+            modal.style.display = 'block';
+            currentZoom = 1;
+            modalImage.style.transform = 'scale(1)';
+            
+            document.addEventListener('keydown', handleModalKeydown);
+        }
+        
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            modal.style.display = 'none';
+            document.removeEventListener('keydown', handleModalKeydown);
+        }
+        
+        function handleModalKeydown(event) {
+            if (event.key === 'Escape') {
+                closeImageModal();
+            }
+        }
+        
+        function zoomImage(factor) {
+            currentZoom *= factor;
+            const modalImage = document.getElementById('modalImage');
+            modalImage.style.transform = `scale(${currentZoom})`;
+            modalImage.style.cursor = currentZoom > 1 ? 'grab' : 'default';
+        }
+        
+        function resetZoom() {
+            currentZoom = 1;
+            const modalImage = document.getElementById('modalImage');
+            modalImage.style.transform = 'scale(1)';
+            modalImage.style.cursor = 'default';
+        }
     </script>
+    
+    <!-- Full Screen Image Modal -->
+    <div id="imageModal" class="image-modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeImageModal()">&times;</span>
+            <div class="zoom-controls">
+                <button class="zoom-btn" onclick="zoomImage(1.2)" title="Zoom In">+</button>
+                <button class="zoom-btn" onclick="zoomImage(0.8)" title="Zoom Out">-</button>
+                <button class="zoom-btn" onclick="resetZoom()" title="Reset Zoom">⌂</button>
+            </div>
+            <img id="modalImage" class="modal-image" src="" alt="NDVI Analysis">
+            <div class="modal-info">
+                <div id="modalImageInfo"></div>
+                <p style="margin-top: 10px; color: #8b949e; font-size: 0.9rem;">
+                    Use zoom controls or mouse wheel to examine details • ESC to close
+                </p>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

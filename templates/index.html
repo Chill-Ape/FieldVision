@@ -1169,6 +1169,13 @@
                 requestData.geometry = currentLayer.toGeoJSON().geometry;
             }
             
+            // Add field ID if this is a saved site for caching
+            const selectedSite = localStorage.getItem('selectedSite');
+            if (selectedSite) {
+                const site = JSON.parse(selectedSite);
+                requestData.field_id = site.id;
+            }
+            
             // Show loading
             document.getElementById('loading').style.display = 'block';
             document.getElementById('analyze-btn').disabled = true;
