@@ -62,42 +62,16 @@ function evaluatePixel(sample) {
     
 
     
-    // Linear color ramp across NDVI range for maximum contrast
-    // Normalize NDVI from -1 to 1 range to 0 to 1
-    let normalized = (ndvi + 1.0) / 2.0;
-    normalized = Math.max(0.0, Math.min(1.0, normalized));
-    
-    // Create rainbow color ramp for maximum visual variation
-    let r, g, b;
-    
-    if (normalized < 0.2) {
-        // Blue to Cyan
-        r = 0.0;
-        g = normalized * 5.0;
-        b = 1.0;
-    } else if (normalized < 0.4) {
-        // Cyan to Green
-        r = 0.0;
-        g = 1.0;
-        b = 1.0 - (normalized - 0.2) * 5.0;
-    } else if (normalized < 0.6) {
-        // Green to Yellow
-        r = (normalized - 0.4) * 5.0;
-        g = 1.0;
-        b = 0.0;
-    } else if (normalized < 0.8) {
-        // Yellow to Red
-        r = 1.0;
-        g = 1.0 - (normalized - 0.6) * 5.0;
-        b = 0.0;
-    } else {
-        // Red to Magenta
-        r = 1.0;
-        g = 0.0;
-        b = (normalized - 0.8) * 5.0;
-    }
-    
-    return [r, g, b];
+    // Standard NDVI color scale - agricultural focus
+    if (ndvi < -0.1) return [0.0, 0.4, 0.8]; // Water - blue
+    if (ndvi < 0.1) return [0.8, 0.6, 0.4]; // Bare soil - tan
+    if (ndvi < 0.2) return [1.0, 0.0, 0.0]; // Stress - red
+    if (ndvi < 0.3) return [1.0, 0.5, 0.0]; // Low vigor - orange
+    if (ndvi < 0.4) return [1.0, 1.0, 0.0]; // Moderate - yellow
+    if (ndvi < 0.5) return [0.7, 1.0, 0.0]; // Good - yellow-green
+    if (ndvi < 0.6) return [0.0, 1.0, 0.0]; // Healthy - green
+    if (ndvi < 0.7) return [0.0, 0.8, 0.0]; // Very healthy - dark green
+    return [0.0, 0.6, 0.0]; // Excellent - deep green
 }
 """
     
