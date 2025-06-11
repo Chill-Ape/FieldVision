@@ -540,7 +540,7 @@
     
     <script>
         let mapInstance;
-        let drawnItems;
+        let drawnItemsGroup;
         let currentBounds = null;
         let currentLayer = null;
         let currentZoom = 1;
@@ -552,18 +552,23 @@
         }
         
         function initializeMap() {
+            // Clear any existing map
+            if (mapInstance) {
+                mapInstance.remove();
+            }
+            
             mapInstance = L.map('map').setView([37.7749, -122.4194], 10);
             
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors'
             }).addTo(mapInstance);
             
-            drawnItems = new L.FeatureGroup();
-            mapInstance.addLayer(drawnItems);
+            drawnItemsGroup = new L.FeatureGroup();
+            mapInstance.addLayer(drawnItemsGroup);
             
             let drawControl = new L.Control.Draw({
                 edit: {
-                    featureGroup: drawnItems
+                    featureGroup: drawnItemsGroup
                 },
                 draw: {
                     polygon: true,
@@ -578,8 +583,8 @@
             
             mapInstance.on(L.Draw.Event.CREATED, function (e) {
                 let layer = e.layer;
-                drawnItems.clearLayers();
-                drawnItems.addLayer(layer);
+                drawnItemsGroup.clearLayers();
+                drawnItemsGroup.addLayer(layer);
                 
                 currentLayer = layer;
                 currentBounds = layer.getBounds();
@@ -592,6 +597,11 @@
         }
         
         function updateCoordinatesDisplay(layer) {
+            const coordsDisplay = document.getElementById('coordinates-display');
+            const cropSelection = document.getElementById('crop-selection');
+            
+            if (!coordsDisplay || !layer) return;
+            
             let bounds = layer.getBounds();
             let north = bounds.getNorth().toFixed(6);
             let south = bounds.getSouth().toFixed(6);
@@ -603,7 +613,7 @@
             
             let shapeType = layer instanceof L.Polygon ? 'Polygon' : 'Rectangle';
             
-            document.getElementById('coordinates-display').innerHTML = `
+            coordsDisplay.innerHTML = `
                 <strong>${shapeType} Selected</strong><br>
                 <strong>Bounds:</strong><br>
                 N: ${north}°, S: ${south}°<br>
@@ -611,7 +621,9 @@
                 <strong>Area:</strong> ${areaDisplay}
             `;
             
-            document.getElementById('crop-selection').style.display = 'block';
+            if (cropSelection) {
+                cropSelection.style.display = 'block';
+            }
         }
         
         function calculateArea(layer) {
@@ -662,23 +674,36 @@
         }
         
         function enableAnalysisButtons() {
-            document.getElementById('simple-analyze-btn').disabled = false;
-            document.getElementById('save-site-btn').disabled = false;
-            document.getElementById('clear-btn').disabled = false;
+            const analyzeBtn = document.getElementById('simple-analyze-btn');
+            const saveBtn = document.getElementById('save-site-btn');
+            const clearBtn = document.getElementById('clear-btn');
+            
+            if (analyzeBtn) analyzeBtn.disabled = false;
+            if (saveBtn) saveBtn.disabled = false;
+            if (clearBtn) clearBtn.disabled = false;
         }
         
         function clearDrawings() {
-            drawnItems.clearLayers();
+            if (drawnItemsGroup) {
+                drawnItemsGroup.clearLayers();
+            }
             currentLayer = null;
             currentBounds = null;
             
-            document.getElementById('coordinates-display').innerHTML = 'No area selected';
-            document.getElementById('crop-selection').style.display = 'none';
-            document.getElementById('result-section').style.display = 'none';
+            const coordsDisplay = document.getElementById('coordinates-display');
+            const cropSelection = document.getElementById('crop-selection');
+            const resultSection = document.getElementById('result-section');
+            const analyzeBtn = document.getElementById('simple-analyze-btn');
+            const saveBtn = document.getElementById('save-site-btn');
+            const clearBtn = document.getElementById('clear-btn');
             
-            document.getElementById('simple-analyze-btn').disabled = true;
-            document.getElementById('save-site-btn').disabled = true;
-            document.getElementById('clear-btn').disabled = true;
+            if (coordsDisplay) coordsDisplay.innerHTML = 'No area selected';
+            if (cropSelection) cropSelection.style.display = 'none';
+            if (resultSection) resultSection.style.display = 'none';
+            
+            if (analyzeBtn) analyzeBtn.disabled = true;
+            if (saveBtn) saveBtn.disabled = true;
+            if (clearBtn) clearBtn.disabled = true;
         }
         
         function searchAddress() {
@@ -779,9 +804,13 @@
                 return;
             }
             
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('result-section').style.display = 'none';
-            document.getElementById('simple-analyze-btn').disabled = true;
+            const loadingEl = document.getElementById('loading');
+            const resultEl = document.getElementById('result-section');
+            const analyzeBtn = document.getElementById('simple-analyze-btn');
+            
+            if (loadingEl) loadingEl.style.display = 'block';
+            if (resultEl) resultEl.style.display = 'none';
+            if (analyzeBtn) analyzeBtn.disabled = true;
             
             const requestData = { 
                 bbox: [
@@ -812,37 +841,46 @@
                     const shapeType = currentLayer instanceof L.Polygon ? 'polygon' : 'rectangle';
                     const areaInfo = formatArea(calculateArea(currentLayer));
                     
-                    document.getElementById('ndvi-result').innerHTML = `
-                        <div style="position: relative; display: inline-block;">
-                            <img src="${imageUrl}" alt="NDVI Analysis" class="ndvi-image" style="cursor: pointer; width: 100%;" onclick="openImageModal('${imageUrl}', 'NDVI Vegetation Health Analysis<br>Shape: ${shapeType.toUpperCase()}<br>Area: ${areaInfo}')">
-                            <div style="position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.8); color: white; padding: 0.5rem; border-radius: 4px; font-size: 0.75rem;">
-                                📍 ${shapeType.toUpperCase()}: ${areaInfo}
+                    const ndviResultEl = document.getElementById('ndvi-result');
+                    if (ndviResultEl) {
+                        ndviResultEl.innerHTML = `
+                            <div style="position: relative; display: inline-block;">
+                                <img src="${imageUrl}" alt="NDVI Analysis" class="ndvi-image" style="cursor: pointer; width: 100%;" onclick="openImageModal('${imageUrl}', 'NDVI Vegetation Health Analysis<br>Shape: ${shapeType.toUpperCase()}<br>Area: ${areaInfo}')">
+                                <div style="position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.8); color: white; padding: 0.5rem; border-radius: 4px; font-size: 0.75rem;">
+                                    📍 ${shapeType.toUpperCase()}: ${areaInfo}
+                                </div>
+                                <button onclick="openImageModal('${imageUrl}', 'NDVI Vegetation Health Analysis')" style="position: absolute; top: 5px; right: 5px; background: rgba(88, 166, 255, 0.9); color: white; border: none; padding: 0.5rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 500;">🔍 Fullscreen</button>
                             </div>
-                            <button onclick="openImageModal('${imageUrl}', 'NDVI Vegetation Health Analysis')" style="position: absolute; top: 5px; right: 5px; background: rgba(88, 166, 255, 0.9); color: white; border: none; padding: 0.5rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 500;">🔍 Fullscreen</button>
-                        </div>
-                    `;
+                        `;
+                    }
                     
-                    document.getElementById('result-section').style.display = 'block';
+                    if (resultEl) resultEl.style.display = 'block';
                 } else {
                     const error = await response.json();
-                    document.getElementById('ndvi-result').innerHTML = `
-                        <div style="color: #e74c3c; padding: 1rem; background: #fdf2f2; border-radius: 8px;">
-                            <strong>Analysis Failed:</strong> ${error.message || 'Unable to process satellite data'}
-                        </div>
-                    `;
-                    document.getElementById('result-section').style.display = 'block';
+                    const ndviResultEl = document.getElementById('ndvi-result');
+                    if (ndviResultEl) {
+                        ndviResultEl.innerHTML = `
+                            <div style="color: #e74c3c; padding: 1rem; background: rgba(231, 76, 60, 0.1); border-radius: 8px;">
+                                <strong>Analysis Failed:</strong> ${error.message || 'Unable to process satellite data'}
+                            </div>
+                        `;
+                    }
+                    if (resultEl) resultEl.style.display = 'block';
                 }
             } catch (error) {
-                document.getElementById('ndvi-result').innerHTML = `
-                    <div style="color: #e74c3c; padding: 1rem; background: #fdf2f2; border-radius: 8px;">
-                        <strong>Error:</strong> Network connection failed
-                    </div>
-                `;
-                document.getElementById('result-section').style.display = 'block';
+                const ndviResultEl = document.getElementById('ndvi-result');
+                if (ndviResultEl) {
+                    ndviResultEl.innerHTML = `
+                        <div style="color: #e74c3c; padding: 1rem; background: rgba(231, 76, 60, 0.1); border-radius: 8px;">
+                            <strong>Error:</strong> Network connection failed
+                        </div>
+                    `;
+                }
+                if (resultEl) resultEl.style.display = 'block';
             }
             
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('simple-analyze-btn').disabled = false;
+            if (loadingEl) loadingEl.style.display = 'none';
+            if (analyzeBtn) analyzeBtn.disabled = false;
         }
         
         function openImageModal(imageSrc, info) {
