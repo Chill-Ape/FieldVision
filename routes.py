@@ -179,9 +179,15 @@ def save_field():
         
         if avg_ndvi_values:
             overall_avg = sum(avg_ndvi_values) / len(avg_ndvi_values)
-            if overall_avg < 0.1:  # Very low NDVI suggests water/urban area
+            logging.info(f"NDVI validation - Average NDVI: {overall_avg:.3f}, Individual values: {[round(v, 3) for v in avg_ndvi_values]}")
+            
+            # More lenient threshold - allow areas with potential agricultural use
+            if overall_avg < -0.2:  # Only reject if clearly water/urban (very negative NDVI)
                 db.session.rollback()
-                return jsonify({'success': False, 'message': 'The selected area appears to be over water or non-agricultural land. Please select an area with visible crops or vegetation.'}), 500
+                logging.warning(f"Site rejected - NDVI too low: {overall_avg:.3f}")
+                return jsonify({'success': False, 'message': 'The selected area appears to be over water or urban development. Please select an area with agricultural land or vegetation.'}), 500
+            
+            logging.info(f"Site approved - NDVI validation passed with average: {overall_avg:.3f}")
         
         # Cache the NDVI image
         field.cache_ndvi_image(ndvi_image_bytes)
