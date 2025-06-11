@@ -72,35 +72,50 @@
             min-height: calc(100vh - 50px);
         }
         
-        /* Fixed mobile menu button */
+        /* Mobile hamburger menu button */
         .fixed-mobile-btn {
             display: none !important;
         }
         
         @media (max-width: 991.98px) {
             .fixed-mobile-btn {
-                display: block !important;
+                display: flex !important;
                 position: fixed !important;
                 top: 10px !important;
-                right: 10px !important;
+                right: 15px !important;
+                flex-direction: column !important;
+                justify-content: center !important;
+                align-items: center !important;
                 cursor: pointer;
-                padding: 1rem !important;
-                border: 5px solid #ff0000 !important;
-                border-radius: 10px !important;
-                background: #ff0000 !important;
-                color: white !important;
-                font-size: 20px !important;
-                font-weight: bold !important;
+                padding: 8px !important;
+                border: 2px solid #58a6ff !important;
+                border-radius: 8px !important;
+                background: rgba(13, 17, 23, 0.95) !important;
+                backdrop-filter: blur(10px) !important;
                 z-index: 9999 !important;
-                width: 80px !important;
-                height: 60px !important;
-                text-align: center !important;
-                line-height: 20px !important;
+                width: 44px !important;
+                height: 44px !important;
+                transition: all 0.3s ease !important;
             }
             
             .fixed-mobile-btn:hover {
-                background: #cc0000 !important;
+                background: rgba(88, 166, 255, 0.1) !important;
+                border-color: #79c0ff !important;
             }
+            
+            .fixed-mobile-btn:active {
+                transform: scale(0.95) !important;
+            }
+        }
+        
+        /* Hamburger lines */
+        .hamburger-line {
+            width: 20px !important;
+            height: 2px !important;
+            background: #58a6ff !important;
+            margin: 2px 0 !important;
+            transition: all 0.3s ease !important;
+            border-radius: 1px !important;
         }
         
         /* Hamburger icon */
@@ -124,14 +139,17 @@
         /* Mobile navigation menu styling */
         .mobile-nav-menu {
             display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
+            position: fixed;
+            top: 70px;
+            right: 10px;
+            width: 250px;
             background: rgba(13, 17, 23, 0.98);
-            border-bottom: 2px solid rgba(88, 166, 255, 0.3);
-            padding: 1rem 0;
-            z-index: 1000;
+            border: 2px solid rgba(88, 166, 255, 0.3);
+            border-radius: 8px;
+            padding: 0.5rem 0;
+            z-index: 9998;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
         
         .mobile-nav-menu.show {
@@ -139,22 +157,30 @@
         }
         
         .mobile-nav-link {
-            display: block;
-            padding: 0.75rem 1.5rem;
-            color: #58a6ff;
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: #f0f6fc;
             text-decoration: none;
             transition: all 0.3s ease;
             border-bottom: 1px solid rgba(88, 166, 255, 0.1);
+            font-size: 14px;
         }
         
         .mobile-nav-link:hover {
             background: rgba(88, 166, 255, 0.1);
-            color: #ffffff;
+            color: #58a6ff;
             text-decoration: none;
         }
         
         .mobile-nav-link:last-child {
             border-bottom: none;
+        }
+        
+        .mobile-nav-link i {
+            margin-right: 8px;
+            width: 16px;
+            text-align: center;
         }
         
         /* Hide mobile menu on desktop */
@@ -289,7 +315,9 @@
         
         <!-- Fixed Mobile Menu Button (always visible on mobile) -->
         <div class="fixed-mobile-btn" onclick="toggleMobileMenu()">
-            MENU
+            <div class="hamburger-line"></div>
+            <div class="hamburger-line"></div>
+            <div class="hamburger-line"></div>
         </div>
         
         <!-- Mobile Navigation Menu (only visible on small screens) -->
