@@ -1709,7 +1709,7 @@
             }
         }
         
-        function autoSaveField() {
+        async function autoSaveField() {
             // Check if this is already a saved site
             const selectedSite = localStorage.getItem('selectedSite');
             if (selectedSite) {
@@ -1720,43 +1720,77 @@
                 return; // No area selected
             }
             
-            // Generate auto-save name based on coordinates and timestamp
-            const center_lat = (currentBounds.getSouth() + currentBounds.getNorth()) / 2;
-            const center_lng = (currentBounds.getWest() + currentBounds.getEast()) / 2;
-            const timestamp = new Date().toLocaleString().replace(/[:/]/g, '-');
-            const autoName = `Field_${center_lat.toFixed(4)}_${center_lng.toFixed(4)}_${timestamp}`;
-            
-            // Create site data
-            const siteData = {
-                name: autoName,
-                description: 'Auto-saved after NDVI generation',
-                geometry: currentLayer.toGeoJSON().geometry,
-                coordinates: {
-                    north: currentBounds.getNorth(),
-                    south: currentBounds.getSouth(),
-                    east: currentBounds.getEast(),
-                    west: currentBounds.getWest()
-                },
-                alerts: {
-                    lowNdvi: 0.3,
-                    highNdvi: 0.8
-                },
-                area: currentLayer instanceof L.Polygon ? 
-                    calculatePolygonArea(currentLayer.getLatLngs()[0]) :
-                    calculateRectangleArea(currentBounds),
-                created: new Date().toISOString()
-            };
-            
-            // Save to localStorage
-            let savedSites = JSON.parse(localStorage.getItem('savedSites') || '[]');
-            siteData.id = Date.now().toString();
-            savedSites.push(siteData);
-            localStorage.setItem('savedSites', JSON.stringify(savedSites));
-            
-            // Set as currently selected site for caching
-            localStorage.setItem('selectedSite', JSON.stringify(siteData));
-            
-            console.log(`Auto-saved field: ${autoName}`);
+            try {
+                // Generate auto-save name based on coordinates and timestamp
+                const center_lat = (currentBounds.getSouth() + currentBounds.getNorth()) / 2;
+                const center_lng = (currentBounds.getWest() + currentBounds.getEast()) / 2;
+                const timestamp = new Date().toLocaleString().replace(/[:/]/g, '-');
+                const autoName = `Field_${center_lat.toFixed(4)}_${center_lng.toFixed(4)}_${timestamp}`;
+                
+                // Get polygon coordinates for database
+                const coordinates = currentLayer instanceof L.Polygon ? 
+                    currentLayer.getLatLngs()[0].map(latlng => [latlng.lat, latlng.lng]) :
+                    [
+                        [currentBounds.getNorth(), currentBounds.getWest()],
+                        [currentBounds.getNorth(), currentBounds.getEast()],
+                        [currentBounds.getSouth(), currentBounds.getEast()],
+                        [currentBounds.getSouth(), currentBounds.getWest()],
+                        [currentBounds.getNorth(), currentBounds.getWest()]
+                    ];
+                
+                // Save to database
+                const response = await fetch('/api/save_field', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: autoName,
+                        polygon: coordinates
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    const fieldId = result.field_id;
+                    
+                    // Create site data for localStorage with database field ID
+                    const siteData = {
+                        id: fieldId.toString(), // Use database ID
+                        name: autoName,
+                        description: 'Auto-saved after NDVI generation',
+                        geometry: currentLayer.toGeoJSON().geometry,
+                        coordinates: {
+                            north: currentBounds.getNorth(),
+                            south: currentBounds.getSouth(),
+                            east: currentBounds.getEast(),
+                            west: currentBounds.getWest()
+                        },
+                        alerts: {
+                            lowNdvi: 0.3,
+                            highNdvi: 0.8
+                        },
+                        area: currentLayer instanceof L.Polygon ? 
+                            calculatePolygonArea(currentLayer.getLatLngs()[0]) :
+                            calculateRectangleArea(currentBounds),
+                        created: new Date().toISOString()
+                    };
+                    
+                    // Save to localStorage
+                    let savedSites = JSON.parse(localStorage.getItem('savedSites') || '[]');
+                    savedSites.push(siteData);
+                    localStorage.setItem('savedSites', JSON.stringify(savedSites));
+                    
+                    // Set as currently selected site for caching
+                    localStorage.setItem('selectedSite', JSON.stringify(siteData));
+                    
+                    console.log(`Auto-saved field: ${autoName} with database ID: ${fieldId}`);
+                } else {
+                    console.error('Failed to auto-save field to database');
+                }
+            } catch (error) {
+                console.error('Error auto-saving field:', error);
+            }
         }
         
         // Full-screen image modal functions

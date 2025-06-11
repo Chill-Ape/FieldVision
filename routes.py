@@ -45,11 +45,10 @@ def save_field():
         center_lng = sum(coord[1] for coord in coordinates) / len(coordinates)
         
         # Create new field
-        field = Field(
-            name=data['name'],
-            center_lat=center_lat,
-            center_lng=center_lng
-        )
+        field = Field()
+        field.name = data['name']
+        field.center_lat = center_lat
+        field.center_lng = center_lng
         field.set_polygon_coordinates(coordinates)
         
         db.session.add(field)
@@ -144,6 +143,37 @@ def delete_field(field_id):
         logging.error(f"Error deleting field {field_id}: {str(e)}")
         db.session.rollback()
         return jsonify({'error': 'Failed to delete field'}), 500
+
+@app.route('/field/<field_id>/cached_ndvi')
+def get_cached_ndvi(field_id):
+    """Serve cached NDVI image for a field"""
+    try:
+        from app import db
+        cached_data = db.session.execute(
+            db.text("SELECT cached_ndvi_image, ndvi_cache_date FROM field WHERE id = :id AND cached_ndvi_image IS NOT NULL"), 
+            {"id": field_id}
+        ).fetchone()
+        
+        if cached_data and cached_data[0]:
+            # Check if cache is fresh (within 30 days)
+            from datetime import timedelta, datetime
+            if cached_data[1]:
+                cache_age = datetime.utcnow() - cached_data[1]
+                if cache_age < timedelta(days=30):
+                    return Response(
+                        cached_data[0],
+                        mimetype='image/png',
+                        headers={
+                            'Content-Disposition': f'inline; filename="ndvi_field_{field_id}.png"',
+                            'Cache-Control': 'public, max-age=86400'
+                        }
+                    )
+        
+        return jsonify({'error': 'No cached NDVI image found'}), 404
+        
+    except Exception as e:
+        logging.error(f"Error retrieving cached NDVI for field {field_id}: {e}")
+        return jsonify({'error': 'Failed to retrieve cached image'}), 500
 
 @app.route('/api/field_history/<int:field_id>')
 def field_history(field_id):
