@@ -260,8 +260,8 @@ def analyze_field(field_id):
         # Calculate field zones (3x3 grid)
         zones = calculate_field_zones(coordinates)
         
-        # Process real NDVI data for each zone
-        ndvi_data = process_ndvi_data(ndvi_image_data, zones)
+        # Process real NDVI data for each zone with accurate geometric mapping
+        ndvi_data = process_ndvi_data(ndvi_image_data, zones, field_coordinates=coordinates, field_bbox=bbox)
         
         if not ndvi_data:
             return jsonify({'error': 'Failed to process satellite imagery data'}), 500
