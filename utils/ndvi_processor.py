@@ -30,29 +30,47 @@ def process_ndvi_data(image_data, zones):
         # Convert to numpy array for processing
         img_array = np.array(image)
         
-        # Handle different image formats
+        # Handle different image formats - Sentinel Hub returns colorized NDVI images
         if len(img_array.shape) == 3:
-            # For RGB images from Sentinel Hub, NDVI is typically in the red channel
-            # or we need to convert the colorized NDVI back to values
+            # For colorized NDVI images from Sentinel Hub
+            # Convert RGB color to NDVI values based on standard color mapping
             if img_array.shape[2] >= 3:
-                # Extract NDVI from colorized image
-                # Green areas typically have higher values
-                green_channel = img_array[:, :, 1].astype(float)
-                red_channel = img_array[:, :, 0].astype(float)
+                r = img_array[:, :, 0].astype(float)
+                g = img_array[:, :, 1].astype(float) 
+                b = img_array[:, :, 2].astype(float)
                 
-                # Convert RGB back to NDVI approximation
-                # Higher green = higher NDVI, lower red = higher NDVI
-                ndvi_array = (green_channel - red_channel) / (green_channel + red_channel + 1e-8)
-                # Normalize to proper NDVI range
+                # Convert colorized NDVI back to actual values
+                # Green areas indicate healthy vegetation (high NDVI ~0.5-0.8)
+                # Red/brown areas indicate bare soil or stressed vegetation (low NDVI ~0.0-0.3)
+                # Blue areas indicate water (negative NDVI)
+                
+                # Create NDVI mapping based on color analysis
+                ndvi_array = np.zeros_like(r)
+                
+                # Identify green vegetation areas (high green channel)
+                green_mask = (g > r) & (g > b) & (g > 100)
+                ndvi_array[green_mask] = 0.3 + (g[green_mask] / 255.0) * 0.5  # 0.3 to 0.8 range
+                
+                # Identify moderately vegetated areas (yellowish-green)
+                moderate_mask = (g > r) & (g > 80) & (g <= 100) & (~green_mask)
+                ndvi_array[moderate_mask] = 0.2 + (g[moderate_mask] / 255.0) * 0.3  # 0.2 to 0.5 range
+                
+                # Identify bare soil/stressed areas (reddish-brown)
+                stressed_mask = (r >= g) & (r > 50) & (~green_mask) & (~moderate_mask)
+                ndvi_array[stressed_mask] = 0.05 + (r[stressed_mask] / 255.0) * 0.2  # 0.05 to 0.25 range
+                
+                # Water or very low vegetation (bluish or very dark)
+                water_mask = (b > r) & (b > g) | ((r + g + b) < 150)
+                ndvi_array[water_mask] = -0.1 + ((r[water_mask] + g[water_mask]) / 510.0) * 0.15  # -0.1 to 0.05 range
+                
+                # Ensure values are in valid NDVI range
                 ndvi_array = np.clip(ndvi_array, -1, 1)
             else:
-                # Grayscale image
-                ndvi_array = img_array[:, :, 0].astype(float) / 255.0 * 2 - 1
+                # Grayscale image - convert to NDVI range
+                ndvi_array = (img_array[:, :, 0].astype(float) / 255.0) * 1.6 - 0.3  # Map to typical NDVI range
         else:
-            # Already grayscale
-            ndvi_array = img_array.astype(float)
-            if ndvi_array.max() > 1:
-                ndvi_array = ndvi_array / 255.0 * 2 - 1
+            # Already grayscale - convert to NDVI range
+            ndvi_array = (img_array.astype(float) / 255.0) * 1.6 - 0.3
         
         # Calculate NDVI values for each zone by sampling image regions
         zone_ndvi = {}
