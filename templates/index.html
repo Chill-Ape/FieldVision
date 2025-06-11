@@ -1917,7 +1917,14 @@
         }
         
         async function analyzeNDVI() {
-            if (!currentBounds) {
+            // Check for mobile selection first
+            const isMobile = window.innerWidth <= 767.98;
+            if (isMobile && !window.mobileSelectedCoordinates && !currentBounds) {
+                alert('Please select an area using "Draw Site Area" button first.');
+                return;
+            }
+            
+            if (!isMobile && !currentBounds) {
                 alert('Please draw an area on the map first.');
                 return;
             }
@@ -2015,7 +2022,14 @@
         
         // AI-Powered Field Analysis
         async function analyzeFieldWithAI() {
-            if (!currentBounds) {
+            // Check for mobile selection first
+            const isMobile = window.innerWidth <= 767.98;
+            if (isMobile && !window.mobileSelectedCoordinates && !currentBounds) {
+                alert('Please select an area using "Draw Site Area" button first');
+                return;
+            }
+            
+            if (!isMobile && !currentBounds) {
                 alert('Please select an area first');
                 return;
             }
