@@ -72,26 +72,36 @@
             min-height: calc(100vh - 50px);
         }
         
-        /* Fix mobile navbar toggle icon visibility */
+        /* Hide navbar toggle by default (desktop) */
         .navbar-toggler {
-            border: 2px solid #58a6ff !important;
-            padding: 0.5rem 0.75rem !important;
-            background: rgba(88, 166, 255, 0.2) !important;
-            border-radius: 8px !important;
-            display: block !important;
-            position: relative !important;
-            z-index: 1050 !important;
+            display: none !important;
         }
         
-        .navbar-toggler:focus {
-            box-shadow: 0 0 0 0.25rem rgba(88, 166, 255, 0.5) !important;
-            border-color: #58a6ff !important;
-            outline: none !important;
+        /* Show navbar toggle only on mobile */
+        @media (max-width: 991.98px) {
+            .navbar-toggler {
+                display: block !important;
+                border: 2px solid #58a6ff !important;
+                padding: 0.5rem 0.75rem !important;
+                background: rgba(88, 166, 255, 0.2) !important;
+                border-radius: 8px !important;
+                position: relative !important;
+                z-index: 1050 !important;
+            }
         }
         
-        .navbar-toggler:hover {
-            background: rgba(88, 166, 255, 0.3) !important;
-            border-color: #58a6ff !important;
+        /* Focus and hover states only on mobile */
+        @media (max-width: 991.98px) {
+            .navbar-toggler:focus {
+                box-shadow: 0 0 0 0.25rem rgba(88, 166, 255, 0.5) !important;
+                border-color: #58a6ff !important;
+                outline: none !important;
+            }
+            
+            .navbar-toggler:hover {
+                background: rgba(88, 166, 255, 0.3) !important;
+                border-color: #58a6ff !important;
+            }
         }
         
         .navbar-toggler-icon {
