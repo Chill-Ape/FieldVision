@@ -908,31 +908,107 @@
                     throw new Error('Leaflet library not loaded');
                 }
                 
-                // Clear any existing map instance
+                // Clear any existing map instance completely
                 if (mapElement._leaflet_id) {
-                    delete window[L.Util.stamp(mapElement)];
-                    mapElement._leaflet_id = undefined;
+                    try {
+                        if (window.map) {
+                            window.map.remove();
+                            window.map = null;
+                        }
+                        delete mapElement._leaflet_id;
+                        mapElement.innerHTML = '';
+                    } catch (e) {
+                        console.log('Error cleaning up previous map:', e);
+                    }
                 }
                 
-                // Create map with mobile-optimized settings
-                map = L.map(mapElement, {
-                    zoomControl: true,
-                    attributionControl: true,
-                    scrollWheelZoom: true,
-                    doubleClickZoom: true,
-                    touchZoom: true,
-                    dragging: true,
-                    tap: true,
-                    tapTolerance: 15,
-                    fadeAnimation: false,
-                    zoomAnimation: false,
-                    markerZoomAnimation: false
-                }).setView([37.7749, -122.4194], 10);
+                // Mobile-specific map configuration
+                const isMobile = window.innerWidth <= 767.98;
+                let mapOptions;
                 
-                // Store map reference for mobile handling
-                mapElement._leaflet_map = map;
+                if (isMobile) {
+                    mapOptions = {
+                        zoomControl: true,
+                        attributionControl: false,
+                        scrollWheelZoom: false,
+                        doubleClickZoom: true,
+                        touchZoom: true,
+                        dragging: false,
+                        tap: true,
+                        tapTolerance: 25,
+                        fadeAnimation: false,
+                        zoomAnimation: false,
+                        markerZoomAnimation: false,
+                        preferCanvas: false, // Use SVG on mobile for better compatibility
+                        worldCopyJump: false,
+                        maxBoundsViscosity: 1.0
+                    };
+                } else {
+                    mapOptions = {
+                        zoomControl: true,
+                        attributionControl: true,
+                        scrollWheelZoom: true,
+                        doubleClickZoom: true,
+                        touchZoom: true,
+                        dragging: true,
+                        tap: true,
+                        tapTolerance: 15,
+                        fadeAnimation: false,
+                        zoomAnimation: false,
+                        markerZoomAnimation: false
+                    };
+                }
                 
-                console.log('Map instance created successfully');
+                console.log('Creating map with options:', mapOptions);
+                
+                // Create map instance with progressive fallback
+                let mapCreated = false;
+                
+                // Try primary map creation
+                try {
+                    map = L.map(mapElement, mapOptions);
+                    map.setView([37.7749, -122.4194], 10);
+                    mapElement._leaflet_map = map;
+                    window.map = map;
+                    mapCreated = true;
+                    console.log('Primary map instance created successfully');
+                } catch (primaryError) {
+                    console.error('Primary map creation failed:', primaryError);
+                    
+                    // Try minimal configuration for mobile
+                    if (isMobile) {
+                        console.log('Attempting minimal mobile map creation...');
+                        try {
+                            // Clear the element completely
+                            mapElement.innerHTML = '';
+                            delete mapElement._leaflet_id;
+                            
+                            // Minimal options
+                            map = L.map(mapElement).setView([37.7749, -122.4194], 10);
+                            mapElement._leaflet_map = map;
+                            window.map = map;
+                            mapCreated = true;
+                            console.log('Minimal mobile map created successfully');
+                        } catch (minimalError) {
+                            console.error('Minimal map creation failed:', minimalError);
+                            
+                            // Last resort: Try with just the element ID
+                            try {
+                                console.log('Attempting basic map creation with element ID...');
+                                map = L.map('map').setView([37.7749, -122.4194], 10);
+                                mapElement._leaflet_map = map;
+                                window.map = map;
+                                mapCreated = true;
+                                console.log('Basic map created successfully');
+                            } catch (basicError) {
+                                console.error('All map creation attempts failed:', basicError);
+                                throw new Error('Unable to create interactive map on this device');
+                            }
+                        }
+                    } else {
+                        throw primaryError;
+                    }
+                }
             
             // Define map layers
             const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
@@ -1105,35 +1181,94 @@
                 console.error('Error creating map:', error);
                 mapInitialized = false;
                 
-                // Show user-friendly error message
-                const mapElement = document.getElementById('map');
-                if (mapElement) {
-                    mapElement.innerHTML = `
-                        <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: rgba(13, 17, 23, 0.95); color: #c9d1d9; font-family: 'Exo 2', sans-serif;">
-                            <div style="text-align: center; padding: 2rem;">
-                                <div style="color: #f85149; font-size: 2rem; margin-bottom: 1rem;">⚠️</div>
-                                <h3 style="color: #58a6ff; margin-bottom: 1rem;">Map Loading Error</h3>
-                                <p style="color: #8b949e; margin-bottom: 1rem;">Unable to initialize the map interface.</p>
-                                <button onclick="retryMapInit()" style="background: #58a6ff; color: #0d1117; border: none; padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer; font-family: 'Exo 2', sans-serif; margin-right: 0.5rem;">Retry</button>
-                                <button onclick="location.reload()" style="background: #30363d; color: #c9d1d9; border: none; padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer; font-family: 'Exo 2', sans-serif;">Reload Page</button>
+                // Try fallback mobile map for mobile devices
+                const isMobile = window.innerWidth <= 767.98;
+                if (isMobile) {
+                    console.log('Attempting mobile fallback map...');
+                    createMobileFallbackMap();
+                } else {
+                    // Show error message for desktop
+                    const mapElement = document.getElementById('map');
+                    if (mapElement) {
+                        mapElement.innerHTML = `
+                            <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: rgba(13, 17, 23, 0.95); color: #c9d1d9; font-family: 'Exo 2', sans-serif;">
+                                <div style="text-align: center; padding: 2rem;">
+                                    <div style="color: #f85149; font-size: 2rem; margin-bottom: 1rem;">⚠️</div>
+                                    <h3 style="color: #58a6ff; margin-bottom: 1rem;">Map Loading Error</h3>
+                                    <p style="color: #8b949e; margin-bottom: 1rem;">Unable to initialize the map interface.</p>
+                                    <button onclick="retryMapInit()" style="background: #58a6ff; color: #0d1117; border: none; padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer; font-family: 'Exo 2', sans-serif; margin-right: 0.5rem;">Retry</button>
+                                    <button onclick="location.reload()" style="background: #30363d; color: #c9d1d9; border: none; padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer; font-family: 'Exo 2', sans-serif;">Reload Page</button>
+                                </div>
                             </div>
-                        </div>
-                    `;
+                        `;
+                    }
                 }
             }
         }
         
+        // Mobile fallback map for when Leaflet fails
+        function createMobileFallbackMap() {
+            console.log('Creating mobile fallback map...');
+            const mapElement = document.getElementById('map');
+            
+            if (mapElement) {
+                mapElement.innerHTML = `
+                    <div style="position: relative; width: 100%; height: 100%; background: rgba(13, 17, 23, 0.95); color: #c9d1d9; font-family: 'Exo 2', sans-serif;">
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; width: 90%; max-width: 400px;">
+                            <div style="color: #58a6ff; font-size: 3rem; margin-bottom: 1.5rem;">🗺️</div>
+                            <h2 style="color: #58a6ff; margin-bottom: 1rem; font-size: 1.5rem;">Mobile Map Interface</h2>
+                            <p style="color: #8b949e; margin-bottom: 2rem; line-height: 1.5;">The interactive map is optimized for desktop use. On mobile, you can still access all field analysis features.</p>
+                            
+                            <div style="background: rgba(30, 36, 61, 0.6); border: 1px solid rgba(88, 166, 255, 0.15); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                                <h3 style="color: #58a6ff; margin-bottom: 1rem; font-size: 1.1rem;">Alternative Options:</h3>
+                                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                    <button onclick="location.href='/dashboard'" style="background: #58a6ff; color: #0d1117; border: none; padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer; font-family: 'Exo 2', sans-serif; font-weight: 500;">View Saved Fields</button>
+                                    <button onclick="location.href='/reports'" style="background: rgba(88, 166, 255, 0.1); color: #58a6ff; border: 1px solid rgba(88, 166, 255, 0.3); padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer; font-family: 'Exo 2', sans-serif;">Field Reports</button>
+                                    <button onclick="retryMapInit()" style="background: #30363d; color: #c9d1d9; border: none; padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer; font-family: 'Exo 2', sans-serif;">Try Map Again</button>
+                                </div>
+                            </div>
+                            
+                            <p style="color: #6e7681; font-size: 0.85rem;">For the best mapping experience, please use a desktop or tablet device.</p>
+                        </div>
+                    </div>
+                `;
+                
+                mapInitialized = true; // Mark as initialized to prevent retries
+                console.log('Mobile fallback map created successfully');
+            }
+        }
+
         function retryMapInit() {
+            console.log('Retrying map initialization...');
             mapInitialized = false;
+            
+            // Complete cleanup
+            if (window.map) {
+                try {
+                    window.map.remove();
+                } catch (e) {
+                    console.log('Error removing map:', e);
+                }
+                window.map = null;
+            }
+            
             map = null;
             drawnItems = null;
+            
             const mapElement = document.getElementById('map');
             if (mapElement) {
+                // Clear all Leaflet-related attributes
+                delete mapElement._leaflet_id;
                 mapElement.innerHTML = '';
+                mapElement.className = mapElement.className.replace(/leaflet-[^\s]*/g, '');
             }
+            
+            // Show loading indicator
+            showMapLoading();
+            
             setTimeout(() => {
                 initMap();
-            }, 500);
+            }, 1000);
         }
         
         function updateBounds(bounds) {
