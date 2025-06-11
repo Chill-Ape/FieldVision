@@ -72,21 +72,26 @@
             min-height: calc(100vh - 50px);
         }
         
-        /* Hide navbar toggle by default (desktop) */
+        /* Show navbar toggle by default */
         .navbar-toggler {
-            display: none !important;
+            display: block !important;
+            border: 2px solid #58a6ff !important;
+            padding: 0.5rem 0.75rem !important;
+            background: rgba(88, 166, 255, 0.2) !important;
+            border-radius: 8px !important;
+            position: relative !important;
+            z-index: 1050 !important;
         }
         
-        /* Show navbar toggle only on mobile */
-        @media (max-width: 1199.98px) {
+        /* Hide navbar toggle on large screens (desktop) */
+        @media (min-width: 1200px) {
             .navbar-toggler {
+                display: none !important;
+            }
+            
+            /* Show navbar menu on desktop */
+            .navbar-collapse {
                 display: block !important;
-                border: 2px solid #58a6ff !important;
-                padding: 0.5rem 0.75rem !important;
-                background: rgba(88, 166, 255, 0.2) !important;
-                border-radius: 8px !important;
-                position: relative !important;
-                z-index: 1050 !important;
             }
         }
         
@@ -195,7 +200,7 @@
 
     
     <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-xl navbar-custom sticky-top" style="overflow: hidden;">
+    <nav class="navbar navbar-custom sticky-top" style="overflow: hidden;">
         <div class="container" style="max-height: 60px; overflow: hidden;">
             <a class="navbar-brand" href="/">
                 <i class="fas fa-seedling me-2"></i>FieldVision AI
