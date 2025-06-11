@@ -22,6 +22,9 @@
                     </div>
                 </div>
                 <div class="d-flex gap-2">
+                    <button class="btn btn-info" onclick="loadPage('/ai_insights/{{ field.id }}', event)">
+                        <i class="fas fa-brain me-1"></i>AI Insights
+                    </button>
                     <button class="btn btn-primary" onclick="updateNDVI({{ field.id }})">
                         <i class="fas fa-sync me-1"></i>Update NDVI
                     </button>

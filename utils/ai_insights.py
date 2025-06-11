@@ -63,7 +63,11 @@ class AgricultureAI:
                 max_tokens=2000
             )
             
-            ai_analysis = json.loads(response.choices[0].message.content)
+            content = response.choices[0].message.content
+            if content:
+                ai_analysis = json.loads(content)
+            else:
+                raise Exception("Empty response from AI model")
             
             return {
                 "analysis_date": datetime.now().isoformat(),
@@ -139,7 +143,11 @@ class AgricultureAI:
                 max_tokens=1500
             )
             
-            return json.loads(response.choices[0].message.content)
+            content = response.choices[0].message.content
+            if content:
+                return json.loads(content)
+            else:
+                return {"error": "Empty response from AI model"}
             
         except Exception as e:
             return {"error": f"Zone analysis failed: {str(e)}"}
@@ -200,7 +208,11 @@ class AgricultureAI:
                 max_tokens=1200
             )
             
-            return json.loads(response.choices[0].message.content)
+            content = response.choices[0].message.content
+            if content:
+                return json.loads(content)
+            else:
+                return {"error": "Empty response from AI model"}
             
         except Exception as e:
             return {"error": f"Timing prediction failed: {str(e)}"}
