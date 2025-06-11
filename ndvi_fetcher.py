@@ -172,9 +172,9 @@ function evaluatePixel(sample) {
             if response.status_code == 200:
                 logger.info(f"Successfully fetched NDVI image ({len(response.content)} bytes)")
                 
-                # Apply polygon masking if geometry is provided
-                if geometry:
-                    return self._apply_polygon_mask(response.content, bbox, geometry, width, height)
+                # Temporarily disable polygon masking to debug NDVI generation
+                # if geometry:
+                #     return self._apply_polygon_mask(response.content, bbox, geometry, width, height)
                 
                 return response.content
             else:
