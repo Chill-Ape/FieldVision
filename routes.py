@@ -246,6 +246,23 @@ def get_cached_ndvi(field_id):
         }
     )
 
+@app.route('/health')
+def health_check():
+    """API health check endpoint"""
+    try:
+        # Check if Sentinel Hub is properly configured
+        is_configured = auth_handler.is_authenticated()
+        return jsonify({
+            'status': 'healthy',
+            'sentinel_hub_configured': is_configured
+        })
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return jsonify({
+            'status': 'error',
+            'sentinel_hub_configured': False
+        }), 500
+
 @app.route('/ndvi', methods=['GET', 'POST'])
 def get_ndvi_image():
     """
