@@ -185,8 +185,17 @@
                                                      data-bs-parent="#ai-accordion-{{ insight.id }}">
                                                     <div class="accordion-body bg-dark text-light">
                                                         {% set ai_data = insight.get_ai_analysis() %}
-                                                        {% set ai_insights = ai_data.ai_insights if ai_data and ai_data.ai_insights else {} %}
-                                                        {% if ai_insights %}
+                                                        
+                                                        <!-- Debug: Check data structure -->
+                                                        <div class="mb-2 small text-info border p-2">
+                                                            <strong>Debug Info:</strong><br>
+                                                            AI Data Keys: {{ ai_data.keys() | list if ai_data else 'None' }}<br>
+                                                            Has ai_insights: {{ 'ai_insights' in ai_data if ai_data else 'False' }}<br>
+                                                            AI Insights Type: {{ ai_data.ai_insights.__class__.__name__ if ai_data and 'ai_insights' in ai_data else 'N/A' }}
+                                                        </div>
+                                                        
+                                                        {% if ai_data and 'ai_insights' in ai_data %}
+                                                            {% set ai_insights = ai_data['ai_insights'] %}
                                                             <!-- Overall Health Assessment -->
                                                             {% if ai_insights.overall_health_assessment %}
                                                             <div class="mb-3">
@@ -259,6 +268,22 @@
                                                                     {% endfor %}
                                                                 </ul>
                                                             </div>
+                                                            {% endif %}
+                                                        {% else %}
+                                                            <!-- Fallback when AI insights data is missing or malformed -->
+                                                            <div class="alert alert-warning" role="alert">
+                                                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                                                <strong>AI Analysis Data Issue</strong><br>
+                                                                The AI analysis data appears to be incomplete or corrupted. 
+                                                                Try generating a new AI insight for this field.
+                                                            </div>
+                                                            
+                                                            <!-- Debug info for troubleshooting -->
+                                                            {% if ai_data %}
+                                                            <details class="mt-2">
+                                                                <summary class="text-muted small">Technical Details</summary>
+                                                                <pre class="text-muted small mt-1">{{ ai_data | tojson(indent=2) }}</pre>
+                                                            </details>
                                                             {% endif %}
                                                         {% endif %}
                                                     </div>
