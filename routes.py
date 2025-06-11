@@ -160,7 +160,28 @@ def save_field():
         
         if not ndvi_image_bytes:
             db.session.rollback()
-            return jsonify({'success': False, 'message': 'Failed to generate NDVI image. Site cannot be saved without satellite data.'}), 500
+            return jsonify({'success': False, 'message': 'Failed to generate NDVI image. Please ensure the selected area contains agricultural land with vegetation coverage.'}), 500
+        
+        # Analyze NDVI data to check if it contains meaningful vegetation data
+        analysis_results = analyze_field_ndvi(ndvi_image_bytes, geometry)
+        
+        # Check if the selected area has sufficient vegetation data
+        if not analysis_results or not analysis_results.get('zone_stats'):
+            db.session.rollback()
+            return jsonify({'success': False, 'message': 'The selected area does not contain sufficient vegetation data. Please select an area with crops or agricultural land.'}), 500
+        
+        # Check average NDVI values to ensure agricultural relevance
+        zone_stats = analysis_results.get('zone_stats', {})
+        avg_ndvi_values = []
+        for stats in zone_stats.values():
+            if isinstance(stats, dict) and 'mean_ndvi' in stats:
+                avg_ndvi_values.append(stats['mean_ndvi'])
+        
+        if avg_ndvi_values:
+            overall_avg = sum(avg_ndvi_values) / len(avg_ndvi_values)
+            if overall_avg < 0.1:  # Very low NDVI suggests water/urban area
+                db.session.rollback()
+                return jsonify({'success': False, 'message': 'The selected area appears to be over water or non-agricultural land. Please select an area with visible crops or vegetation.'}), 500
         
         # Cache the NDVI image
         field.cache_ndvi_image(ndvi_image_bytes)
