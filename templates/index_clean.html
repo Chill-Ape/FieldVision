@@ -915,10 +915,29 @@
                     
                     // Force proper event handling across entire map area
                     const mapContainer = mapInstance.getContainer();
+                    
+                    // Force map container to highest z-index
+                    mapContainer.style.zIndex = '999999';
+                    mapContainer.style.position = 'relative';
+                    mapContainer.style.pointerEvents = 'auto';
+                    
+                    // Remove any blocking overlays that might exist
+                    const blockingElements = document.querySelectorAll('[style*="position: fixed"], [style*="position: absolute"]');
+                    blockingElements.forEach(el => {
+                        const style = window.getComputedStyle(el);
+                        const zIndex = parseInt(style.zIndex) || 0;
+                        if (zIndex > 1000 && el.id !== 'saveSiteModal' && el.id !== 'imageModal') {
+                            console.log('Removing blocking element:', el);
+                            el.style.pointerEvents = 'none';
+                        }
+                    });
+                    
+                    // Force all map panes to be interactive
                     const mapPanes = mapContainer.getElementsByClassName('leaflet-map-pane')[0];
                     if (mapPanes) {
                         mapPanes.style.pointerEvents = 'auto';
                         mapPanes.style.cursor = 'grab';
+                        mapPanes.style.zIndex = '1000000';
                         
                         // Force all child elements to allow pointer events
                         const allElements = mapPanes.querySelectorAll('*');
@@ -927,10 +946,19 @@
                         });
                     }
                     
+                    // Force leaflet controls to be interactive
+                    const leafletControls = mapContainer.querySelectorAll('.leaflet-control-container *');
+                    leafletControls.forEach(el => {
+                        el.style.pointerEvents = 'auto';
+                        el.style.zIndex = '1000001';
+                    });
+                    
                     // Add event listeners to debug mouse events
                     mapContainer.addEventListener('mousedown', function(e) {
                         console.log('Mouse down at:', e.clientY, 'container height:', mapContainer.offsetHeight);
                     });
+                    
+                    console.log('Applied z-index fixes for map interaction');
                     
                 }, 100);
             } catch (error) {
