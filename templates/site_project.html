@@ -61,14 +61,17 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    {% if field.has_cached_ndvi() %}
-                        <div class="text-center mb-3 position-relative">
+                    <div class="text-center mb-3 position-relative">
+                        {% if field.has_cached_ndvi() or latest_analysis %}
                             <div class="form-check form-check-inline mb-2">
                                 <input class="form-check-input" type="checkbox" id="zoneOverlay" onchange="toggleZoneOverlay()">
                                 <label class="form-check-label text-light" for="zoneOverlay">
                                     <small>Show Zone Boundaries</small>
                                 </label>
                             </div>
+                        {% endif %}
+                        
+                        {% if field.has_cached_ndvi() %}
                             <div class="position-relative d-inline-block" id="ndvi-container">
                                 <img id="ndvi-image" 
                                      src="{{ url_for('get_cached_ndvi', field_id=field.id) }}" 
@@ -84,7 +87,14 @@
                                     The satellite analysis image could not be loaded. Please try regenerating the analysis.
                                 </div>
                             </div>
-                        </div>
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-satellite-dish fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">No NDVI Data Available</h5>
+                                <p class="text-muted">Run "Update NDVI Analysis" to generate satellite imagery and zone data.</p>
+                            </div>
+                        {% endif %}
+                    </div>
                         
                         {% if latest_analysis %}
                         <div class="row">
