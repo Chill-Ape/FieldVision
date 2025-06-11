@@ -272,11 +272,21 @@ def analyze_field(field_id):
         # Get weather data
         weather_data = get_weather_data(field.center_lat, field.center_lng)
         
-        # Calculate health scores based on NDVI values
+        # Calculate health scores based on NDVI values using proper classification
         health_scores = {}
         for zone_id, ndvi_value in ndvi_data.items():
-            # Store the actual NDVI value for template access
-            health_scores[zone_id] = ndvi_value
+            # Convert NDVI to health classification
+            if ndvi_value >= 0.8:
+                health_category = 'excellent'
+            elif ndvi_value >= 0.6:
+                health_category = 'good'
+            elif ndvi_value >= 0.4:
+                health_category = 'moderate'
+            elif ndvi_value >= 0.2:
+                health_category = 'stressed'
+            else:
+                health_category = 'poor'
+            health_scores[zone_id] = health_category
         
         # Save analysis to database
         analysis = FieldAnalysis(field_id=field_id)
