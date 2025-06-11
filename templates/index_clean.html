@@ -600,9 +600,6 @@
 {% endblock %}
 
 {% block scripts %}
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
     
     <script>
         let mapInstance;
@@ -613,8 +610,24 @@
         
         function initializePage(page) {
             if (page === '/') {
-                initializeMap();
+                setTimeout(() => {
+                    if (typeof L !== 'undefined' && L.Control && L.Control.Draw) {
+                        initializeMap();
+                    } else {
+                        console.error('Leaflet Draw not loaded');
+                        loadLeafletDraw();
+                    }
+                }, 200);
             }
+        }
+        
+        function loadLeafletDraw() {
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js';
+            script.onload = () => {
+                setTimeout(initializeMap, 100);
+            };
+            document.head.appendChild(script);
         }
         
         let currentTileLayer;
