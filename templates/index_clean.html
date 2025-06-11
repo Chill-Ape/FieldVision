@@ -170,29 +170,7 @@
             transform: none;
         }
         
-        .quick-locations {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
-        }
-        
-        .quick-location-btn {
-            padding: 0.5rem;
-            background: rgba(30, 36, 61, 0.6);
-            border: 1px solid rgba(88, 166, 255, 0.15);
-            border-radius: 4px;
-            color: #8b949e;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 0.8rem;
-            font-family: 'Exo 2', sans-serif;
-        }
-        
-        .quick-location-btn:hover {
-            color: #58a6ff;
-            border-color: rgba(88, 166, 255, 0.3);
-            background: rgba(88, 166, 255, 0.05);
-        }
+
         
         .coordinates-display {
             background: rgba(30, 36, 61, 0.6);
@@ -381,15 +359,7 @@
             </div>
         </div>
         
-        <div class="section">
-            <h3>Quick Access</h3>
-            <div class="quick-locations">
-                <button class="quick-location-btn" onclick="flyToLocation('sf')">San Francisco</button>
-                <button class="quick-location-btn" onclick="flyToLocation('central_valley')">Central Valley</button>
-                <button class="quick-location-btn" onclick="flyToLocation('napa')">Napa Valley</button>
-                <button class="quick-location-btn" onclick="flyToLocation('salinas')">Salinas Valley</button>
-            </div>
-        </div>
+
         
         <div class="section">
             <h3>Area Selection</h3>
@@ -661,13 +631,17 @@
         }
         
         function formatArea(area) {
+            // Convert from decimal degrees to acres using proper conversion
             let acres = area * 247.105;
             let hectares = area * 111.32 * 111.32 / 10000;
             
-            if (acres < 1) {
-                return `${(acres * 43560).toFixed(0)} sq ft`;
+            if (acres < 0.1) {
+                let sqft = acres * 43560;
+                return `${sqft.toFixed(0)} sq ft (${acres.toFixed(3)} acres)`;
+            } else if (acres < 1) {
+                return `${acres.toFixed(2)} acres (${hectares.toFixed(3)} ha)`;
             } else if (acres < 100) {
-                return `${acres.toFixed(2)} acres (${hectares.toFixed(2)} ha)`;
+                return `${acres.toFixed(1)} acres (${hectares.toFixed(1)} ha)`;
             } else {
                 return `${acres.toFixed(0)} acres (${hectares.toFixed(0)} ha)`;
             }
@@ -727,19 +701,7 @@
                 });
         }
         
-        function flyToLocation(location) {
-            const locations = {
-                'sf': [37.7749, -122.4194, 12],
-                'central_valley': [36.7783, -119.4179, 10],
-                'napa': [38.5025, -122.2654, 12],
-                'salinas': [36.6777, -121.6555, 11]
-            };
-            
-            if (locations[location]) {
-                let [lat, lng, zoom] = locations[location];
-                mapInstance.setView([lat, lng], zoom);
-            }
-        }
+
         
         function showSaveSiteModal() {
             document.getElementById('saveSiteModal').style.display = 'block';
