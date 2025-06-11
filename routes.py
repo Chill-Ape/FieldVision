@@ -275,12 +275,8 @@ def analyze_field(field_id):
         # Calculate health scores based on NDVI values
         health_scores = {}
         for zone_id, ndvi_value in ndvi_data.items():
-            if ndvi_value > 0.6:
-                health_scores[zone_id] = 'healthy'
-            elif ndvi_value > 0.3:
-                health_scores[zone_id] = 'moderate'
-            else:
-                health_scores[zone_id] = 'stressed'
+            # Store the actual NDVI value for template access
+            health_scores[zone_id] = ndvi_value
         
         # Save analysis to database
         analysis = FieldAnalysis(field_id=field_id)

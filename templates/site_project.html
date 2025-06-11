@@ -79,7 +79,7 @@
                             <div class="col-md-6">
                                 <h6 class="text-light mb-3">Zone Health Summary</h6>
                                 {% set health_scores = latest_analysis.get_health_scores() %}
-                                {% if health_scores %}
+                                {% if health_scores and health_scores is mapping %}
                                     {% for zone_id, stats in health_scores.items() %}
                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                         {% set zone_name = zone_id %}
@@ -336,13 +336,20 @@
                                         </div>
                                         <div class="row">
                                             {% set ndvi_data = analysis.get_ndvi_data() %}
-                                            {% if ndvi_data %}
-                                                {% set ndvi_values = ndvi_data.values() | list %}
-                                                {% set avg_ndvi = (ndvi_values | sum) / (ndvi_values | length) %}
-                                                <div class="col-md-6">
-                                                    <small class="text-muted">Average NDVI:</small>
-                                                    <span class="fw-bold text-info">{{ "%.3f"|format(avg_ndvi) }}</span>
-                                                </div>
+                                            {% if ndvi_data and ndvi_data is mapping %}
+                                                {% set ndvi_values = [] %}
+                                                {% for value in ndvi_data.values() %}
+                                                    {% if value is number %}
+                                                        {% set _ = ndvi_values.append(value) %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                                {% if ndvi_values %}
+                                                    {% set avg_ndvi = (ndvi_values | sum) / (ndvi_values | length) %}
+                                                    <div class="col-md-6">
+                                                        <small class="text-muted">Average NDVI:</small>
+                                                        <span class="fw-bold text-info">{{ "%.3f"|format(avg_ndvi) }}</span>
+                                                    </div>
+                                                {% endif %}
                                             {% endif %}
                                             <div class="col-md-6">
                                                 {% set recommendations = analysis.get_recommendations() %}
