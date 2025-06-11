@@ -60,50 +60,23 @@ function evaluatePixel(sample) {
         return [0.4, 0.4, 0.4]; // Dark gray for masked pixels
     }
     
-    // Store original NDVI for debugging and apply adaptive contrast enhancement
-    let originalNdvi = ndvi;
+
     
-    // Apply adaptive histogram equalization for agricultural areas
-    // Focus on the typical crop range (0.2-0.9) and stretch it to full color range
-    if (ndvi >= 0.2 && ndvi <= 0.9) {
-        // Normalize to 0-1 range within agricultural bounds
-        let normalized = (ndvi - 0.2) / 0.7;
-        
-        // Apply sigmoid stretch for better visual separation
-        let sigmoid = 1 / (1 + Math.exp(-8 * (normalized - 0.5)));
-        
-        // Map back to expanded NDVI range for better color separation
-        ndvi = 0.2 + sigmoid * 0.7;
-    }
-    
-    // Add small random variation to prevent uniform areas (only for visualization)
-    if (ndvi > 0.4) {
-        let variation = (Math.random() - 0.5) * 0.05; // ±2.5% variation
-        ndvi = Math.max(0.2, Math.min(0.9, ndvi + variation));
-    }
-    
-    // Fine-grained NDVI color mapping with maximum agricultural detail
-    if (ndvi < -0.3) return [0.1, 0.1, 0.3]; // Deep water - navy blue
-    if (ndvi < -0.1) return [0.3, 0.3, 0.5]; // Shallow water - blue
-    if (ndvi < 0.05) return [0.7, 0.6, 0.4]; // Bare soil/sand - tan
-    if (ndvi < 0.1) return [0.9, 0.1, 0.1]; // Critical stress - bright red
-    if (ndvi < 0.15) return [0.9, 0.3, 0.1]; // Severe stress - red-orange
-    if (ndvi < 0.2) return [0.9, 0.5, 0.1]; // High stress - orange
-    if (ndvi < 0.25) return [0.9, 0.7, 0.1]; // Moderate stress - orange-yellow
-    if (ndvi < 0.3) return [0.9, 0.9, 0.1]; // Mild stress - yellow
-    if (ndvi < 0.35) return [0.7, 0.9, 0.2]; // Early recovery - yellow-green
-    if (ndvi < 0.4) return [0.5, 0.9, 0.3]; // Fair vigor - light green
-    if (ndvi < 0.42) return [0.4, 0.8, 0.2]; // Below average - medium light green
-    if (ndvi < 0.44) return [0.3, 0.75, 0.15]; // Average vigor - medium green
-    if (ndvi < 0.46) return [0.25, 0.7, 0.1]; // Above average - green
-    if (ndvi < 0.48) return [0.2, 0.65, 0.08]; // Good vigor - darker green
-    if (ndvi < 0.5) return [0.15, 0.6, 0.06]; // Very good - dark green
-    if (ndvi < 0.52) return [0.12, 0.55, 0.05]; // High vigor - very dark green
-    if (ndvi < 0.54) return [0.1, 0.5, 0.04]; // Superior vigor - deep green
-    if (ndvi < 0.56) return [0.08, 0.45, 0.03]; // Excellent vigor - deeper green
-    if (ndvi < 0.58) return [0.06, 0.4, 0.02]; // Outstanding vigor - very deep green
-    if (ndvi < 0.6) return [0.04, 0.35, 0.01]; // Peak vigor - deepest green
-    return [0.02, 0.3, 0.0]; // Maximum vigor - forest green
+    // Agricultural stress detection color mapping
+    if (ndvi < -0.3) return [0.2, 0.2, 0.4]; // Deep water - dark blue
+    if (ndvi < -0.1) return [0.4, 0.4, 0.6]; // Shallow water - blue
+    if (ndvi < 0.05) return [0.8, 0.7, 0.6]; // Bare soil/sand - tan
+    if (ndvi < 0.1) return [1.0, 0.2, 0.2]; // Critical stress/dying vegetation - bright red
+    if (ndvi < 0.15) return [1.0, 0.4, 0.2]; // Severe stress - red-orange
+    if (ndvi < 0.2) return [1.0, 0.6, 0.2]; // Moderate stress - orange
+    if (ndvi < 0.25) return [1.0, 0.8, 0.2]; // Mild stress - yellow-orange
+    if (ndvi < 0.3) return [1.0, 1.0, 0.2]; // Early stress - yellow
+    if (ndvi < 0.35) return [0.8, 1.0, 0.2]; // Recovery/low vigor - light green
+    if (ndvi < 0.45) return [0.6, 0.9, 0.1]; // Moderate health - green
+    if (ndvi < 0.55) return [0.4, 0.8, 0.1]; // Good health - darker green
+    if (ndvi < 0.65) return [0.2, 0.7, 0.1]; // Very healthy - dark green
+    if (ndvi < 0.75) return [0.1, 0.6, 0.1]; // Excellent health - very dark green
+    return [0.05, 0.4, 0.05]; // Peak health - deepest green
 }
 """
     
