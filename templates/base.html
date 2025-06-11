@@ -72,14 +72,17 @@
             min-height: calc(100vh - 50px);
         }
         
-        /* Mobile menu button - show only on small screens */
-        .mobile-menu-btn {
+        /* Fixed mobile menu button */
+        .fixed-mobile-btn {
             display: none !important;
         }
         
         @media (max-width: 991.98px) {
-            .mobile-menu-btn {
+            .fixed-mobile-btn {
                 display: block !important;
+                position: fixed !important;
+                top: 10px !important;
+                right: 10px !important;
                 cursor: pointer;
                 padding: 1rem !important;
                 border: 5px solid #ff0000 !important;
@@ -88,14 +91,14 @@
                 color: white !important;
                 font-size: 20px !important;
                 font-weight: bold !important;
-                position: relative !important;
                 z-index: 9999 !important;
-                width: 60px !important;
+                width: 80px !important;
                 height: 60px !important;
-                margin-left: auto !important;
+                text-align: center !important;
+                line-height: 20px !important;
             }
             
-            .mobile-menu-btn:hover {
+            .fixed-mobile-btn:hover {
                 background: #cc0000 !important;
             }
         }
@@ -238,8 +241,8 @@
 
     
     <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg navbar-custom sticky-top" style="overflow: hidden;">
-        <div class="container" style="max-height: 60px; overflow: hidden;">
+    <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
+        <div class="container">
             <a class="navbar-brand" href="/">
                 <i class="fas fa-seedling me-2"></i>FieldVision AI
             </a>
@@ -282,6 +285,11 @@
                     </li>
                 </ul>
             </div>
+        </div>
+        
+        <!-- Fixed Mobile Menu Button (always visible on mobile) -->
+        <div class="fixed-mobile-btn" onclick="toggleMobileMenu()">
+            MENU
         </div>
         
         <!-- Mobile Navigation Menu (only visible on small screens) -->
