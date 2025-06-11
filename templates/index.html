@@ -477,6 +477,182 @@
         .sidebar::-webkit-scrollbar-thumb:hover {
             background: rgba(88, 166, 255, 0.5);
         }
+        
+        /* Mobile Responsive Design */
+        @media (max-width: 767.98px) {
+            .container {
+                flex-direction: column;
+                height: auto;
+                min-height: calc(100vh - 60px);
+                padding: 1rem;
+                gap: 1rem;
+            }
+            
+            .sidebar {
+                width: 100%;
+                min-height: auto;
+                max-height: none;
+                padding: 1rem;
+                order: 1;
+            }
+            
+            .map-container {
+                width: 100%;
+                height: 400px;
+                min-height: 400px;
+                order: 2;
+                position: relative;
+            }
+            
+            #map {
+                width: 100%;
+                height: 100%;
+                min-height: 400px;
+            }
+            
+            .section {
+                margin-bottom: 1.5rem;
+            }
+            
+            .section h3 {
+                font-size: 1rem;
+                margin-bottom: 0.75rem;
+                padding-bottom: 0.5rem;
+            }
+            
+            .search-container {
+                margin-bottom: 1rem;
+            }
+            
+            .search-input {
+                font-size: 16px; /* Prevent zoom on iOS */
+                padding: 0.75rem;
+            }
+            
+            .btn {
+                font-size: 16px; /* Prevent zoom on iOS */
+                padding: 0.75rem 1rem;
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+            
+            .quick-locations {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+            
+            .quick-location-btn {
+                padding: 0.75rem;
+                font-size: 16px; /* Prevent zoom on iOS */
+            }
+            
+            .status-indicator {
+                padding: 0.75rem 1rem;
+                font-size: 0.9rem;
+            }
+            
+            /* Improve map controls on mobile */
+            .leaflet-control-container {
+                font-size: 14px;
+            }
+            
+            .leaflet-control-zoom {
+                border: 1px solid rgba(88, 166, 255, 0.3) !important;
+            }
+            
+            .leaflet-control-zoom a {
+                background-color: rgba(13, 17, 23, 0.9) !important;
+                color: #58a6ff !important;
+                border-color: rgba(88, 166, 255, 0.3) !important;
+                width: 40px !important;
+                height: 40px !important;
+                line-height: 38px !important;
+            }
+        }
+        
+        /* Mobile map overlay controls */
+        .map-overlay {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            pointer-events: none;
+        }
+        
+        .map-toggle-btn {
+            background: #58a6ff;
+            color: white;
+            border: none;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            pointer-events: auto;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
+            font-family: 'Exo 2', sans-serif;
+        }
+        
+        .map-toggle-btn:hover {
+            background: #4493f8;
+            transform: translateY(-1px);
+        }
+        
+        .map-scroll-hint {
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            background: rgba(13, 17, 23, 0.95);
+            color: #58a6ff;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 12px;
+            max-width: 200px;
+            z-index: 1001;
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            display: none;
+            font-family: 'Exo 2', sans-serif;
+        }
+        
+        .map-container.touch-disabled {
+            pointer-events: none;
+            touch-action: pan-y;
+        }
+        
+        .map-container.touch-disabled .leaflet-container {
+            pointer-events: none;
+            touch-action: pan-y;
+        }
+        
+        .map-container.touch-disabled .map-overlay {
+            pointer-events: auto;
+        }
+        
+        /* Tablet responsive design */
+        @media (min-width: 768px) and (max-width: 991.98px) {
+            .container {
+                padding: 1rem;
+                gap: 1rem;
+            }
+            
+            .sidebar {
+                width: 320px;
+                padding: 1rem;
+            }
+            
+            .section h3 {
+                font-size: 0.9rem;
+            }
+        }
+        
+        /* Hide mobile map controls on desktop */
+        @media (min-width: 768px) {
+            .map-overlay,
+            .map-scroll-hint {
+                display: none !important;
+            }
+        }
     </style>
 {% endblock %}
 
@@ -688,7 +864,52 @@
         
         // Initialize map
         function initMap() {
-            map = L.map('map').setView([37.7749, -122.4194], 10);
+            try {
+                console.log('Starting initializeMap function');
+                const mapElement = document.getElementById('map');
+                const mapContainer = mapElement.parentElement;
+                
+                console.log('Map element:', mapElement);
+                console.log('Map container:', mapContainer);
+                
+                if (!mapElement) {
+                    console.error('Map element not found');
+                    return;
+                }
+                
+                // Get dimensions for debugging
+                const rect = mapElement.getBoundingClientRect();
+                console.log('Map element dimensions:', {width: rect.width, height: rect.height});
+                
+                // Ensure proper height on mobile
+                if (window.innerWidth <= 767.98) {
+                    mapContainer.style.height = '400px';
+                    mapElement.style.height = '400px';
+                    console.log('Set map container height');
+                    console.log('Set map element height');
+                } else {
+                    mapContainer.style.height = '100%';
+                    mapElement.style.height = '100%';
+                }
+                
+                // Update dimensions after setting height
+                const newRect = mapElement.getBoundingClientRect();
+                console.log('Updated map element dimensions:', {width: newRect.width, height: newRect.height});
+                
+                console.log('Creating Leaflet map instance');
+                map = L.map('map', {
+                    zoomControl: true,
+                    attributionControl: true,
+                    scrollWheelZoom: true,
+                    doubleClickZoom: true,
+                    touchZoom: true,
+                    dragging: true,
+                    tap: true,
+                    tapTolerance: 15
+                }).setView([37.7749, -122.4194], 10);
+                
+                // Store map reference for mobile handling
+                mapElement._leaflet_map = map;
             
             // Define map layers
             const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
@@ -817,6 +1038,59 @@
                 updateCoordinatesDisplay();
                 document.getElementById('analyze-btn').disabled = true;
             });
+            
+            console.log('Adding satellite tile layer to map...');
+            // Ensure the satellite layer is properly loaded
+            satelliteLayer.on('load', function() {
+                console.log('Satellite layer loaded successfully');
+            });
+            
+            satelliteLayer.on('tileerror', function(e) {
+                console.error('Tile loading error:', e);
+            });
+            
+            console.log('Satellite layer added');
+            console.log('Layer buttons updated');
+            console.log('Creating drawn items group...');
+            console.log('Drawn items group added to map');
+            console.log('Adding layer control widget...');
+            console.log('Layer control widget added');
+            console.log('Setting up draw event handlers...');
+            console.log('Draw event handlers set up');
+            console.log('Checking API status...');
+            console.log('Map initialization completed successfully!');
+            
+            // Force map size invalidation for mobile
+            setTimeout(() => {
+                console.log('Invalidating map size...');
+                map.invalidateSize();
+                console.log('Map size invalidated');
+                
+                // Check if map has loaded properly
+                setTimeout(() => {
+                    console.log('Map has layers:', map.hasLayer(satelliteLayer));
+                    console.log('Map zoom level:', map.getZoom());
+                    console.log('Map center:', map.getCenter());
+                }, 1000);
+            }, 500);
+            
+            } catch (error) {
+                console.error('Error creating map:', error);
+                // Show user-friendly error message
+                const mapElement = document.getElementById('map');
+                if (mapElement) {
+                    mapElement.innerHTML = `
+                        <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: rgba(13, 17, 23, 0.95); color: #c9d1d9; font-family: 'Exo 2', sans-serif;">
+                            <div style="text-align: center; padding: 2rem;">
+                                <div style="color: #f85149; font-size: 2rem; margin-bottom: 1rem;">⚠️</div>
+                                <h3 style="color: #58a6ff; margin-bottom: 1rem;">Map Loading Error</h3>
+                                <p style="color: #8b949e; margin-bottom: 1rem;">Unable to initialize the map interface.</p>
+                                <button onclick="location.reload()" style="background: #58a6ff; color: #0d1117; border: none; padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer; font-family: 'Exo 2', sans-serif;">Reload Page</button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
         }
         
         function updateBounds(bounds) {
@@ -1603,23 +1877,31 @@
         
         // Initialize everything when page loads
         document.addEventListener('DOMContentLoaded', function() {
-            initMap();
-            checkAPIStatus();
-            
-            // Check for selected site from dashboard
-            const selectedSite = localStorage.getItem('selectedSite');
-            if (selectedSite) {
-                const site = JSON.parse(selectedSite);
-                loadSiteOnMap(site);
-                localStorage.removeItem('selectedSite');
+            // Wait for all CSS and layout to settle before initializing map
+            setTimeout(() => {
+                initMap();
+                checkAPIStatus();
                 
-                // Auto-analyze if requested
-                const autoAnalyze = localStorage.getItem('autoAnalyze');
-                if (autoAnalyze === 'true') {
-                    localStorage.removeItem('autoAnalyze');
-                    setTimeout(() => analyzeNDVI(), 1000);
+                // Initialize mobile map handling after map is created
+                if (typeof initializeMobileMapHandling === 'function') {
+                    initializeMobileMapHandling();
                 }
-            }
+                
+                // Check for selected site from dashboard
+                const selectedSite = localStorage.getItem('selectedSite');
+                if (selectedSite) {
+                    const site = JSON.parse(selectedSite);
+                    loadSiteOnMap(site);
+                    localStorage.removeItem('selectedSite');
+                    
+                    // Auto-analyze if requested
+                    const autoAnalyze = localStorage.getItem('autoAnalyze');
+                    if (autoAnalyze === 'true') {
+                        localStorage.removeItem('autoAnalyze');
+                        setTimeout(() => analyzeNDVI(), 1000);
+                    }
+                }
+            }, 300);
         });
         
         function loadSiteOnMap(site) {
