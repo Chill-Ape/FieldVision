@@ -260,50 +260,8 @@ def get_ndvi_image():
         image_data = ndvi_fetcher.fetch_ndvi_image(bbox, geometry=geometry)
         
         if image_data:
-            # Auto-save field with NDVI image if not already saved
-            if not field_id and geometry:
-                try:
-                    from app import db
-                    from models import Field
-                    
-                    # Calculate center point from bbox
-                    center_lat = (bbox[1] + bbox[3]) / 2
-                    center_lng = (bbox[0] + bbox[2]) / 2
-                    
-                    # Generate auto-save name
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    auto_name = f"Field_{center_lat:.4f}_{center_lng:.4f}_{timestamp}"
-                    
-                    # Create new field with NDVI cache
-                    field = Field()
-                    field.name = auto_name
-                    field.center_lat = center_lat
-                    field.center_lng = center_lng
-                    field.polygon_data = json.dumps(geometry.get('coordinates', [])[0] if geometry else [])
-                    field.created_at = datetime.utcnow()
-                    field.cached_ndvi_image = image_data
-                    field.ndvi_cache_date = datetime.utcnow()
-                    
-                    db.session.add(field)
-                    db.session.commit()
-                    
-                    logger.info(f"Auto-saved field '{auto_name}' with cached NDVI (ID: {field.id})")
-                    
-                    # Return field ID in response headers for frontend to use
-                    headers = {
-                        'Content-Disposition': f'inline; filename="ndvi_{bbox[0]}_{bbox[1]}.png"',
-                        'Cache-Control': 'public, max-age=3600',
-                        'X-Field-Id': str(field.id),
-                        'X-Field-Name': auto_name
-                    }
-                    
-                    return Response(image_data, mimetype='image/png', headers=headers)
-                    
-                except Exception as e:
-                    logger.warning(f"Could not auto-save field: {e}")
-            
             # Cache the image if this is for an existing saved field
-            elif field_id:
+            if field_id:
                 try:
                     from app import db
                     db.session.execute(
