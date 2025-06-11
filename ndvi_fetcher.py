@@ -5,6 +5,9 @@ Handles NDVI image requests and processing
 
 import requests
 import logging
+import numpy as np
+from io import BytesIO
+from PIL import Image, ImageDraw
 from typing import List, Tuple, Optional
 from datetime import datetime, timedelta
 from auth import SentinelHubAuth
@@ -128,8 +131,8 @@ function evaluatePixel(sample) {
         
         Args:
             bbox: Bounding box coordinates [min_lng, min_lat, max_lng, max_lat] in EPSG:4326
-            width: Output image width in pixels (default 5000 for ultra-high detail)
-            height: Output image height in pixels (default 5000 for ultra-high detail)
+            width: Output image width in pixels (default 2500 for maximum detail)
+            height: Output image height in pixels (default 2500 for maximum detail)
             geometry: Optional GeoJSON geometry for polygon masking
             
         Returns:
@@ -161,6 +164,11 @@ function evaluatePixel(sample) {
             
             if response.status_code == 200:
                 logger.info(f"Successfully fetched NDVI image ({len(response.content)} bytes)")
+                
+                # Apply polygon masking if geometry is provided
+                if geometry:
+                    return self._apply_polygon_mask(response.content, bbox, geometry, width, height)
+                
                 return response.content
             else:
                 logger.error(f"Failed to fetch NDVI image: {response.status_code} - {response.text}")
@@ -200,3 +208,77 @@ function evaluatePixel(sample) {
             logger.warning("Bounding box is quite large, consider reducing size for better performance")
         
         return True
+    
+    def _apply_polygon_mask(self, image_bytes: bytes, bbox: List[float], geometry: dict, width: int, height: int) -> bytes:
+        """
+        Apply polygon masking to NDVI image to show data only within selected polygon
+        
+        Args:
+            image_bytes: Original NDVI image bytes
+            bbox: Bounding box coordinates [min_lng, min_lat, max_lng, max_lat]
+            geometry: GeoJSON geometry containing polygon coordinates
+            width: Image width in pixels
+            height: Image height in pixels
+            
+        Returns:
+            Masked image bytes
+        """
+        try:
+            # Load the original image
+            img = Image.open(BytesIO(image_bytes))
+            
+            # Convert to RGBA for transparency support
+            if img.mode != 'RGBA':
+                img = img.convert('RGBA')
+            
+            # Create a mask image
+            mask = Image.new('L', (width, height), 0)
+            draw = ImageDraw.Draw(mask)
+            
+            # Extract polygon coordinates
+            if geometry.get('type') == 'Polygon':
+                coordinates = geometry['coordinates'][0]  # First ring (exterior)
+            else:
+                logger.warning("Geometry is not a polygon, skipping mask")
+                return image_bytes
+            
+            # Convert geo coordinates to pixel coordinates
+            min_lng, min_lat, max_lng, max_lat = bbox
+            pixel_coords = []
+            
+            for coord in coordinates:
+                lng, lat = coord
+                # Convert to pixel coordinates
+                x = int((lng - min_lng) / (max_lng - min_lng) * width)
+                y = int((max_lat - lat) / (max_lat - min_lat) * height)
+                pixel_coords.append((x, y))
+            
+            # Draw the polygon mask (white inside polygon)
+            draw.polygon(pixel_coords, fill=255)
+            
+            # Apply the mask to the image
+            # Create a transparent background
+            result = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+            
+            # Paste the NDVI image only where the mask is white
+            result.paste(img, (0, 0))
+            
+            # Apply mask - make areas outside polygon transparent
+            pixels = result.load()
+            mask_pixels = mask.load()
+            
+            for y in range(height):
+                for x in range(width):
+                    if mask_pixels[x, y] == 0:  # Outside polygon
+                        pixels[x, y] = (0, 0, 0, 0)  # Transparent
+            
+            # Save to bytes
+            output = BytesIO()
+            result.save(output, format='PNG', optimize=True)
+            
+            logger.info("Successfully applied polygon mask to NDVI image")
+            return output.getvalue()
+            
+        except Exception as e:
+            logger.error(f"Error applying polygon mask: {e}")
+            return image_bytes  # Return original on error
