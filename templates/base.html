@@ -24,11 +24,10 @@
             background: rgba(13, 17, 23, 0.95);
             border-bottom: 1px solid rgba(88, 166, 255, 0.3);
             backdrop-filter: blur(10px);
-            padding: 0.25rem 0 !important;
-            height: 50px !important;
-            max-height: 50px !important;
-            min-height: 50px !important;
-            overflow: hidden !important;
+            padding: 0.5rem 0 !important;
+            height: 70px !important;
+            max-height: 70px !important;
+            min-height: 70px !important;
             position: fixed !important;
             top: 0 !important;
             left: 0 !important;
@@ -68,8 +67,8 @@
         }
         
         .main-content {
-            padding-top: 50px;
-            min-height: calc(100vh - 50px);
+            padding-top: 70px;
+            min-height: calc(100vh - 70px);
         }
         
         /* Mobile hamburger menu button */
@@ -81,20 +80,20 @@
             .fixed-mobile-btn {
                 display: flex !important;
                 position: fixed !important;
-                top: 10px !important;
+                top: 15px !important;
                 right: 15px !important;
                 flex-direction: column !important;
-                justify-content: center !important;
+                justify-content: space-around !important;
                 align-items: center !important;
                 cursor: pointer;
-                padding: 10px !important;
+                padding: 12px 8px !important;
                 border: 2px solid #58a6ff !important;
                 border-radius: 8px !important;
                 background: rgba(13, 17, 23, 0.95) !important;
                 backdrop-filter: blur(10px) !important;
                 z-index: 9999 !important;
-                width: 50px !important;
-                height: 50px !important;
+                width: 52px !important;
+                height: 52px !important;
                 transition: all 0.3s ease !important;
             }
             
@@ -110,12 +109,13 @@
         
         /* Hamburger lines */
         .hamburger-line {
-            width: 24px !important;
+            width: 26px !important;
             height: 3px !important;
             background: #58a6ff !important;
-            margin: 3px 0 !important;
+            margin: 0 !important;
             transition: all 0.3s ease !important;
             border-radius: 2px !important;
+            flex-shrink: 0 !important;
         }
         
         /* Hamburger icon */
@@ -140,7 +140,7 @@
         .mobile-nav-menu {
             display: none;
             position: fixed;
-            top: 70px;
+            top: 80px;
             right: 10px;
             width: 250px;
             background: rgba(13, 17, 23, 0.98);
@@ -345,9 +345,14 @@
     <!-- Mobile Navigation Script -->
     <script>
         function toggleMobileMenu() {
+            console.log('Toggle mobile menu clicked');
             const mobileNav = document.getElementById('mobile-nav');
+            console.log('Mobile nav element:', mobileNav);
             if (mobileNav) {
                 mobileNav.classList.toggle('show');
+                console.log('Menu toggled, classes:', mobileNav.className);
+            } else {
+                console.error('Mobile nav element not found');
             }
         }
         
