@@ -122,17 +122,17 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="#" data-page="/" onclick="loadPage('/', event)">
+                        <a class="nav-link" href="/">
                             <i class="fas fa-map me-1"></i>Map Interface
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" data-page="/dashboard" onclick="loadPage('/dashboard', event)">
+                        <a class="nav-link" href="/dashboard">
                             <i class="fas fa-tachometer-alt me-1"></i>Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" data-page="/reports" onclick="loadPage('/reports', event)">
+                        <a class="nav-link" href="/reports">
                             <i class="fas fa-chart-bar me-1"></i>Reports
                         </a>
                     </li>
@@ -144,7 +144,7 @@
                             <i class="fas fa-user-circle me-1"></i>Account
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark">
-                            <li><a class="dropdown-item" href="#" onclick="loadPage('/dashboard', event)"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                            <li><a class="dropdown-item" href="/dashboard"><i class="fas fa-cog me-2"></i>Settings</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>Sign Out</a></li>
                         </ul>
@@ -162,175 +162,22 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- SPA JavaScript -->
+    <!-- Navigation JavaScript -->
     <script>
-        window.currentPage = window.location.pathname;
-        
-        function showLoading() {
-            document.getElementById('loadingOverlay').style.display = 'flex';
-        }
-        
-        function hideLoading() {
-            document.getElementById('loadingOverlay').style.display = 'none';
-        }
-        
-        function updateActiveNav(page) {
-            // Remove active class from all nav links
+        // Simple navigation highlighting
+        function updateActiveNav() {
+            const currentPath = window.location.pathname;
             document.querySelectorAll('.nav-link').forEach(link => {
                 link.classList.remove('active');
-            });
-            
-            // Add active class to current page nav link
-            const activeLink = document.querySelector(`[data-page="${page}"]`);
-            if (activeLink) {
-                activeLink.classList.add('active');
-            }
-        }
-        
-        async function loadPage(page, event) {
-            if (event) {
-                event.preventDefault();
-            }
-            
-            if (page === window.currentPage) {
-                return; // Already on this page
-            }
-            
-            showLoading();
-            
-            try {
-                const response = await fetch(`${page}?ajax=1`);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const html = await response.text();
-                
-                // Parse response and extract content
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                
-                // Get the content block
-                const contentBlock = doc.querySelector('[data-content-block]') || doc.querySelector('.container');
-                
-                if (contentBlock) {
-                    // Update main content
-                    document.getElementById('mainContent').innerHTML = contentBlock.innerHTML;
-                    
-                    // Update browser URL without page reload
-                    history.pushState({page: page}, '', page);
-                    window.currentPage = page;
-                    
-                    // Update active navigation
-                    updateActiveNav(page);
-                    
-                    // Initialize page-specific functionality
-                    initializeSPAPage(page);
-                } else {
-                    // Fallback to full page reload if content block not found
-                    window.location.href = page;
-                }
-                
-            } catch (error) {
-                console.error('Error loading page:', error);
-                // Fallback to full page reload on error
-                window.location.href = page;
-            } finally {
-                hideLoading();
-            }
-        }
-        
-        function executeScripts() {
-            const scripts = document.getElementById('mainContent').querySelectorAll('script');
-            scripts.forEach(script => {
-                try {
-                    if (script.src) {
-                        // For external scripts, create new script element
-                        const newScript = document.createElement('script');
-                        newScript.src = script.src;
-                        newScript.onload = function() {
-                            // Initialize page after script loads
-                            if (typeof initializePage === 'function') {
-                                initializePage(window.currentPage);
-                            }
-                        };
-                        document.head.appendChild(newScript);
-                    } else {
-                        // For inline scripts, execute directly
-                        eval(script.textContent);
-                    }
-                } catch (error) {
-                    console.error('Error executing script:', error);
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
                 }
             });
         }
         
-        function initializeSPAPage(page) {
-            // Wait for DOM content to be ready
-            setTimeout(() => {
-                // Initialize page-specific functionality based on the current page
-                if (page === '/' || page === '/index') {
-                    // For map interface, call its specific initialization
-                    if (typeof window.initializePage === 'function') {
-                        window.initializePage(page);
-                    } else if (typeof initializeMap === 'function') {
-                        initializeMap();
-                    } else if (typeof L !== 'undefined' && document.getElementById('map')) {
-                        // Fallback map initialization
-                        initializeMapFallback();
-                    }
-                } else if (page.includes('/dashboard')) {
-                    // Initialize dashboard functionality
-                    if (typeof initializeDashboard === 'function') {
-                        initializeDashboard();
-                    }
-                } else if (page.includes('/site/')) {
-                    // Initialize site project functionality  
-                    if (typeof initializeSiteProject === 'function') {
-                        initializeSiteProject();
-                    }
-                } else if (page.includes('/reports')) {
-                    // Initialize reports functionality
-                    if (typeof initializeReports === 'function') {
-                        initializeReports();
-                    }
-                }
-            }, 300);
-        }
-        
-        function initializeMapFallback() {
-            if (document.getElementById('map') && typeof L !== 'undefined') {
-                // Basic map initialization as fallback
-                const map = L.map('map', {
-                    center: [37.7749, -122.4194],
-                    zoom: 10,
-                    zoomControl: true
-                });
-                
-                // Add satellite tile layer as default
-                const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                    attribution: '© Esri'
-                });
-                satelliteLayer.addTo(map);
-                
-                window.map = map;
-            }
-        }
-        
-        // Handle browser back/forward buttons
-        window.addEventListener('popstate', function(event) {
-            const page = event.state ? event.state.page : '/';
-            window.currentPage = '';  // Force reload
-            loadPage(page);
-        });
-        
-        // Initialize on page load
+        // Update navigation on page load
         document.addEventListener('DOMContentLoaded', function() {
-            window.currentPage = window.location.pathname;
-            updateActiveNav(window.currentPage);
-            
-            // Set initial state
-            history.replaceState({page: window.currentPage}, '', window.currentPage);
+            updateActiveNav();
         });
     </script>
     

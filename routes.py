@@ -33,13 +33,13 @@ def render_spa_template(template_name, **context):
 @app.route('/')
 def index():
     """Main page with map interface"""
-    return render_spa_template('index_clean.html')
+    return render_template('index_clean.html')
 
 @app.route('/dashboard')
 def dashboard():
     """Dashboard showing all saved fields"""
     fields = Field.query.order_by(Field.created_at.desc()).all()
-    return render_spa_template('dashboard_content.html', fields=fields)
+    return render_template('dashboard_content.html', fields=fields)
 
 @app.route('/field/<int:field_id>')
 def field_detail(field_id):
@@ -62,10 +62,10 @@ def reports():
         logger.info(f"Found {len(fields)} fields for reports page")
         for field in fields:
             logger.info(f"Field: {field.name}, ID: {field.id}")
-        return render_spa_template('reports.html', fields=fields)
+        return render_template('reports.html', fields=fields)
     except Exception as e:
         logger.error(f"Error loading reports: {e}")
-        return render_spa_template('reports.html', fields=[])
+        return render_template('reports.html', fields=[])
 
 @app.route('/site/<int:field_id>')
 def site_project(field_id):
