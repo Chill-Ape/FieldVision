@@ -6,6 +6,7 @@ Handles NDVI image requests and processing
 import requests
 import logging
 import numpy as np
+import math
 from io import BytesIO
 from PIL import Image, ImageDraw
 from typing import List, Tuple, Optional
@@ -127,24 +128,31 @@ function evaluatePixel(sample) {
     
     def fetch_ndvi_image(self, bbox: List[float], width: int = 2500, height: int = 2500, geometry: Optional[dict] = None) -> Optional[bytes]:
         """
-        Fetch NDVI image for the given bounding box at maximum resolution
+        Fetch NDVI image for the given bounding box with proper aspect ratio
         
         Args:
             bbox: Bounding box coordinates [min_lng, min_lat, max_lng, max_lat] in EPSG:4326
-            width: Output image width in pixels (default 2500 for maximum detail)
-            height: Output image height in pixels (default 2500 for maximum detail)
+            width: Output image width in pixels (auto-calculated if None)
+            height: Output image height in pixels (auto-calculated if None)
             geometry: Optional GeoJSON geometry for polygon masking
             
         Returns:
             PNG image bytes or None if request fails
         """
+        # Calculate proper dimensions based on geographic aspect ratio
+        if width is None or height is None:
+            calculated_width, calculated_height = self._calculate_optimal_dimensions(bbox)
+            width = calculated_width
+            height = calculated_height
+        
+        logger.info(f"Using image dimensions: {width}x{height} for bbox: {bbox}")
         # Get access token
         token = self.auth.get_access_token()
         if not token:
             logger.error("Failed to obtain access token")
             return None
         
-        # Create request payload
+        # Create request payload with calculated dimensions
         payload = self.create_request_payload(bbox, width, height)
         
         headers = {
@@ -208,6 +216,61 @@ function evaluatePixel(sample) {
             logger.warning("Bounding box is quite large, consider reducing size for better performance")
         
         return True
+    
+    def _calculate_optimal_dimensions(self, bbox: List[float]) -> tuple:
+        """
+        Calculate optimal image dimensions based on geographic aspect ratio
+        
+        Args:
+            bbox: Bounding box coordinates [min_lng, min_lat, max_lng, max_lat]
+            
+        Returns:
+            Tuple of (width, height) in pixels
+        """
+        import math
+        
+        min_lng, min_lat, max_lng, max_lat = bbox
+        
+        # Calculate geographic dimensions
+        lng_diff = max_lng - min_lng
+        lat_diff = max_lat - min_lat
+        
+        # Convert to approximate meters using Haversine formula at center latitude
+        center_lat = (min_lat + max_lat) / 2
+        lat_rad = math.radians(center_lat)
+        
+        # Meters per degree longitude at this latitude
+        meters_per_deg_lng = 111320 * math.cos(lat_rad)
+        meters_per_deg_lat = 111320
+        
+        # Calculate actual distances in meters
+        width_meters = lng_diff * meters_per_deg_lng
+        height_meters = lat_diff * meters_per_deg_lat
+        
+        # Calculate aspect ratio
+        aspect_ratio = width_meters / height_meters
+        
+        # Target maximum dimension for high resolution
+        max_dimension = 2500
+        
+        if aspect_ratio > 1:
+            # Wider than tall
+            width = max_dimension
+            height = int(max_dimension / aspect_ratio)
+        else:
+            # Taller than wide
+            height = max_dimension
+            width = int(max_dimension * aspect_ratio)
+        
+        # Ensure minimum dimensions for quality
+        width = max(width, 512)
+        height = max(height, 512)
+        
+        # Ensure maximum dimensions don't exceed API limits
+        width = min(width, 2500)
+        height = min(height, 2500)
+        
+        return width, height
     
     def _apply_polygon_mask(self, image_bytes: bytes, bbox: List[float], geometry: dict, width: int, height: int) -> bytes:
         """
