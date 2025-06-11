@@ -61,10 +61,43 @@
             border-top: 1px solid rgba(88, 166, 255, 0.12);
         }
         
+        /* Desktop-specific styles */
+        @media (min-width: 769px) {
+            .container {
+                display: flex;
+                height: 100vh;
+            }
+            
+            .sidebar {
+                width: 380px;
+                height: 100vh;
+                flex-shrink: 0;
+                border-right: 1px solid rgba(88, 166, 255, 0.12);
+                border-radius: 0;
+            }
+            
+            .main-content {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                height: 100vh;
+            }
+            
+            .map-container {
+                height: 60vh;
+                width: 100%;
+            }
+            
+            .results-container {
+                height: 40vh;
+                display: block;
+            }
+        }
+        
         /* Mobile Responsive Design */
         @media (max-width: 768px) {
             .container {
-                display: block; /* Change from flex to block */
+                display: block;
                 height: auto;
                 min-height: calc(100vh - 50px);
                 padding: 0.5rem;
@@ -72,26 +105,24 @@
             
             .sidebar {
                 width: 100%;
-                max-height: none; /* Remove height restriction */
-                overflow-y: visible;
+                height: auto;
                 padding: 1rem;
                 margin-bottom: 0;
-                height: auto;
                 border-right: none;
                 border: 1px solid rgba(88, 166, 255, 0.12);
                 border-radius: 8px;
             }
             
             .main-content {
-                display: none !important; /* Hide main content on mobile */
+                display: none;
             }
             
             .map-container {
-                display: none !important; /* Completely hide map container */
+                display: none;
             }
             
             .results-container {
-                display: none !important; /* Hide results container on mobile */
+                display: none;
             }
             
             .section {
