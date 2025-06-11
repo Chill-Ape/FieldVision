@@ -42,6 +42,21 @@
         
 
         
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        .results-container {
+            height: 40vh;
+            background: rgba(13, 17, 23, 0.95);
+            padding: 1rem;
+            overflow-y: auto;
+            border-top: 1px solid rgba(88, 166, 255, 0.12);
+        }
+        
         /* Mobile Responsive Design */
         @media (max-width: 768px) {
             .container {
@@ -635,19 +650,44 @@
         </div>
     </div>
     
-    <div class="map-container">
-        <div id="map"></div>
-        <div class="map-layer-control">
-            <div class="layer-control-header" onclick="toggleLayerControl()">
-                <span class="layer-control-title">Layers</span>
-                <span class="collapse-icon collapsed" id="collapse-icon">▶</span>
+    <div class="main-content">
+        <div class="map-container">
+            <div id="map"></div>
+            <div class="map-layer-control">
+                <div class="layer-control-header" onclick="toggleLayerControl()">
+                    <span class="layer-control-title">Layers</span>
+                    <span class="collapse-icon collapsed" id="collapse-icon">▶</span>
+                </div>
+                <div class="layer-buttons collapsed" id="layer-buttons">
+                    <button class="layer-btn active" onclick="changeMapLayer('osm')" id="osm-btn">Street</button>
+                    <button class="layer-btn" onclick="changeMapLayer('satellite')" id="satellite-btn">Satellite</button>
+                    <button class="layer-btn" onclick="changeMapLayer('hybrid')" id="hybrid-btn">Hybrid</button>
+                    <button class="layer-btn" onclick="changeMapLayer('topo')" id="topo-btn">Topo</button>
+                    <button class="layer-btn" onclick="changeMapLayer('terrain')" id="terrain-btn">Terrain</button>
+                </div>
             </div>
-            <div class="layer-buttons collapsed" id="layer-buttons">
-                <button class="layer-btn active" onclick="changeMapLayer('osm')" id="osm-btn">Street</button>
-                <button class="layer-btn" onclick="changeMapLayer('satellite')" id="satellite-btn">Satellite</button>
-                <button class="layer-btn" onclick="changeMapLayer('hybrid')" id="hybrid-btn">Hybrid</button>
-                <button class="layer-btn" onclick="changeMapLayer('topo')" id="topo-btn">Topo</button>
-                <button class="layer-btn" onclick="changeMapLayer('terrain')" id="terrain-btn">Terrain</button>
+        </div>
+        
+        <div class="results-container">
+            <div id="loading" class="loading" style="display: none;">
+                <div style="text-align: center; padding: 2rem;">
+                    <div style="color: #58a6ff; font-size: 2rem; margin-bottom: 1rem;">
+                        <i class="fas fa-satellite fa-spin"></i>
+                    </div>
+                    <p style="color: #f0f6fc; margin-bottom: 0.5rem;">Analyzing Satellite Data</p>
+                    <p style="color: #8b949e; font-size: 0.9rem;">Processing vegetation index imagery...</p>
+                </div>
+            </div>
+            
+            <div id="result-section" style="display: none;">
+                <h3 style="color: #58a6ff; margin-bottom: 1rem;">Analysis Results</h3>
+                <div id="ndvi-result" class="ndvi-result"></div>
+                <div id="ai-analysis-section" style="display: none; margin-top: 1rem;">
+                    <h4 style="color: #58a6ff; margin-bottom: 0.5rem;">AI Analysis Results</h4>
+                    <div id="ai-recommendations" style="display: none;"></div>
+                    <div id="weather-context" style="display: none;"></div>
+                    <div id="zone-analysis" style="display: none;"></div>
+                </div>
             </div>
         </div>
     </div>
