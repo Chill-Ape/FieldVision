@@ -107,14 +107,28 @@
             transition: all 0.3s ease;
         }
         
-        /* Force mobile menu button visibility */
+        /* Mobile menu button - only on mobile screens */
+        .mobile-menu-toggle {
+            display: none !important;
+        }
+        
         @media (max-width: 991.98px) {
             .mobile-menu-toggle {
                 display: block !important;
                 visibility: visible !important;
                 opacity: 1 !important;
             }
-            
+        }
+        
+        /* Hide mobile menu button on desktop */
+        @media (min-width: 992px) {
+            .mobile-menu-toggle {
+                display: none !important;
+            }
+        }
+        
+        /* Mobile navigation menu styling */
+        @media (max-width: 991.98px) {
             .mobile-nav-menu {
                 display: none;
                 position: absolute;
