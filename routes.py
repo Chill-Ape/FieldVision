@@ -4,7 +4,8 @@ from models import Field, FieldAnalysis
 from utils.sentinel_hub import fetch_ndvi_image
 from utils.ndvi_processor import process_ndvi_data, calculate_field_zones
 from utils.ai_recommendations import generate_recommendations
-from utils.weather_service import get_weather_data
+from utils.weather_service import WeatherService
+from utils.ai_field_analyzer import AIFieldAnalyzer
 from auth import SentinelHubAuth
 from ndvi_fetcher import NDVIFetcher
 import logging
