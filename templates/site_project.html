@@ -70,21 +70,19 @@
                                 <h6 class="text-light mb-3">Zone Health Summary</h6>
                                 {% set health_scores = latest_analysis.get_health_scores() %}
                                 {% if health_scores %}
-                                    {% for zone_id, stats in health_scores.items() %}
+                                    {% for zone_id, health_status in health_scores.items() %}
                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                         <span class="text-muted">{{ zone_id.replace('_', ' ').title() }}</span>
                                         <div class="d-flex align-items-center">
-                                            {% set avg_ndvi = stats.get('mean_ndvi', 0) %}
-                                            {% if avg_ndvi >= 0.7 %}
-                                                <span class="badge bg-success me-2">Excellent</span>
-                                            {% elif avg_ndvi >= 0.5 %}
-                                                <span class="badge bg-info me-2">Good</span>
-                                            {% elif avg_ndvi >= 0.3 %}
+                                            {% if health_status == 'healthy' %}
+                                                <span class="badge bg-success me-2">Healthy</span>
+                                            {% elif health_status == 'moderate' %}
                                                 <span class="badge bg-warning me-2">Moderate</span>
+                                            {% elif health_status == 'stressed' %}
+                                                <span class="badge bg-danger me-2">Stressed</span>
                                             {% else %}
-                                                <span class="badge bg-danger me-2">Poor</span>
+                                                <span class="badge bg-secondary me-2">{{ health_status|title }}</span>
                                             {% endif %}
-                                            <span class="small text-muted">{{ "%.3f"|format(avg_ndvi) }}</span>
                                         </div>
                                     </div>
                                     {% endfor %}
@@ -97,7 +95,15 @@
                                     {% for rec in recommendations[:3] %}
                                     <div class="alert alert-info alert-sm mb-2 py-2">
                                         <i class="fas fa-lightbulb me-1"></i>
-                                        <small>{{ rec.get('recommendation', rec) }}</small>
+                                        <small>
+                                        {% if rec is string %}
+                                            {{ rec }}
+                                        {% elif rec is mapping %}
+                                            {{ rec.get('recommendation', rec.get('text', 'Monitor field conditions')) }}
+                                        {% else %}
+                                            {{ rec }}
+                                        {% endif %}
+                                        </small>
                                     </div>
                                     {% endfor %}
                                 {% endif %}
