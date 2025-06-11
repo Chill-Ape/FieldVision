@@ -20,7 +20,7 @@ class AIFieldAnalyzer:
         self.openai_client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
         self.weather_service = WeatherService()
         
-    def generate_comprehensive_analysis(self, field_data: Dict, ndvi_image_bytes: bytes = None) -> Dict:
+    def generate_comprehensive_analysis(self, field_data: Dict, ndvi_image_bytes: Optional[bytes] = None) -> Dict:
         """
         Generate comprehensive AI analysis combining all available data sources
         
@@ -43,10 +43,19 @@ class AIFieldAnalyzer:
             analysis_results['ndvi_analysis'] = None
             
         # 2. Weather Analysis
-        weather_analysis = self._analyze_weather_conditions(
-            field_data.get('center_lat'), 
-            field_data.get('center_lng')
-        )
+        center_lat = field_data.get('center_lat')
+        center_lng = field_data.get('center_lng')
+        
+        if center_lat is not None and center_lng is not None:
+            weather_analysis = self._analyze_weather_conditions(float(center_lat), float(center_lng))
+        else:
+            weather_analysis = {
+                "current_conditions": {},
+                "forecast": [],
+                "growing_conditions": {"rating": "unknown"},
+                "irrigation_needs": {"recommendation": "unknown"},
+                "alerts": []
+            }
         analysis_results['weather_analysis'] = weather_analysis
         
         # 3. Field Characteristics Analysis
@@ -192,7 +201,11 @@ class AIFieldAnalyzer:
                 temperature=0.3
             )
             
-            ai_analysis = json.loads(response.choices[0].message.content)
+            content = response.choices[0].message.content
+            if content:
+                ai_analysis = json.loads(content)
+            else:
+                ai_analysis = {}
             
             return {
                 'analysis_summary': ai_analysis.get('summary', ''),
