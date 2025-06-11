@@ -2518,8 +2518,19 @@
 
         // Initialize everything when page loads
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded, showing loading indicator...');
+            console.log('DOM loaded, checking device type...');
             
+            // Check if mobile device first
+            const isMobile = window.innerWidth <= 767.98;
+            
+            if (isMobile) {
+                console.log('Mobile device detected - setting up mobile interface');
+                setupMobileInterface();
+                checkAPIStatus();
+                return;
+            }
+            
+            console.log('Desktop device detected - showing loading indicator...');
             // Show loading indicator immediately
             showMapLoading();
             
