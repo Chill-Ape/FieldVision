@@ -34,7 +34,16 @@ def render_spa_template(template_name, **context):
 @app.route('/')
 def index():
     """Main page with map interface"""
-    return render_template('index_clean.html')
+    edit_field_id = request.args.get('edit')
+    edit_field = None
+    
+    if edit_field_id:
+        try:
+            edit_field = Field.query.get(int(edit_field_id))
+        except (ValueError, TypeError):
+            edit_field = None
+    
+    return render_template('index_clean.html', edit_field=edit_field)
 
 @app.route('/dashboard')
 def dashboard():

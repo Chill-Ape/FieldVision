@@ -30,6 +30,9 @@
                 <button class="btn btn-primary btn-sm" onclick="updateNDVI({{ field.id }})">
                     <i class="fas fa-sync me-1"></i><span class="d-none d-md-inline">Update NDVI</span>
                 </button>
+                <a href="/?edit={{ field.id }}" class="btn btn-warning btn-sm">
+                    <i class="fas fa-edit me-1"></i><span class="d-none d-md-inline">Edit Polygon</span>
+                </a>
                 <a href="/field/{{ field.id }}/report" class="btn btn-success btn-sm">
                     <i class="fas fa-chart-line me-1"></i><span class="d-none d-md-inline">Generate Report</span>
                 </a>

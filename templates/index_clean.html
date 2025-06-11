@@ -753,6 +753,11 @@
         let currentZoom = 1;
         let currentTileLayer;
         
+        // Check if we're editing an existing field
+        const editFieldData = {% if edit_field %}{{ edit_field.get_polygon_coordinates()|tojson|safe }}{% else %}null{% endif %};
+        const editFieldName = {% if edit_field %}"{{ edit_field.name }}"{% else %}null{% endif %};
+        const editFieldId = {% if edit_field %}{{ edit_field.id }}{% else %}null{% endif %};
+        
         function initializePage(page) {
             console.log('Map initializePage called with page:', page);
             if (page === '/' || page === '' || page === '/index') {
@@ -774,6 +779,10 @@
                         if (typeof L !== 'undefined' && L.Control && L.Control.Draw) {
                             console.log('Initializing map...');
                             initializeMap();
+                            // Check if we're editing an existing field
+                            if (editFieldData && editFieldName) {
+                                loadExistingFieldForEditing();
+                            }
                             // Ensure API status is checked
                             checkAPIStatus();
                         } else {
@@ -1466,6 +1475,50 @@
                     btn.classList.add('active');
                 }
             });
+        }
+        
+        function loadExistingFieldForEditing() {
+            console.log('Loading existing field for editing:', editFieldName);
+            
+            // Update the UI to show we're in editing mode
+            const headerTitle = document.querySelector('.sidebar h2');
+            if (headerTitle) {
+                headerTitle.innerHTML = `<i class="fas fa-edit" style="color: #ffa500;"></i> Editing: ${editFieldName}`;
+            }
+            
+            // Pre-fill the site name input if available
+            const siteNameInput = document.getElementById('siteNameInput');
+            if (siteNameInput && editFieldName) {
+                siteNameInput.value = editFieldName;
+            }
+            
+            // Load the polygon coordinates
+            if (editFieldData && editFieldData.length > 0) {
+                console.log('Loading polygon coordinates:', editFieldData);
+                
+                // Convert coordinates to Leaflet format and create polygon
+                const latLngs = editFieldData.map(coord => [coord[0], coord[1]]);
+                const polygon = L.polygon(latLngs, {
+                    color: '#ffa500',
+                    weight: 3,
+                    fillOpacity: 0.3
+                });
+                
+                // Add to drawn items
+                drawnItemsGroup.addLayer(polygon);
+                currentLayer = polygon;
+                
+                // Fit map to polygon bounds
+                mapInstance.fitBounds(polygon.getBounds(), { padding: [20, 20] });
+                
+                // Update field statistics
+                updateFieldStats(polygon);
+                
+                // Show analyze button
+                document.getElementById('analyze-section').style.display = 'block';
+                
+                console.log('Existing field polygon loaded successfully');
+            }
         }
         
         // Auto-initialize if we're on the index page
