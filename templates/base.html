@@ -72,9 +72,8 @@
             min-height: calc(100vh - 50px);
         }
         
-        /* Show navbar toggle by default */
+        /* Style navbar toggle for mobile */
         .navbar-toggler {
-            display: block !important;
             border: 2px solid #58a6ff !important;
             padding: 0.5rem 0.75rem !important;
             background: rgba(88, 166, 255, 0.2) !important;
@@ -83,30 +82,16 @@
             z-index: 1050 !important;
         }
         
-        /* Hide navbar toggle on large screens (desktop) */
-        @media (min-width: 1200px) {
-            .navbar-toggler {
-                display: none !important;
-            }
-            
-            /* Show navbar menu on desktop */
-            .navbar-collapse {
-                display: block !important;
-            }
+        /* Focus and hover states for mobile navbar toggle */
+        .navbar-toggler:focus {
+            box-shadow: 0 0 0 0.25rem rgba(88, 166, 255, 0.5) !important;
+            border-color: #58a6ff !important;
+            outline: none !important;
         }
         
-        /* Focus and hover states only on mobile */
-        @media (max-width: 1199.98px) {
-            .navbar-toggler:focus {
-                box-shadow: 0 0 0 0.25rem rgba(88, 166, 255, 0.5) !important;
-                border-color: #58a6ff !important;
-                outline: none !important;
-            }
-            
-            .navbar-toggler:hover {
-                background: rgba(88, 166, 255, 0.3) !important;
-                border-color: #58a6ff !important;
-            }
+        .navbar-toggler:hover {
+            background: rgba(88, 166, 255, 0.3) !important;
+            border-color: #58a6ff !important;
         }
         
         .navbar-toggler-icon {
@@ -116,14 +101,7 @@
             display: block !important;
         }
         
-        /* Force display on smaller screens */
-        @media (max-width: 1199.98px) {
-            .navbar-toggler {
-                display: block !important;
-                visibility: visible !important;
-                opacity: 1 !important;
-            }
-        }
+
         
         /* Custom hamburger icon fallback */
         .custom-hamburger {
@@ -147,7 +125,7 @@
         }
         
         /* Show custom hamburger on mobile, hide default */
-        @media (max-width: 1199.98px) {
+        @media (max-width: 767.98px) {
             .navbar-toggler-icon {
                 display: none !important;
             }
@@ -158,7 +136,7 @@
         }
         
         /* Show default icon on desktop, hide custom */
-        @media (min-width: 1200px) {
+        @media (min-width: 768px) {
             .navbar-toggler-icon {
                 display: block !important;
             }
@@ -168,7 +146,7 @@
         }
         
         /* Improve mobile menu styling */
-        @media (max-width: 1199.98px) {
+        @media (max-width: 767.98px) {
             .navbar-collapse {
                 background: rgba(13, 17, 23, 0.98);
                 border: 1px solid rgba(88, 166, 255, 0.3);
@@ -200,7 +178,7 @@
 
     
     <!-- Navigation Bar -->
-    <nav class="navbar navbar-custom sticky-top" style="overflow: hidden;">
+    <nav class="navbar navbar-expand-md navbar-custom sticky-top" style="overflow: hidden;">
         <div class="container" style="max-height: 60px; overflow: hidden;">
             <a class="navbar-brand" href="/">
                 <i class="fas fa-seedling me-2"></i>FieldVision AI
