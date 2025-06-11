@@ -104,33 +104,55 @@ class NDVIAnalyzer:
         g = img_array[:, :, 1].astype(float) / 255.0
         b = img_array[:, :, 2].astype(float) / 255.0
         
+        # Identify no-data/grey zones (where R=G=B indicating missing data)
+        grey_tolerance = 0.05
+        grey_mask = (np.abs(r - g) < grey_tolerance) & (np.abs(g - b) < grey_tolerance) & (np.abs(r - b) < grey_tolerance)
+        
+        # Also check for pure white/black areas that indicate no-data
+        white_mask = (r > 0.95) & (g > 0.95) & (b > 0.95)
+        black_mask = (r < 0.05) & (g < 0.05) & (b < 0.05)
+        no_data_mask = grey_mask | white_mask | black_mask
+        
         # Calculate NDVI approximation based on color analysis
-        # This is a simplified approach - in real scenarios, you'd have direct NDVI values
-        
-        # Green dominance indicates higher NDVI
-        green_strength = g - np.maximum(r, b)
-        
-        # Red dominance indicates lower NDVI (stress)
-        red_strength = r - np.maximum(g, b)
-        
-        # Calculate estimated NDVI values
         ndvi_estimated = np.zeros_like(r)
         
-        # Very green areas (high NDVI)
-        green_mask = (g > 0.6) & (g > r) & (g > b)
-        ndvi_estimated[green_mask] = 0.5 + (g[green_mask] - 0.6) * 1.25  # Scale to 0.5-1.0
+        # Create valid data mask (exclude no-data areas)
+        valid_mask = ~no_data_mask
         
-        # Moderate green areas
-        moderate_green = (g > 0.4) & (g > r) & (g > b) & ~green_mask
-        ndvi_estimated[moderate_green] = 0.3 + (g[moderate_green] - 0.4) * 1.0  # Scale to 0.3-0.5
+        # Only process areas with valid data
+        if np.any(valid_mask):
+            r_valid = r[valid_mask]
+            g_valid = g[valid_mask]
+            b_valid = b[valid_mask]
+            
+            # Dark green areas (high NDVI 0.7-1.0)
+            dark_green = (g_valid > 0.4) & (g_valid > r_valid * 1.5) & (g_valid > b_valid * 1.5) & (r_valid < 0.3)
+            ndvi_estimated[valid_mask] = np.where(dark_green, 0.7 + (g_valid - 0.4) * 0.5, ndvi_estimated[valid_mask])
+            
+            # Medium green areas (good NDVI 0.4-0.7)
+            med_green = (g_valid > r_valid) & (g_valid > b_valid) & (g_valid > 0.3) & ~dark_green
+            ndvi_estimated[valid_mask] = np.where(med_green, 0.4 + (g_valid - r_valid) * 0.8, ndvi_estimated[valid_mask])
+            
+            # Yellow/tan areas (moderate NDVI 0.2-0.4)
+            yellow_tan = ((r_valid + g_valid) > (b_valid * 1.8)) & (r_valid > 0.3) & (g_valid > 0.3) & ~med_green & ~dark_green
+            ndvi_estimated[valid_mask] = np.where(yellow_tan, 0.2 + (g_valid - r_valid + 0.5) * 0.4, ndvi_estimated[valid_mask])
+            
+            # Brown/red areas (low NDVI 0.0-0.2)
+            brown_red = (r_valid >= g_valid) & (r_valid >= b_valid) & ~yellow_tan
+            ndvi_estimated[valid_mask] = np.where(brown_red, np.maximum(0, 0.2 - (r_valid - g_valid) * 0.5), ndvi_estimated[valid_mask])
         
-        # Red/brown areas (low NDVI)
-        red_mask = (r > g) & (r > b)
-        ndvi_estimated[red_mask] = np.maximum(0, 0.3 - red_strength[red_mask] * 0.5)
+        # Set no-data areas to NaN for proper handling
+        ndvi_estimated[no_data_mask] = np.nan
         
-        # Yellow/orange areas (medium NDVI)
-        yellow_mask = (r + g > 1.2) & (b < 0.5) & ~red_mask & ~green_mask
-        ndvi_estimated[yellow_mask] = 0.2 + (g[yellow_mask] - r[yellow_mask] + 1) * 0.15
+        # For zones with significant no-data, interpolate from surrounding valid pixels
+        if np.any(no_data_mask):
+            from scipy import ndimage
+            # Create a mask of valid pixels for interpolation
+            mask = ~np.isnan(ndvi_estimated)
+            if np.any(mask):
+                # Simple interpolation using nearest valid values
+                indices = ndimage.distance_transform_edt(~mask, return_distances=False, return_indices=True)
+                ndvi_estimated = ndvi_estimated[tuple(indices)]
         
         # Ensure values are within valid NDVI range
         ndvi_estimated = np.clip(ndvi_estimated, 0.0, 1.0)

@@ -51,20 +51,17 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <!-- Debug info -->
-                    <div class="small text-muted mb-2">
-                        Debug: has_cached_ndvi = {{ field.has_cached_ndvi() }}, 
-                        cached_ndvi_image = {{ 'Yes' if field.cached_ndvi_image else 'No' }},
-                        ndvi_cache_date = {{ field.ndvi_cache_date or 'None' }}
-                    </div>
-                    
                     {% if field.has_cached_ndvi() %}
                         <div class="text-center mb-3">
-                            <img src="/field/{{ field.id }}/cached_ndvi" 
-                                 alt="NDVI Analysis" 
+                            <img src="{{ url_for('get_cached_ndvi', field_id=field.id) }}" 
+                                 alt="NDVI Analysis for {{ field.name }}" 
                                  class="img-fluid rounded"
                                  style="max-height: 400px; width: auto;"
-                                 onerror="console.error('Failed to load NDVI image for field {{ field.id }}');">
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <div class="alert alert-warning" style="display: none;">
+                                <strong>NDVI Image Unavailable</strong><br>
+                                The satellite analysis image could not be loaded. Please try regenerating the analysis.
+                            </div>
                         </div>
                         
                         {% if latest_analysis %}
