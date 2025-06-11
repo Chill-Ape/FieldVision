@@ -1655,26 +1655,6 @@
             document.getElementById('site-name').value = site.name || '';
             document.getElementById('site-description').value = site.description || '';
         }
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: rgba(88, 166, 255, 0.9);
-                color: #0d1117;
-                padding: 1rem;
-                border-radius: 6px;
-                font-weight: 500;
-                z-index: 10000;
-                max-width: 300px;
-            `;
-            notification.textContent = `Loaded site: ${site.name}`;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
-        }
         
         // Full-screen image modal functions
         let currentZoom = 1;
