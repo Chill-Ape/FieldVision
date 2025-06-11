@@ -74,27 +74,78 @@
         
         /* Fix mobile navbar toggle icon visibility */
         .navbar-toggler {
-            border: 2px solid #58a6ff;
-            padding: 0.4rem 0.6rem;
-            background: rgba(88, 166, 255, 0.1);
-            border-radius: 6px;
+            border: 2px solid #58a6ff !important;
+            padding: 0.5rem 0.75rem !important;
+            background: rgba(88, 166, 255, 0.2) !important;
+            border-radius: 8px !important;
+            display: block !important;
+            position: relative !important;
+            z-index: 1050 !important;
         }
         
         .navbar-toggler:focus {
-            box-shadow: 0 0 0 0.25rem rgba(88, 166, 255, 0.25);
-            border-color: #58a6ff;
+            box-shadow: 0 0 0 0.25rem rgba(88, 166, 255, 0.5) !important;
+            border-color: #58a6ff !important;
+            outline: none !important;
         }
         
         .navbar-toggler:hover {
-            background: rgba(88, 166, 255, 0.2);
-            border-color: #58a6ff;
+            background: rgba(88, 166, 255, 0.3) !important;
+            border-color: #58a6ff !important;
         }
         
         .navbar-toggler-icon {
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%2358a6ff' stroke-linecap='round' stroke-miterlimit='10' stroke-width='3' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
-            width: 1.8em;
-            height: 1.8em;
-            filter: brightness(1.2);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%2358a6ff' stroke-linecap='round' stroke-miterlimit='10' stroke-width='3' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") !important;
+            width: 2em !important;
+            height: 2em !important;
+            display: block !important;
+        }
+        
+        /* Force display on smaller screens */
+        @media (max-width: 991.98px) {
+            .navbar-toggler {
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+            }
+        }
+        
+        /* Custom hamburger icon fallback */
+        .custom-hamburger {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 20px;
+            height: 15px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .custom-hamburger span {
+            display: block;
+            height: 2px;
+            width: 100%;
+            background-color: #58a6ff;
+            border-radius: 1px;
+        }
+        
+        /* Hide default icon and show custom on mobile */
+        @media (max-width: 991.98px) {
+            .navbar-toggler-icon {
+                display: none !important;
+            }
+            .custom-hamburger {
+                display: flex !important;
+            }
+        }
+        
+        /* Hide custom icon on desktop */
+        @media (min-width: 992px) {
+            .custom-hamburger {
+                display: none !important;
+            }
         }
         
         /* Improve mobile menu styling */
@@ -138,6 +189,12 @@
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
+                <!-- Fallback custom hamburger icon -->
+                <div class="custom-hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
             </button>
             
             <div class="collapse navbar-collapse" id="navbarNav">
