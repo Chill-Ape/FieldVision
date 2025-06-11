@@ -90,20 +90,31 @@ def save_field():
         if not data or 'name' not in data or 'polygon' not in data:
             return jsonify({'error': 'Missing required data'}), 400
         
-        # Calculate center point
-        coordinates = data['polygon']
+        # Parse polygon data if it's a string
+        polygon_data = data['polygon']
+        if isinstance(polygon_data, str):
+            coordinates = json.loads(polygon_data)
+        else:
+            coordinates = polygon_data
+        
         if not coordinates or len(coordinates) < 3:
             return jsonify({'error': 'Invalid polygon data'}), 400
         
-        center_lat = sum(coord[0] for coord in coordinates) / len(coordinates)
-        center_lng = sum(coord[1] for coord in coordinates) / len(coordinates)
+        # Use provided center coordinates or calculate them
+        if 'center_lat' in data and 'center_lng' in data:
+            center_lat = float(data['center_lat'])
+            center_lng = float(data['center_lng'])
+        else:
+            # Calculate center point - coordinates are [lat, lng]
+            center_lat = sum(float(coord[0]) for coord in coordinates) / len(coordinates)
+            center_lng = sum(float(coord[1]) for coord in coordinates) / len(coordinates)
         
         # Create new field
         field = Field()
         field.name = data['name']
+        field.polygon_data = json.dumps(coordinates)
         field.center_lat = center_lat
         field.center_lng = center_lng
-        field.set_polygon_coordinates(coordinates)
         field.created_at = datetime.utcnow()
         
         db.session.add(field)
@@ -114,10 +125,12 @@ def save_field():
         
     except Exception as e:
         logging.error(f"Error saving field: {str(e)}")
-        if 'data' in locals():
+        try:
             logging.error(f"Request data: {data}")
+        except:
+            logging.error("Request data not available")
         db.session.rollback()
-        return jsonify({'error': f'Failed to save field: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': f'Failed to save field: {str(e)}'}), 500
 
 @app.route('/api/analyze_field/<int:field_id>', methods=['POST'])
 def analyze_field(field_id):
