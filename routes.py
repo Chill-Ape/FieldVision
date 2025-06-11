@@ -279,6 +279,46 @@ def analyze_field(field_id):
         logging.error(f"Error analyzing field {field_id}: {str(e)}")
         return jsonify({'error': 'Failed to analyze field'}), 500
 
+@app.route('/api/update_field/<int:field_id>', methods=['PUT'])
+def update_field(field_id):
+    """Update an existing field's polygon data"""
+    try:
+        field = Field.query.get_or_404(field_id)
+        data = request.get_json()
+        
+        # Validate input data
+        if not data or 'name' not in data or 'polygon' not in data:
+            return jsonify({'success': False, 'message': 'Invalid data provided'}), 400
+        
+        # Parse polygon coordinates
+        try:
+            coordinates = json.loads(data['polygon'])
+            if not coordinates or len(coordinates) < 3:
+                return jsonify({'success': False, 'message': 'Invalid polygon coordinates'}), 400
+        except (json.JSONDecodeError, TypeError):
+            return jsonify({'success': False, 'message': 'Invalid polygon format'}), 400
+        
+        # Update field data
+        field.name = data['name']
+        field.set_polygon_coordinates(coordinates)
+        field.center_lat = data.get('center_lat', field.center_lat)
+        field.center_lng = data.get('center_lng', field.center_lng)
+        
+        db.session.commit()
+        
+        logging.info(f"Field '{field.name}' (ID: {field_id}) updated successfully")
+        
+        return jsonify({
+            'success': True,
+            'field_id': field_id,
+            'message': 'Field updated successfully'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error updating field {field_id}: {str(e)}")
+        return jsonify({'success': False, 'message': 'Failed to update field'}), 500
+
 @app.route('/api/delete_field/<int:field_id>', methods=['DELETE'])
 def delete_field(field_id):
     """Delete a field and its analyses"""

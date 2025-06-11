@@ -1226,13 +1226,15 @@
             // Show loading state
             const saveButton = document.querySelector('#saveSiteModal button[onclick="saveSite()"]');
             const originalButtonText = saveButton.innerHTML;
-            saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving Site...';
+            const isEditing = editFieldId !== null;
+            
+            saveButton.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${isEditing ? 'Updating' : 'Saving'} Site...`;
             saveButton.disabled = true;
             
             // Show loading overlay
             showSavingProgress();
             
-            // Save field to database
+            // Prepare field data
             const fieldData = {
                 name: siteName,
                 polygon: JSON.stringify(currentLayer.getLatLngs ? currentLayer.getLatLngs()[0].map(latlng => [latlng.lat, latlng.lng]) : [
@@ -1245,8 +1247,12 @@
                 center_lng: currentBounds.getCenter().lng
             };
             
-            fetch('/api/save_field', {
-                method: 'POST',
+            // Determine URL and method based on edit mode
+            const url = isEditing ? `/api/update_field/${editFieldId}` : '/api/save_field';
+            const method = isEditing ? 'PUT' : 'POST';
+            
+            fetch(url, {
+                method: method,
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -1257,16 +1263,23 @@
                 if (data.success) {
                     closeSaveSiteModal();
                     hideSavingProgress();
-                    showSuccessModal(siteName, data.field_id);
+                    
+                    if (isEditing) {
+                        // For edits, redirect to the site project page
+                        window.location.href = `/site/${editFieldId}`;
+                    } else {
+                        // For new sites, show success modal
+                        showSuccessModal(siteName, data.field_id);
+                    }
                 } else {
                     hideSavingProgress();
-                    alert('Failed to save site: ' + (data.message || 'Unknown error'));
+                    alert(`Failed to ${isEditing ? 'update' : 'save'} site: ` + (data.message || 'Unknown error'));
                 }
             })
             .catch(error => {
-                console.error('Error saving site:', error);
+                console.error(`Error ${isEditing ? 'updating' : 'saving'} site:`, error);
                 hideSavingProgress();
-                alert('Failed to save site. Please try again.');
+                alert(`Failed to ${isEditing ? 'update' : 'save'} site. Please try again.`);
             })
             .finally(() => {
                 // Reset button state
