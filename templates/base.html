@@ -222,18 +222,18 @@
 
     
     <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg navbar-custom sticky-top" style="overflow: hidden;">
-        <div class="container" style="max-height: 60px; overflow: hidden;">
+    <nav class="navbar navbar-expand-lg navbar-custom sticky-top" style="overflow: visible; position: relative;">
+        <div class="container" style="max-height: 60px; position: relative;">
             <a class="navbar-brand" href="/">
                 <i class="fas fa-seedling me-2"></i>FieldVision AI
             </a>
             
             <!-- Mobile Menu Button (only visible on small screens) -->
-            <button class="btn d-lg-none" onclick="toggleMobileMenu()" style="border: 2px solid #58a6ff; background: rgba(88, 166, 255, 0.2); padding: 0.4rem 0.6rem;">
+            <button class="btn d-lg-none position-relative" onclick="toggleMobileMenu()" style="border: 2px solid #58a6ff; background: rgba(88, 166, 255, 0.2); padding: 0.4rem 0.6rem; z-index: 1040; margin-left: auto;">
                 <div style="display: flex; flex-direction: column; width: 20px; height: 15px; justify-content: space-between;">
-                    <span style="height: 2px; background: #58a6ff; display: block; width: 100%;"></span>
-                    <span style="height: 2px; background: #58a6ff; display: block; width: 100%;"></span>
-                    <span style="height: 2px; background: #58a6ff; display: block; width: 100%;"></span>
+                    <span style="height: 2px; background: #58a6ff; display: block; width: 100%; border-radius: 1px;"></span>
+                    <span style="height: 2px; background: #58a6ff; display: block; width: 100%; border-radius: 1px;"></span>
+                    <span style="height: 2px; background: #58a6ff; display: block; width: 100%; border-radius: 1px;"></span>
                 </div>
             </button>
             
@@ -282,7 +282,7 @@
         </div>
         
         <!-- Mobile Navigation Menu (only visible on small screens) -->
-        <div id="mobile-nav" class="mobile-nav-menu d-lg-none">
+        <div id="mobile-nav" class="mobile-nav-menu d-lg-none" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1030; display: none;">
             <a href="/" class="mobile-nav-link">
                 <i class="fas fa-map me-2"></i>Map Interface
             </a>
@@ -308,17 +308,21 @@
         function toggleMobileMenu() {
             const mobileNav = document.getElementById('mobile-nav');
             if (mobileNav) {
-                mobileNav.classList.toggle('show');
+                if (mobileNav.style.display === 'none' || mobileNav.style.display === '') {
+                    mobileNav.style.display = 'block';
+                } else {
+                    mobileNav.style.display = 'none';
+                }
             }
         }
         
         // Close mobile menu when clicking outside
         document.addEventListener('click', function(event) {
             const mobileNav = document.getElementById('mobile-nav');
-            const menuBtn = document.querySelector('.mobile-menu-btn');
+            const menuBtn = document.querySelector('button[onclick="toggleMobileMenu()"]');
             
             if (mobileNav && menuBtn && !menuBtn.contains(event.target) && !mobileNav.contains(event.target)) {
-                mobileNav.classList.remove('show');
+                mobileNav.style.display = 'none';
             }
         });
         
