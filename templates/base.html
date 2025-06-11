@@ -205,7 +205,32 @@
                 }
                 
                 const html = await response.text();
-                document.getElementById('mainContent').innerHTML = html;
+                
+                // Extract content and scripts from the response
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                
+                // Get the content block
+                const contentBlock = tempDiv.querySelector('[data-content-block]') || tempDiv.querySelector('.container') || tempDiv;
+                
+                // Update main content
+                document.getElementById('mainContent').innerHTML = contentBlock.innerHTML;
+                
+                // Extract and execute scripts
+                const scripts = tempDiv.querySelectorAll('script');
+                scripts.forEach(script => {
+                    try {
+                        if (script.src) {
+                            const newScript = document.createElement('script');
+                            newScript.src = script.src;
+                            document.head.appendChild(newScript);
+                        } else {
+                            eval(script.textContent);
+                        }
+                    } catch (error) {
+                        console.error('Error executing script:', error);
+                    }
+                });
                 
                 // Update browser URL without page reload
                 history.pushState({page: page}, '', page);

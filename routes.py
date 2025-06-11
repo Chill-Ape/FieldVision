@@ -23,16 +23,9 @@ def is_ajax_request():
 def render_spa_template(template_name, **context):
     """Render template for SPA - return only content block for AJAX requests"""
     if is_ajax_request():
-        # For AJAX requests, render only the content block
-        full_template = render_template(template_name, **context)
-        # Extract content between {% block content %} and {% endblock %}
-        # For now, we'll create content-only templates
-        content_template = template_name.replace('.html', '_content.html')
-        try:
-            return render_template(content_template, **context)
-        except:
-            # Fallback to full template if content template doesn't exist
-            return full_template
+        # For AJAX requests, return the full template
+        # The JavaScript in base.html will handle extracting the content
+        return render_template(template_name, **context)
     else:
         # For regular requests, render full template
         return render_template(template_name, **context)
