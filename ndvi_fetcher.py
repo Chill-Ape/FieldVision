@@ -51,8 +51,8 @@ function setup() {
 }
 
 function evaluatePixel(sample) {
-
-
+    // B04 = Red, B08 = NIR
+    let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
     
     // Mask clouds using Scene Classification Layer (SCL)
     if (sample.SCL == 3 || sample.SCL == 8 || sample.SCL == 9 || sample.SCL == 10 || sample.SCL == 11) {
@@ -60,32 +60,21 @@ function evaluatePixel(sample) {
         return [0.4, 0.4, 0.4]; // Dark gray for masked pixels
     }
     
-
-    
-    // Calculate NDVI with proper error handling
-    let red = sample.B04;
-    let nir = sample.B08;
-    let ndvi = 0;
-    
-    if ((nir + red) > 0) {
-        ndvi = (nir - red) / (nir + red);
-    }
-    
-    // Clamp NDVI to valid range
-    ndvi = Math.max(-1, Math.min(1, ndvi));
-    
-    // Enhanced contrast agricultural NDVI visualization
-    if (ndvi < -0.2) return [0.0, 0.0, 0.8]; // Deep water - blue
-    if (ndvi < -0.05) return [0.3, 0.3, 0.7]; // Shallow water - light blue
-    if (ndvi < 0.05) return [0.7, 0.5, 0.3]; // Bare soil - brown
-    if (ndvi < 0.15) return [0.9, 0.3, 0.3]; // Very stressed - red
-    if (ndvi < 0.25) return [1.0, 0.6, 0.2]; // Stressed - orange
-    if (ndvi < 0.35) return [1.0, 0.9, 0.1]; // Low vigor - yellow
-    if (ndvi < 0.45) return [0.8, 1.0, 0.2]; // Moderate - yellow-green
-    if (ndvi < 0.55) return [0.4, 0.9, 0.3]; // Good - light green
-    if (ndvi < 0.65) return [0.2, 0.8, 0.2]; // Healthy - green
-    if (ndvi < 0.75) return [0.0, 0.7, 0.0]; // Very healthy - dark green
-    return [0.0, 0.5, 0.0]; // Excellent - very dark green
+    // Agricultural stress detection color mapping
+    if (ndvi < -0.3) return [0.2, 0.2, 0.4]; // Deep water - dark blue
+    if (ndvi < -0.1) return [0.4, 0.4, 0.6]; // Shallow water - blue
+    if (ndvi < 0.05) return [0.8, 0.7, 0.6]; // Bare soil/sand - tan
+    if (ndvi < 0.1) return [1.0, 0.2, 0.2]; // Critical stress/dying vegetation - bright red
+    if (ndvi < 0.15) return [1.0, 0.4, 0.2]; // Severe stress - red-orange
+    if (ndvi < 0.2) return [1.0, 0.6, 0.2]; // Moderate stress - orange
+    if (ndvi < 0.25) return [1.0, 0.8, 0.2]; // Mild stress - yellow-orange
+    if (ndvi < 0.3) return [1.0, 1.0, 0.2]; // Early stress - yellow
+    if (ndvi < 0.35) return [0.8, 1.0, 0.2]; // Recovery/low vigor - light green
+    if (ndvi < 0.45) return [0.6, 0.9, 0.1]; // Moderate health - green
+    if (ndvi < 0.55) return [0.4, 0.8, 0.1]; // Good health - darker green
+    if (ndvi < 0.65) return [0.2, 0.7, 0.1]; // Very healthy - dark green
+    if (ndvi < 0.75) return [0.1, 0.6, 0.1]; // Excellent health - very dark green
+    return [0.05, 0.4, 0.05]; // Peak health - deepest green
 }
 """
     
