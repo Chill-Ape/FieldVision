@@ -675,13 +675,26 @@
             }
             
             const mapElement = document.getElementById('map');
+            const mapContainer = document.querySelector('.map-container');
             console.log('Map element:', mapElement);
+            console.log('Map container:', mapContainer);
             console.log('Map element dimensions:', mapElement ? { width: mapElement.offsetWidth, height: mapElement.offsetHeight } : 'null');
             
             if (!mapElement) {
                 console.error('Map container element not found!');
                 return;
             }
+            
+            // Force proper dimensions on the map container and element
+            if (mapContainer) {
+                mapContainer.style.height = 'calc(100vh - 100px)';
+                mapContainer.style.minHeight = '600px';
+                console.log('Set map container height');
+            }
+            mapElement.style.height = '100%';
+            mapElement.style.minHeight = '600px';
+            console.log('Set map element height');
+            console.log('Updated map element dimensions:', { width: mapElement.offsetWidth, height: mapElement.offsetHeight });
             
             try {
                 console.log('Creating Leaflet map instance');
