@@ -912,6 +912,26 @@
                         console.log('Re-enabling dragging...');
                         mapInstance.dragging.enable();
                     }
+                    
+                    // Force proper event handling across entire map area
+                    const mapContainer = mapInstance.getContainer();
+                    const mapPanes = mapContainer.getElementsByClassName('leaflet-map-pane')[0];
+                    if (mapPanes) {
+                        mapPanes.style.pointerEvents = 'auto';
+                        mapPanes.style.cursor = 'grab';
+                        
+                        // Force all child elements to allow pointer events
+                        const allElements = mapPanes.querySelectorAll('*');
+                        allElements.forEach(el => {
+                            el.style.pointerEvents = 'auto';
+                        });
+                    }
+                    
+                    // Add event listeners to debug mouse events
+                    mapContainer.addEventListener('mousedown', function(e) {
+                        console.log('Mouse down at:', e.clientY, 'container height:', mapContainer.offsetHeight);
+                    });
+                    
                 }, 100);
             } catch (error) {
                 console.error('Error creating map:', error);
