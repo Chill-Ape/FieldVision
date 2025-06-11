@@ -843,6 +843,12 @@
             console.log('Set map element height');
             console.log('Updated map element dimensions:', { width: mapElement.offsetWidth, height: mapElement.offsetHeight });
             
+            // Check if Leaflet is available
+            if (typeof L === 'undefined') {
+                console.error('Leaflet library not loaded');
+                return;
+            }
+            
             try {
                 console.log('Creating Leaflet map instance');
                 mapInstance = L.map('map', {
@@ -853,18 +859,29 @@
                     boxZoom: true,
                     keyboard: true,
                     zoomControl: true,
-                    attributionControl: true
+                    attributionControl: true,
+                    preferCanvas: false
                 }).setView([37.7749, -122.4194], 10);
                 console.log('Map instance created with dragging enabled:', mapInstance);
+                
+                // Verify dragging is enabled
+                console.log('Map dragging enabled:', mapInstance.dragging.enabled());
                 
                 // Force map to recalculate its size
                 setTimeout(() => {
                     console.log('Invalidating map size...');
                     mapInstance.invalidateSize();
                     console.log('Map size invalidated');
+                    
+                    // Re-check dragging after initialization
+                    if (mapInstance.dragging && !mapInstance.dragging.enabled()) {
+                        console.log('Re-enabling dragging...');
+                        mapInstance.dragging.enable();
+                    }
                 }, 100);
             } catch (error) {
                 console.error('Error creating map:', error);
+                console.error('Error details:', error.message, error.stack);
                 return;
             }
             
