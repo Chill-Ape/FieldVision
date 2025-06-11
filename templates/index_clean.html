@@ -36,6 +36,8 @@
             overflow: hidden;
             box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
             position: relative;
+            min-height: 600px;
+            height: 100%;
         }
         
         #map {
@@ -685,6 +687,13 @@
                 console.log('Creating Leaflet map instance');
                 mapInstance = L.map('map').setView([37.7749, -122.4194], 10);
                 console.log('Map instance created:', mapInstance);
+                
+                // Force map to recalculate its size
+                setTimeout(() => {
+                    console.log('Invalidating map size...');
+                    mapInstance.invalidateSize();
+                    console.log('Map size invalidated');
+                }, 100);
             } catch (error) {
                 console.error('Error creating map:', error);
                 return;
