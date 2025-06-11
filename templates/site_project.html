@@ -887,33 +887,13 @@ function deleteAIInsight(insightId) {
     });
 }
 
-// Check if AI insight was already generated today when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    checkDailyAILimit({{ field.id }});
-});
+// Daily limit check temporarily disabled for testing
+// document.addEventListener('DOMContentLoaded', function() {
+//     checkDailyAILimit({{ field.id }});
+// });
 
-function checkDailyAILimit(fieldId) {
-    // Check if there's an AI insight from today
-    const today = new Date().toDateString();
-    const aiInsights = document.querySelectorAll('[id^="ai-insight-"]');
-    
-    // If we have AI insights from today, disable the button
-    for (let insight of aiInsights) {
-        const dateElement = insight.querySelector('small.text-muted');
-        if (dateElement) {
-            const insightDate = new Date(dateElement.textContent.trim());
-            if (insightDate.toDateString() === today) {
-                const btn = document.querySelector(`button[onclick="generateAIInsights(${fieldId})"]`);
-                if (btn) {
-                    btn.innerHTML = '<i class="fas fa-clock me-2"></i>Available Tomorrow';
-                    btn.disabled = true;
-                    btn.classList.remove('btn-warning');
-                    btn.classList.add('btn-secondary');
-                }
-                break;
-            }
-        }
-    }
-}
+// function checkDailyAILimit(fieldId) {
+//     // Temporarily disabled for testing
+// }
 </script>
 {% endblock %}
