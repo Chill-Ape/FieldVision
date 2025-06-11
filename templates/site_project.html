@@ -128,8 +128,10 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    {% if field.analyses %}
-                        <div class="timeline">
+                    <div class="timeline" id="analysis-timeline">
+                        <!-- AI Insights will be dynamically added here at the top -->
+                        
+                        {% if field.analyses %}
                             {% for analysis in field.analyses[:10] %}
                             <div class="timeline-item mb-3">
                                 <div class="d-flex align-items-start">
@@ -139,7 +141,7 @@
                                     <div class="flex-grow-1">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
                                             <h6 class="mb-0 text-light">
-                                                Analysis {{ loop.index }}
+                                                NDVI Analysis {{ loop.index }}
                                             </h6>
                                             <small class="text-muted">
                                                 {{ analysis.analysis_date.strftime('%m/%d/%Y %H:%M') }}
@@ -165,35 +167,17 @@
                                 </div>
                             </div>
                             {% endfor %}
-                        </div>
-                    {% else %}
-                        <div class="text-center py-4">
-                            <i class="fas fa-clock fa-2x text-muted mb-3"></i>
-                            <p class="text-muted">No historical data available yet. Analyses will appear here as they are generated.</p>
-                        </div>
-                    {% endif %}
+                        {% else %}
+                            <div class="text-center py-4" id="empty-timeline-message">
+                                <i class="fas fa-clock fa-2x text-muted mb-3"></i>
+                                <p class="text-muted">No historical data available yet. Analyses will appear here as they are generated.</p>
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
 
-            <!-- AI Insights Section (Hidden by default) -->
-            <div class="card bg-dark border-info mb-4" id="ai-insights-section" style="display: none;">
-                <div class="card-header bg-gradient-info text-white">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            <i class="fas fa-brain me-2"></i>AI Agricultural Insights
-                        </h5>
-                        <button class="btn btn-sm btn-outline-light" onclick="toggleAIInsights()">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="card-body" id="ai-insights-content">
-                    <div class="text-center py-4">
-                        <i class="fas fa-spinner fa-spin fa-2x text-info mb-3"></i>
-                        <p class="text-muted">Generating AI insights...</p>
-                    </div>
-                </div>
-            </div>
+
         </div>
 
         <!-- Right Column - Site Information & Controls -->
@@ -361,20 +345,9 @@ function generateAIInsights(fieldId) {
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Generating...';
     
-    // Show AI insights section with loading state
-    const aiSection = document.getElementById('ai-insights-section');
-    const aiContent = document.getElementById('ai-insights-content');
-    
-    aiSection.style.display = 'block';
-    aiContent.innerHTML = `
-        <div class="text-center py-4">
-            <i class="fas fa-spinner fa-spin fa-2x text-info mb-3"></i>
-            <p class="text-muted">Analyzing field data and generating AI insights...</p>
-        </div>
-    `;
-    
-    // Scroll to AI insights section
-    aiSection.scrollIntoView({ behavior: 'smooth' });
+    // Create loading timeline item
+    const aiInsightId = 'ai-insight-' + Date.now();
+    addAIInsightToTimeline(aiInsightId, null, true);
     
     // Generate AI insights
     fetch(`/generate_ai_insights/${fieldId}`, {
@@ -386,25 +359,17 @@ function generateAIInsights(fieldId) {
     .then(response => response.json())
     .then(data => {
         if (data.success && data.insights) {
-            displayAIInsights(data.insights);
+            // Update the timeline item with actual insights
+            updateAIInsightInTimeline(aiInsightId, data.insights);
             showSuccess('AI insights generated successfully!');
         } else {
-            aiContent.innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    Error generating insights: ${data.error || 'Unknown error'}
-                </div>
-            `;
+            // Update with error message
+            updateAIInsightInTimeline(aiInsightId, null, data.error || 'Unknown error');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        aiContent.innerHTML = `
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                Failed to generate AI insights. Please try again.
-            </div>
-        `;
+        updateAIInsightInTimeline(aiInsightId, null, 'Failed to generate AI insights. Please try again.');
     })
     .finally(() => {
         btn.innerHTML = originalText;
@@ -412,122 +377,114 @@ function generateAIInsights(fieldId) {
     });
 }
 
-function displayAIInsights(insights) {
-    const aiContent = document.getElementById('ai-insights-content');
-    const aiData = insights.ai_insights || {};
+function addAIInsightToTimeline(insightId, insights = null, isLoading = false) {
+    const timeline = document.getElementById('analysis-timeline');
+    const emptyMessage = document.getElementById('empty-timeline-message');
     
-    aiContent.innerHTML = `
-        <!-- Overall Health Assessment -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card border-success">
-                    <div class="card-header bg-success text-white">
-                        <h6 class="mb-0"><i class="fas fa-heartbeat me-2"></i>Overall Health Assessment</h6>
+    // Hide empty message if it exists
+    if (emptyMessage) {
+        emptyMessage.style.display = 'none';
+    }
+    
+    const currentTime = new Date().toLocaleString();
+    
+    const timelineItem = document.createElement('div');
+    timelineItem.className = 'timeline-item mb-3';
+    timelineItem.id = insightId;
+    
+    if (isLoading) {
+        timelineItem.innerHTML = `
+            <div class="d-flex align-items-start">
+                <div class="timeline-marker me-3 mt-1">
+                    <i class="fas fa-spinner fa-spin text-info"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <h6 class="mb-0 text-light">
+                            <i class="fas fa-brain me-2"></i>AI Insights
+                        </h6>
+                        <small class="text-muted">${currentTime}</small>
                     </div>
-                    <div class="card-body">
-                        <p class="mb-3">${aiData.overall_health_assessment || 'Analysis in progress...'}</p>
-                        <div class="d-flex align-items-center">
-                            <span class="badge bg-success me-2">Confidence: ${Math.round((insights.confidence_score || 0.7) * 100)}%</span>
-                            <span class="badge bg-info">Data Quality: ${insights.data_quality || 'Good'}</span>
+                    <div class="text-muted">
+                        <small>Generating AI insights...</small>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Insert at the beginning of the timeline
+    timeline.insertBefore(timelineItem, timeline.firstChild);
+}
+
+function updateAIInsightInTimeline(insightId, insights, error = null) {
+    const timelineItem = document.getElementById(insightId);
+    if (!timelineItem) return;
+    
+    const currentTime = new Date().toLocaleString();
+    
+    if (error) {
+        timelineItem.innerHTML = `
+            <div class="d-flex align-items-start">
+                <div class="timeline-marker me-3 mt-1">
+                    <i class="fas fa-exclamation-triangle text-danger"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <h6 class="mb-0 text-light">
+                            <i class="fas fa-brain me-2"></i>AI Insights (Error)
+                        </h6>
+                        <small class="text-muted">${currentTime}</small>
+                    </div>
+                    <div class="alert alert-danger alert-sm">
+                        <small>${error}</small>
+                    </div>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    const aiData = insights.ai_insights || {};
+    const criticalCount = aiData.critical_insights ? aiData.critical_insights.length : 0;
+    const actionCount = aiData.immediate_actions ? aiData.immediate_actions.length : 0;
+    
+    timelineItem.innerHTML = `
+        <div class="d-flex align-items-start">
+            <div class="timeline-marker me-3 mt-1">
+                <i class="fas fa-brain text-info"></i>
+            </div>
+            <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <h6 class="mb-0 text-light">
+                        <i class="fas fa-brain me-2"></i>AI Insights
+                        <button class="btn btn-sm btn-link text-info p-0 ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${insightId}" aria-expanded="false">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </h6>
+                    <small class="text-muted">${currentTime}</small>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-4">
+                        <small class="text-muted">Confidence:</small>
+                        <span class="fw-bold text-success">${Math.round((insights.confidence_score || 0.7) * 100)}%</span>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">Critical Issues:</small>
+                        <span class="fw-bold text-warning">${criticalCount}</span>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">Actions:</small>
+                        <span class="fw-bold text-danger">${actionCount}</span>
+                    </div>
+                </div>
+                
+                <!-- Collapsible Content -->
+                <div class="collapse" id="collapse-${insightId}">
+                    <div class="card bg-secondary border-0 mt-2">
+                        <div class="card-body p-3">
+                            ${generateInsightContent(aiData)}
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Critical Insights & Immediate Actions -->
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="card border-warning">
-                    <div class="card-header bg-warning text-dark">
-                        <h6 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Critical Insights</h6>
-                    </div>
-                    <div class="card-body">
-                        ${aiData.critical_insights ? 
-                            aiData.critical_insights.map(insight => 
-                                `<div class="d-flex mb-2">
-                                    <i class="fas fa-lightbulb text-warning me-2 mt-1"></i>
-                                    <small>${insight}</small>
-                                </div>`
-                            ).join('') : 
-                            '<p class="text-muted small">No critical insights identified.</p>'
-                        }
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card border-danger">
-                    <div class="card-header bg-danger text-white">
-                        <h6 class="mb-0"><i class="fas fa-tasks me-2"></i>Immediate Actions</h6>
-                    </div>
-                    <div class="card-body">
-                        ${aiData.immediate_actions ? 
-                            aiData.immediate_actions.map(action => 
-                                `<div class="d-flex mb-2">
-                                    <input type="checkbox" class="form-check-input me-2 mt-1">
-                                    <small>${action}</small>
-                                </div>`
-                            ).join('') : 
-                            '<p class="text-muted small">No immediate actions required.</p>'
-                        }
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Seasonal Recommendations -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card border-success">
-                    <div class="card-header bg-success text-white">
-                        <h6 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Seasonal Recommendations</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            ${aiData.seasonal_recommendations ? 
-                                aiData.seasonal_recommendations.map(rec => 
-                                    `<div class="col-md-6 mb-2">
-                                        <div class="d-flex">
-                                            <i class="fas fa-seedling text-success me-2 mt-1"></i>
-                                            <small>${rec}</small>
-                                        </div>
-                                    </div>`
-                                ).join('') : 
-                                '<div class="col-12"><p class="text-muted small">No seasonal recommendations available.</p></div>'
-                            }
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Yield Prediction & Optimization -->
-        <div class="row">
-            <div class="col-md-6">
-                <div class="card border-primary">
-                    <div class="card-header bg-primary text-white">
-                        <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Yield Prediction</h6>
-                    </div>
-                    <div class="card-body">
-                        <p class="small mb-0">${aiData.yield_prediction || 'Yield analysis in progress...'}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card border-info">
-                    <div class="card-header bg-info text-white">
-                        <h6 class="mb-0"><i class="fas fa-cog me-2"></i>Optimization Opportunities</h6>
-                    </div>
-                    <div class="card-body">
-                        ${aiData.optimization_opportunities ? 
-                            aiData.optimization_opportunities.map(opp => 
-                                `<div class="d-flex mb-1">
-                                    <i class="fas fa-arrow-up text-info me-2 mt-1"></i>
-                                    <small>${opp}</small>
-                                </div>`
-                            ).join('') : 
-                            '<p class="text-muted small">No optimization opportunities identified.</p>'
-                        }
                     </div>
                 </div>
             </div>
@@ -535,10 +492,80 @@ function displayAIInsights(insights) {
     `;
 }
 
-function toggleAIInsights() {
-    const aiSection = document.getElementById('ai-insights-section');
-    aiSection.style.display = 'none';
+function generateInsightContent(aiData) {
+    return `
+        <!-- Overall Health Assessment -->
+        <div class="mb-3">
+            <h6 class="text-success mb-2"><i class="fas fa-heartbeat me-2"></i>Overall Health</h6>
+            <p class="small mb-0">${aiData.overall_health_assessment || 'Analysis in progress...'}</p>
+        </div>
+        
+        <!-- Critical Insights -->
+        ${aiData.critical_insights && aiData.critical_insights.length > 0 ? `
+        <div class="mb-3">
+            <h6 class="text-warning mb-2"><i class="fas fa-exclamation-triangle me-2"></i>Critical Insights</h6>
+            ${aiData.critical_insights.map(insight => 
+                `<div class="d-flex mb-1">
+                    <i class="fas fa-lightbulb text-warning me-2 mt-1 small"></i>
+                    <small>${insight}</small>
+                </div>`
+            ).join('')}
+        </div>
+        ` : ''}
+        
+        <!-- Immediate Actions -->
+        ${aiData.immediate_actions && aiData.immediate_actions.length > 0 ? `
+        <div class="mb-3">
+            <h6 class="text-danger mb-2"><i class="fas fa-tasks me-2"></i>Immediate Actions</h6>
+            ${aiData.immediate_actions.map(action => 
+                `<div class="d-flex mb-1">
+                    <input type="checkbox" class="form-check-input me-2 mt-1" style="font-size: 0.8rem;">
+                    <small>${action}</small>
+                </div>`
+            ).join('')}
+        </div>
+        ` : ''}
+        
+        <!-- Seasonal Recommendations -->
+        ${aiData.seasonal_recommendations && aiData.seasonal_recommendations.length > 0 ? `
+        <div class="mb-3">
+            <h6 class="text-success mb-2"><i class="fas fa-calendar-alt me-2"></i>Seasonal Recommendations</h6>
+            <div class="row">
+                ${aiData.seasonal_recommendations.map(rec => 
+                    `<div class="col-md-6 mb-1">
+                        <div class="d-flex">
+                            <i class="fas fa-seedling text-success me-2 mt-1 small"></i>
+                            <small>${rec}</small>
+                        </div>
+                    </div>`
+                ).join('')}
+            </div>
+        </div>
+        ` : ''}
+        
+        <!-- Yield & Optimization -->
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="text-primary mb-2 small"><i class="fas fa-chart-bar me-2"></i>Yield Prediction</h6>
+                <p class="small mb-0">${aiData.yield_prediction || 'Analysis in progress...'}</p>
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-info mb-2 small"><i class="fas fa-cog me-2"></i>Optimization</h6>
+                ${aiData.optimization_opportunities && aiData.optimization_opportunities.length > 0 ? 
+                    aiData.optimization_opportunities.map(opp => 
+                        `<div class="d-flex mb-1">
+                            <i class="fas fa-arrow-up text-info me-1 mt-1 small"></i>
+                            <small>${opp}</small>
+                        </div>`
+                    ).join('') : 
+                    '<p class="small mb-0 text-muted">No opportunities identified.</p>'
+                }
+            </div>
+        </div>
+    `;
 }
+
+
 
 function scheduleAutomation(fieldId) {
     showInfo('Automation scheduling feature coming soon! This will allow daily/weekly automated NDVI updates.');
