@@ -229,13 +229,10 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function openSiteProject(fieldId) {
-    showLoading();
-    loadPage(`/site/${fieldId}`);
+    window.location.href = `/site/${fieldId}`;
 }
 
 function analyzeField(fieldId) {
-    showLoading();
-    
     fetch(`/api/analyze_field/${fieldId}`, {
         method: 'POST',
         headers: {
@@ -244,17 +241,15 @@ function analyzeField(fieldId) {
     })
     .then(response => response.json())
     .then(data => {
-        hideLoading();
         if (data.success) {
             // Show success message and reload
             showSuccess('Field analysis updated successfully!');
-            setTimeout(() => loadPage('/dashboard'), 1500);
+            setTimeout(() => window.location.reload(), 1500);
         } else {
             showError('Analysis failed: ' + (data.message || 'Unknown error'));
         }
     })
     .catch(error => {
-        hideLoading();
         console.error('Error analyzing field:', error);
         showError('Failed to analyze field. Please try again.');
     });
@@ -267,23 +262,19 @@ function scheduleAutomation(fieldId) {
 
 function deleteField(fieldId) {
     if (confirm('Are you sure you want to delete this project? This will permanently remove all associated data and cannot be undone.')) {
-        showLoading();
-        
         fetch(`/api/delete_field/${fieldId}`, {
             method: 'DELETE'
         })
         .then(response => response.json())
         .then(data => {
-            hideLoading();
             if (data.success) {
                 showSuccess('Project deleted successfully');
-                setTimeout(() => loadPage('/dashboard'), 1500);
+                setTimeout(() => window.location.reload(), 1500);
             } else {
                 showError('Delete failed: ' + (data.message || 'Unknown error'));
             }
         })
         .catch(error => {
-            hideLoading();
             console.error('Error deleting field:', error);
             showError('Failed to delete project. Please try again.');
         });
