@@ -664,12 +664,31 @@
         let mapLayers = {};
         
         function initializeMap() {
+            console.log('Starting initializeMap function');
+            
             // Clear any existing map
             if (mapInstance) {
+                console.log('Removing existing map instance');
                 mapInstance.remove();
             }
             
-            mapInstance = L.map('map').setView([37.7749, -122.4194], 10);
+            const mapElement = document.getElementById('map');
+            console.log('Map element:', mapElement);
+            console.log('Map element dimensions:', mapElement ? { width: mapElement.offsetWidth, height: mapElement.offsetHeight } : 'null');
+            
+            if (!mapElement) {
+                console.error('Map container element not found!');
+                return;
+            }
+            
+            try {
+                console.log('Creating Leaflet map instance');
+                mapInstance = L.map('map').setView([37.7749, -122.4194], 10);
+                console.log('Map instance created:', mapInstance);
+            } catch (error) {
+                console.error('Error creating map:', error);
+                return;
+            }
             
             // Define map layers
             mapLayers = {
