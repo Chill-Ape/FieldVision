@@ -226,6 +226,76 @@
                 background: rgba(88, 166, 255, 0.1);
             }
         }
+        
+        /* Mobile touch handling for maps */
+        @media (max-width: 767.98px) {
+            .leaflet-container {
+                touch-action: pan-y pinch-zoom !important;
+            }
+            
+            .map-container {
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .map-container::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: 1000;
+                pointer-events: none;
+                background: transparent;
+            }
+            
+            .map-container.touch-disabled::before {
+                pointer-events: all;
+                z-index: 1001;
+            }
+            
+            .map-overlay {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                z-index: 1002;
+                background: rgba(13, 17, 23, 0.9);
+                border: 1px solid #58a6ff;
+                border-radius: 8px;
+                padding: 0.5rem;
+            }
+            
+            .map-toggle-btn {
+                background: #58a6ff !important;
+                border: none !important;
+                color: white !important;
+                padding: 0.5rem 1rem !important;
+                border-radius: 6px !important;
+                font-size: 0.875rem !important;
+                cursor: pointer !important;
+            }
+            
+            .map-scroll-hint {
+                position: absolute;
+                bottom: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(255, 193, 7, 0.9);
+                color: #212529;
+                padding: 0.25rem 0.75rem;
+                border-radius: 15px;
+                font-size: 0.75rem;
+                z-index: 1002;
+                display: none;
+                animation: fadeInOut 3s ease-in-out;
+            }
+            
+            @keyframes fadeInOut {
+                0%, 100% { opacity: 0; }
+                50% { opacity: 1; }
+            }
+        }
 
     </style>
     
@@ -317,6 +387,120 @@
                 mobileNav.classList.toggle('show');
             }
         }
+        
+        // Mobile map touch handling
+        let mapInteractionEnabled = false;
+        
+        function isMobileDevice() {
+            return window.innerWidth <= 767.98;
+        }
+        
+        function initializeMobileMapHandling() {
+            if (!isMobileDevice()) return;
+            
+            const mapContainers = document.querySelectorAll('.leaflet-container');
+            mapContainers.forEach(container => {
+                const parent = container.parentElement;
+                if (!parent.classList.contains('map-container')) {
+                    parent.classList.add('map-container');
+                }
+                
+                // Initially disable map interaction on mobile
+                disableMapInteraction(container);
+                
+                // Add overlay controls
+                addMapOverlay(parent);
+            });
+        }
+        
+        function disableMapInteraction(mapContainer) {
+            if (!isMobileDevice()) return;
+            
+            const parent = mapContainer.parentElement;
+            parent.classList.add('touch-disabled');
+            
+            // Disable Leaflet touch events
+            if (mapContainer._leaflet_map) {
+                mapContainer._leaflet_map.dragging.disable();
+                mapContainer._leaflet_map.touchZoom.disable();
+                mapContainer._leaflet_map.doubleClickZoom.disable();
+                mapContainer._leaflet_map.scrollWheelZoom.disable();
+            }
+            
+            mapInteractionEnabled = false;
+        }
+        
+        function enableMapInteraction(mapContainer) {
+            if (!isMobileDevice()) return;
+            
+            const parent = mapContainer.parentElement;
+            parent.classList.remove('touch-disabled');
+            
+            // Enable Leaflet touch events
+            if (mapContainer._leaflet_map) {
+                mapContainer._leaflet_map.dragging.enable();
+                mapContainer._leaflet_map.touchZoom.enable();
+                mapContainer._leaflet_map.doubleClickZoom.enable();
+                mapContainer._leaflet_map.scrollWheelZoom.enable();
+            }
+            
+            mapInteractionEnabled = true;
+            
+            // Show hint
+            showMapHint(parent);
+        }
+        
+        function addMapOverlay(mapContainer) {
+            if (!isMobileDevice()) return;
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'map-overlay';
+            overlay.innerHTML = `
+                <button class="map-toggle-btn" onclick="toggleMapInteraction(this)">
+                    <i class="fas fa-hand-paper me-1"></i>Enable Map
+                </button>
+            `;
+            mapContainer.appendChild(overlay);
+        }
+        
+        function toggleMapInteraction(button) {
+            const mapContainer = button.closest('.map-container');
+            const leafletContainer = mapContainer.querySelector('.leaflet-container');
+            
+            if (mapInteractionEnabled) {
+                disableMapInteraction(leafletContainer);
+                button.innerHTML = '<i class="fas fa-hand-paper me-1"></i>Enable Map';
+                button.style.background = '#58a6ff';
+            } else {
+                enableMapInteraction(leafletContainer);
+                button.innerHTML = '<i class="fas fa-hand-point-up me-1"></i>Disable Map';
+                button.style.background = '#dc3545';
+            }
+        }
+        
+        function showMapHint(mapContainer) {
+            const hint = document.createElement('div');
+            hint.className = 'map-scroll-hint';
+            hint.textContent = 'Map interaction enabled - tap "Disable Map" to scroll page';
+            mapContainer.appendChild(hint);
+            
+            hint.style.display = 'block';
+            setTimeout(() => {
+                if (hint.parentNode) {
+                    hint.parentNode.removeChild(hint);
+                }
+            }, 3000);
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(initializeMobileMapHandling, 500);
+        });
+        
+        // Reinitialize when window resizes
+        window.addEventListener('resize', function() {
+            setTimeout(initializeMobileMapHandling, 300);
+        });
         
         // Close mobile menu when clicking outside
         document.addEventListener('click', function(event) {
