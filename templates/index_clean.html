@@ -561,6 +561,11 @@
                 <i class="fas fa-satellite me-1"></i>
                 <strong>Tip:</strong> Switch to Satellite layer to identify green agricultural areas before drawing your selection.
             </div>
+            <!-- Draw Site Button - Primary Action -->
+            <button id="draw-site-btn" class="btn" onclick="openFullscreenMap()" style="width: 100%; background: #58a6ff; margin-bottom: 1rem; padding: 0.75rem; font-weight: 600;">
+                📍 Draw Site on Map
+            </button>
+            
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                 <button id="clear-btn" class="btn btn-warning" onclick="clearDrawings()">
                     Clear Selection
@@ -740,6 +745,57 @@
             <p style="margin-top: 10px; color: #8b949e; font-size: 0.9rem;">
                 Use zoom controls or mouse wheel to examine details • ESC to close
             </p>
+        </div>
+    </div>
+</div>
+
+<!-- Fullscreen Map Modal -->
+<div id="fullscreenMapModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 20000; flex-direction: column;">
+    <!-- Modal Header -->
+    <div style="background: rgba(13, 17, 23, 0.98); border-bottom: 1px solid rgba(88, 166, 255, 0.2); padding: 1rem; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="color: #f0f6fc; margin: 0; font-family: 'Exo 2', sans-serif; font-weight: 400;">
+            📍 Draw Field Area
+        </h3>
+        <button onclick="closeFullscreenMap()" style="background: none; border: none; color: #8b949e; font-size: 1.5rem; cursor: pointer; padding: 0.5rem;">
+            ✕
+        </button>
+    </div>
+    
+    <!-- Instructions -->
+    <div style="background: rgba(13, 17, 23, 0.9); padding: 1rem; border-bottom: 1px solid rgba(88, 166, 255, 0.1);">
+        <div style="display: flex; align-items: center; gap: 1rem; color: #8b949e; font-family: 'Exo 2', sans-serif; font-size: 0.9rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-draw-polygon" style="color: #58a6ff;"></i>
+                <span>Use polygon tool to trace field boundary</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-square" style="color: #58a6ff;"></i>
+                <span>Or use rectangle for quick selection</span>
+            </div>
+        </div>
+        <div id="fullscreen-help-text" style="color: #8b949e; font-size: 0.85rem; margin-top: 0.5rem;">
+            Navigate to your field location and draw the area you want to analyze
+        </div>
+    </div>
+    
+    <!-- Map Container -->
+    <div style="flex: 1; position: relative;">
+        <div id="fullscreen-map" style="width: 100%; height: 100%;"></div>
+    </div>
+    
+    <!-- Modal Footer -->
+    <div style="background: rgba(13, 17, 23, 0.98); border-top: 1px solid rgba(88, 166, 255, 0.2); padding: 1rem; display: flex; justify-content: space-between; align-items: center;">
+        <div style="color: #8b949e; font-family: 'Exo 2', sans-serif; font-size: 0.9rem;">
+            <i class="fas fa-info-circle" style="color: #58a6ff;"></i>
+            Select agricultural fields with visible crops or vegetation
+        </div>
+        <div style="display: flex; gap: 1rem;">
+            <button onclick="closeFullscreenMap()" style="padding: 0.75rem 1.5rem; background: #30363d; color: #8b949e; border: none; border-radius: 6px; cursor: pointer; font-family: 'Exo 2', sans-serif;">
+                Cancel
+            </button>
+            <button id="fullscreen-confirm-btn" onclick="confirmSelection()" style="display: none; padding: 0.75rem 1.5rem; background: #58a6ff; color: #0d1117; border: none; border-radius: 6px; cursor: pointer; font-family: 'Exo 2', sans-serif; font-weight: 500;">
+                Confirm Selection
+            </button>
         </div>
     </div>
 </div>
@@ -1491,5 +1547,126 @@
         window.viewSiteProject = viewSiteProject;
         window.changeMapLayer = changeMapLayer;
         window.toggleLayerControl = toggleLayerControl;
+        
+        // Fullscreen Map Functions
+        function openFullscreenMap() {
+            console.log('Opening fullscreen map modal...');
+            const modal = document.getElementById('fullscreenMapModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                setTimeout(() => {
+                    initializeFullscreenMap();
+                }, 100);
+            } else {
+                console.error('Fullscreen map modal not found');
+            }
+        }
+        
+        function closeFullscreenMap() {
+            console.log('Closing fullscreen map modal...');
+            const modal = document.getElementById('fullscreenMapModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+            
+            if (window.fullscreenMap) {
+                window.fullscreenMap.remove();
+                window.fullscreenMap = null;
+            }
+        }
+        
+        function initializeFullscreenMap() {
+            console.log('Initializing fullscreen map...');
+            
+            if (window.fullscreenMap) {
+                window.fullscreenMap.remove();
+            }
+            
+            window.fullscreenMap = L.map('fullscreen-map', {
+                zoomControl: true,
+                attributionControl: false
+            }).setView([37.7749, -122.4194], 10);
+            
+            const satelliteLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+                attribution: '© Google',
+                maxZoom: 20
+            });
+            satelliteLayer.addTo(window.fullscreenMap);
+            
+            window.fullscreenDrawnItems = new L.FeatureGroup();
+            window.fullscreenMap.addLayer(window.fullscreenDrawnItems);
+            
+            const drawControl = new L.Control.Draw({
+                edit: {
+                    featureGroup: window.fullscreenDrawnItems
+                },
+                draw: {
+                    polygon: {
+                        shapeOptions: {
+                            color: '#58a6ff',
+                            weight: 2,
+                            fillOpacity: 0.1
+                        }
+                    },
+                    polyline: false,
+                    circle: false,
+                    marker: false,
+                    circlemarker: false,
+                    rectangle: {
+                        shapeOptions: {
+                            color: '#58a6ff',
+                            weight: 2,
+                            fillOpacity: 0.1
+                        }
+                    }
+                }
+            });
+            window.fullscreenMap.addControl(drawControl);
+            
+            window.fullscreenMap.on('draw:created', function (e) {
+                const layer = e.layer;
+                window.fullscreenDrawnItems.addLayer(layer);
+                window.fullscreenSelectedLayer = layer;
+                
+                document.getElementById('fullscreen-confirm-btn').style.display = 'block';
+                document.getElementById('fullscreen-help-text').textContent = 'Selection made - click Confirm to use this area';
+                
+                console.log('Area selected in fullscreen map');
+            });
+            
+            setTimeout(() => {
+                window.fullscreenMap.invalidateSize();
+            }, 200);
+            
+            console.log('Fullscreen map initialized successfully');
+        }
+        
+        function confirmSelection() {
+            console.log('Confirming fullscreen map selection...');
+            
+            if (window.fullscreenSelectedLayer) {
+                if (window.fullscreenSelectedLayer instanceof L.Rectangle) {
+                    const bounds = window.fullscreenSelectedLayer.getBounds();
+                    currentBounds = bounds;
+                } else if (window.fullscreenSelectedLayer instanceof L.Polygon) {
+                    currentBounds = window.fullscreenSelectedLayer.getBounds();
+                }
+                
+                currentLayer = window.fullscreenSelectedLayer;
+                updateCoordinatesDisplay(currentLayer);
+                document.getElementById('analyze-btn').disabled = false;
+                document.getElementById('save-site-btn').disabled = false;
+                
+                console.log('Selection transferred to main interface');
+                closeFullscreenMap();
+                alert('Area selection confirmed! You can now analyze this field.');
+            } else {
+                alert('Please select an area first using the drawing tools.');
+            }
+        }
+        
+        window.openFullscreenMap = openFullscreenMap;
+        window.closeFullscreenMap = closeFullscreenMap;
+        window.confirmSelection = confirmSelection;
     </script>
 {% endblock %}
