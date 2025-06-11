@@ -346,13 +346,49 @@
             background: rgba(13, 17, 23, 0.95);
             border: 1px solid rgba(88, 166, 255, 0.3);
             border-radius: 6px;
-            padding: 8px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            min-width: 90px;
+        }
+        
+        .layer-control-header {
+            padding: 8px 10px;
+            background: rgba(88, 166, 255, 0.1);
+            border-bottom: 1px solid rgba(88, 166, 255, 0.2);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 5px 5px 0 0;
+        }
+        
+        .layer-control-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #58a6ff;
+        }
+        
+        .collapse-icon {
+            font-size: 0.7rem;
+            color: #58a6ff;
+            transition: transform 0.2s ease;
+        }
+        
+        .collapse-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+        
+        .layer-buttons {
+            padding: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .layer-buttons.collapsed {
+            display: none;
         }
         
         .layer-btn {
             display: block;
-            width: 80px;
+            width: 100%;
             padding: 6px 8px;
             margin: 2px 0;
             background: rgba(30, 36, 61, 0.8);
@@ -507,10 +543,16 @@
     <div class="map-container">
         <div id="map"></div>
         <div class="map-layer-control">
-            <button class="layer-btn active" onclick="changeMapLayer('osm')" id="osm-btn">Street</button>
-            <button class="layer-btn" onclick="changeMapLayer('satellite')" id="satellite-btn">Satellite</button>
-            <button class="layer-btn" onclick="changeMapLayer('topo')" id="topo-btn">Topo</button>
-            <button class="layer-btn" onclick="changeMapLayer('terrain')" id="terrain-btn">Terrain</button>
+            <div class="layer-control-header" onclick="toggleLayerControl()">
+                <span class="layer-control-title">Layers</span>
+                <span class="collapse-icon" id="collapse-icon">▼</span>
+            </div>
+            <div class="layer-buttons" id="layer-buttons">
+                <button class="layer-btn active" onclick="changeMapLayer('osm')" id="osm-btn">Street</button>
+                <button class="layer-btn" onclick="changeMapLayer('satellite')" id="satellite-btn">Satellite</button>
+                <button class="layer-btn" onclick="changeMapLayer('topo')" id="topo-btn">Topo</button>
+                <button class="layer-btn" onclick="changeMapLayer('terrain')" id="terrain-btn">Terrain</button>
+            </div>
         </div>
     </div>
 </div>
@@ -594,11 +636,11 @@
                 satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                     attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
                 }),
-                topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-                    attribution: 'Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)'
+                topo: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: 'Tiles © Esri — Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community'
                 }),
-                terrain: L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}{r}.png', {
-                    attribution: 'Map tiles by Stamen Design, CC BY 3.0 — Map data © OpenStreetMap contributors'
+                terrain: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: 'Tiles © Esri — Source: US National Park Service'
                 })
             };
             
@@ -815,6 +857,22 @@
             const activeBtn = document.getElementById(activeLayer + '-btn');
             if (activeBtn) {
                 activeBtn.className = 'layer-btn active';
+            }
+        }
+        
+        function toggleLayerControl() {
+            const layerButtons = document.getElementById('layer-buttons');
+            const collapseIcon = document.getElementById('collapse-icon');
+            
+            if (layerButtons && collapseIcon) {
+                layerButtons.classList.toggle('collapsed');
+                collapseIcon.classList.toggle('collapsed');
+                
+                if (layerButtons.classList.contains('collapsed')) {
+                    collapseIcon.textContent = '▶';
+                } else {
+                    collapseIcon.textContent = '▼';
+                }
             }
         }
         
