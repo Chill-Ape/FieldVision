@@ -616,9 +616,11 @@
         let currentTileLayer;
         
         function initializePage(page) {
-            if (page === '/' || page === '') {
+            console.log('Map initializePage called with page:', page);
+            if (page === '/' || page === '' || page === '/index') {
                 // Clear any existing global variables first
                 if (typeof mapInstance !== 'undefined' && mapInstance) {
+                    console.log('Removing existing map instance');
                     mapInstance.remove();
                     mapInstance = null;
                 }
@@ -629,17 +631,26 @@
                 currentTileLayer = null;
                 
                 setTimeout(() => {
-                    if (typeof L !== 'undefined' && L.Control && L.Control.Draw) {
-                        initializeMap();
-                        // Ensure API status is checked
-                        checkAPIStatus();
+                    console.log('Map container check:', document.getElementById('map'));
+                    if (document.getElementById('map')) {
+                        if (typeof L !== 'undefined' && L.Control && L.Control.Draw) {
+                            console.log('Initializing map...');
+                            initializeMap();
+                            // Ensure API status is checked
+                            checkAPIStatus();
+                        } else {
+                            console.error('Leaflet Draw not loaded');
+                            loadLeafletDraw();
+                        }
                     } else {
-                        console.error('Leaflet Draw not loaded');
-                        loadLeafletDraw();
+                        console.error('Map container not found');
                     }
-                }, 200);
+                }, 500);
             }
         }
+        
+        // Make the function globally available for SPA calls
+        window.initializePage = initializePage;
         
         function loadLeafletDraw() {
             const script = document.createElement('script');
