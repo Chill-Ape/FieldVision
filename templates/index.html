@@ -1301,7 +1301,11 @@
             document.getElementById('loading').style.display = 'block';
             document.getElementById('analyze-btn').disabled = true;
             document.getElementById('simple-analyze-btn').disabled = true;
-            document.getElementById('result-section').style.display = 'none';
+            
+            // Hide AI sections but keep NDVI result visible
+            document.getElementById('ai-recommendations').style.display = 'none';
+            document.getElementById('weather-context').style.display = 'none';
+            document.getElementById('zone-analysis').style.display = 'none';
             
             try {
                 const response = await fetch('/analyze_field', {
