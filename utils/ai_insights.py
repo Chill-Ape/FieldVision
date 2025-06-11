@@ -291,7 +291,11 @@ class AgricultureAI:
                 max_tokens=2000
             )
             
-            return json.loads(response.choices[0].message.content)
+            content = response.choices[0].message.content
+            if content:
+                return json.loads(content)
+            else:
+                return {"error": "Empty response from AI model"}
             
         except Exception as e:
             return {"error": f"Portfolio analysis failed: {str(e)}"}
