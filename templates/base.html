@@ -326,7 +326,7 @@
         // Close mobile menu when clicking outside
         document.addEventListener('click', function(event) {
             const mobileNav = document.getElementById('mobile-nav');
-            const menuBtn = document.querySelector('.mobile-menu-btn');
+            const menuBtn = document.querySelector('.fixed-mobile-btn');
             
             if (mobileNav && menuBtn && !menuBtn.contains(event.target) && !mobileNav.contains(event.target)) {
                 mobileNav.classList.remove('show');
