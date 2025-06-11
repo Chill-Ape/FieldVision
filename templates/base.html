@@ -72,19 +72,21 @@
             min-height: calc(100vh - 50px);
         }
         
-        /* Mobile menu button styling */
-        .mobile-menu-btn {
-            cursor: pointer;
-            padding: 0.5rem;
-            border: 2px solid #58a6ff;
-            border-radius: 6px;
-            background: rgba(88, 166, 255, 0.2);
-            transition: all 0.3s ease;
-        }
-        
-        .mobile-menu-btn:hover {
-            background: rgba(88, 166, 255, 0.3);
-            border-color: #58a6ff;
+        /* Mobile menu button styling - only on small screens */
+        @media (max-width: 991.98px) {
+            .mobile-menu-btn {
+                cursor: pointer;
+                padding: 0.5rem;
+                border: 2px solid #58a6ff;
+                border-radius: 6px;
+                background: rgba(88, 166, 255, 0.2);
+                transition: all 0.3s ease;
+            }
+            
+            .mobile-menu-btn:hover {
+                background: rgba(88, 166, 255, 0.3);
+                border-color: #58a6ff;
+            }
         }
         
         /* Hamburger icon */
@@ -105,40 +107,42 @@
             transition: all 0.3s ease;
         }
         
-        /* Mobile navigation menu */
-        .mobile-nav-menu {
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: rgba(13, 17, 23, 0.98);
-            border-bottom: 2px solid rgba(88, 166, 255, 0.3);
-            padding: 1rem 0;
-            z-index: 1000;
-        }
-        
-        .mobile-nav-menu.show {
-            display: block;
-        }
-        
-        .mobile-nav-link {
-            display: block;
-            padding: 0.75rem 1.5rem;
-            color: #58a6ff;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            border-bottom: 1px solid rgba(88, 166, 255, 0.1);
-        }
-        
-        .mobile-nav-link:hover {
-            background: rgba(88, 166, 255, 0.1);
-            color: #ffffff;
-            text-decoration: none;
-        }
-        
-        .mobile-nav-link:last-child {
-            border-bottom: none;
+        /* Mobile navigation menu - only on small screens */
+        @media (max-width: 991.98px) {
+            .mobile-nav-menu {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: rgba(13, 17, 23, 0.98);
+                border-bottom: 2px solid rgba(88, 166, 255, 0.3);
+                padding: 1rem 0;
+                z-index: 1000;
+            }
+            
+            .mobile-nav-menu.show {
+                display: block;
+            }
+            
+            .mobile-nav-link {
+                display: block;
+                padding: 0.75rem 1.5rem;
+                color: #58a6ff;
+                text-decoration: none;
+                transition: all 0.3s ease;
+                border-bottom: 1px solid rgba(88, 166, 255, 0.1);
+            }
+            
+            .mobile-nav-link:hover {
+                background: rgba(88, 166, 255, 0.1);
+                color: #ffffff;
+                text-decoration: none;
+            }
+            
+            .mobile-nav-link:last-child {
+                border-bottom: none;
+            }
         }
         
 
@@ -218,35 +222,48 @@
 
     
     <!-- Navigation Bar -->
-    <nav class="navbar navbar-custom sticky-top">
-        <div class="container d-flex justify-content-between align-items-center" style="max-height: 60px;">
+    <nav class="navbar navbar-expand-lg navbar-custom sticky-top" style="overflow: hidden;">
+        <div class="container" style="max-height: 60px; overflow: hidden;">
             <a class="navbar-brand" href="/">
                 <i class="fas fa-seedling me-2"></i>FieldVision AI
             </a>
             
             <!-- Desktop Navigation -->
-            <div class="d-none d-md-flex">
-                <ul class="navbar-nav d-flex flex-row">
-                    <li class="nav-item me-3">
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
                         <a class="nav-link" href="/">
-                            <i class="fas fa-map me-1"></i>Map
+                            <i class="fas fa-map me-1"></i>Map Interface
                         </a>
                     </li>
-                    <li class="nav-item me-3">
+                    <li class="nav-item">
                         <a class="nav-link" href="/dashboard">
                             <i class="fas fa-tachometer-alt me-1"></i>Dashboard
                         </a>
                     </li>
-                    <li class="nav-item me-3">
+                    <li class="nav-item">
                         <a class="nav-link" href="/reports">
                             <i class="fas fa-chart-bar me-1"></i>Reports
                         </a>
                     </li>
                 </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle me-1"></i>Account
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-dark">
+                            <li><a class="dropdown-item" href="/dashboard"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>Sign Out</a></li>
+                        </ul>
+                    </li>
+                </ul>
             </div>
             
-            <!-- Mobile Menu Button -->
-            <div class="d-md-none mobile-menu-btn" onclick="toggleMobileMenu()">
+            <!-- Mobile Menu Button (only visible on small screens) -->
+            <div class="d-lg-none mobile-menu-btn" onclick="toggleMobileMenu()">
                 <div class="hamburger-icon">
                     <span></span>
                     <span></span>
@@ -255,8 +272,8 @@
             </div>
         </div>
         
-        <!-- Mobile Navigation Menu -->
-        <div id="mobile-nav" class="mobile-nav-menu d-md-none">
+        <!-- Mobile Navigation Menu (only visible on small screens) -->
+        <div id="mobile-nav" class="mobile-nav-menu d-lg-none">
             <a href="/" class="mobile-nav-link">
                 <i class="fas fa-map me-2"></i>Map Interface
             </a>
