@@ -1649,8 +1649,13 @@
                 
                 currentLayer = window.fullscreenSelectedLayer;
                 updateCoordinatesDisplay(currentLayer);
-                document.getElementById('analyze-btn').disabled = false;
-                document.getElementById('save-site-btn').disabled = false;
+                
+                // Check if elements exist before enabling them
+                const analyzeBtn = document.getElementById('simple-analyze-btn') || document.getElementById('analyze-btn');
+                const saveSiteBtn = document.getElementById('save-site-btn');
+                
+                if (analyzeBtn) analyzeBtn.disabled = false;
+                if (saveSiteBtn) saveSiteBtn.disabled = false;
                 
                 console.log('Selection transferred to main interface');
                 closeFullscreenMap();
