@@ -62,26 +62,42 @@ function evaluatePixel(sample) {
     
 
     
-    // Enhanced agricultural color mapping with better contrast in vegetation range
-    // Most crops fall in 0.3-0.8 range, so we need fine gradations there
+    // Linear color ramp across NDVI range for maximum contrast
+    // Normalize NDVI from -1 to 1 range to 0 to 1
+    let normalized = (ndvi + 1.0) / 2.0;
+    normalized = Math.max(0.0, Math.min(1.0, normalized));
     
-    if (ndvi < -0.2) return [0.0, 0.3, 0.8]; // Water - blue
-    if (ndvi < 0.1) return [0.7, 0.5, 0.3]; // Bare soil - brown
-    if (ndvi < 0.2) return [0.9, 0.1, 0.1]; // Stressed vegetation - red
-    if (ndvi < 0.3) return [1.0, 0.7, 0.0]; // Low vigor - orange
+    // Create rainbow color ramp for maximum visual variation
+    let r, g, b;
     
-    // Fine gradations in the healthy vegetation range (0.3-0.8)
-    if (ndvi < 0.35) return [1.0, 1.0, 0.0]; // Yellow
-    if (ndvi < 0.4) return [0.8, 1.0, 0.2]; // Yellow-green
-    if (ndvi < 0.45) return [0.6, 1.0, 0.4]; // Light green
-    if (ndvi < 0.5) return [0.4, 1.0, 0.6]; // Medium green
-    if (ndvi < 0.55) return [0.2, 0.9, 0.4]; // Green
-    if (ndvi < 0.6) return [0.0, 0.8, 0.2]; // Dark green
-    if (ndvi < 0.65) return [0.0, 0.7, 0.1]; // Darker green
-    if (ndvi < 0.7) return [0.0, 0.6, 0.0]; // Very dark green
-    if (ndvi < 0.75) return [0.0, 0.5, 0.0]; // Deep green
+    if (normalized < 0.2) {
+        // Blue to Cyan
+        r = 0.0;
+        g = normalized * 5.0;
+        b = 1.0;
+    } else if (normalized < 0.4) {
+        // Cyan to Green
+        r = 0.0;
+        g = 1.0;
+        b = 1.0 - (normalized - 0.2) * 5.0;
+    } else if (normalized < 0.6) {
+        // Green to Yellow
+        r = (normalized - 0.4) * 5.0;
+        g = 1.0;
+        b = 0.0;
+    } else if (normalized < 0.8) {
+        // Yellow to Red
+        r = 1.0;
+        g = 1.0 - (normalized - 0.6) * 5.0;
+        b = 0.0;
+    } else {
+        // Red to Magenta
+        r = 1.0;
+        g = 0.0;
+        b = (normalized - 0.8) * 5.0;
+    }
     
-    return [0.0, 0.4, 0.0]; // Peak vegetation - deepest green
+    return [r, g, b];
 }
 """
     
