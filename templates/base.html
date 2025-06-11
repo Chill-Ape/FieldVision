@@ -196,8 +196,48 @@
                 return; // Already on this page
             }
             
-            // Use direct page navigation instead of AJAX to avoid script conflicts
-            window.location.href = page;
+            showLoading();
+            
+            try {
+                const response = await fetch(`${page}?ajax=1`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const html = await response.text();
+                
+                // Parse response and extract content
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Get the content block
+                const contentBlock = doc.querySelector('[data-content-block]') || doc.querySelector('.container');
+                
+                if (contentBlock) {
+                    // Update main content
+                    document.getElementById('mainContent').innerHTML = contentBlock.innerHTML;
+                    
+                    // Update browser URL without page reload
+                    history.pushState({page: page}, '', page);
+                    window.currentPage = page;
+                    
+                    // Update active navigation
+                    updateActiveNav(page);
+                    
+                    // Initialize page-specific functionality
+                    initializePage(page);
+                } else {
+                    // Fallback to full page reload if content block not found
+                    window.location.href = page;
+                }
+                
+            } catch (error) {
+                console.error('Error loading page:', error);
+                // Fallback to full page reload on error
+                window.location.href = page;
+            } finally {
+                hideLoading();
+            }
         }
         
         function executeScripts() {
@@ -223,6 +263,56 @@
                     console.error('Error executing script:', error);
                 }
             });
+        }
+        
+        function initializePage(page) {
+            // Wait for DOM content to be ready
+            setTimeout(() => {
+                // Initialize page-specific functionality based on the current page
+                if (page === '/' || page === '/index') {
+                    // Initialize map for main page
+                    if (typeof initializeMap === 'function') {
+                        initializeMap();
+                    } else if (typeof L !== 'undefined' && document.getElementById('map')) {
+                        // Fallback map initialization
+                        initializeMapFallback();
+                    }
+                } else if (page.includes('/dashboard')) {
+                    // Initialize dashboard functionality
+                    if (typeof initializeDashboard === 'function') {
+                        initializeDashboard();
+                    }
+                } else if (page.includes('/site/')) {
+                    // Initialize site project functionality  
+                    if (typeof initializeSiteProject === 'function') {
+                        initializeSiteProject();
+                    }
+                } else if (page.includes('/reports')) {
+                    // Initialize reports functionality
+                    if (typeof initializeReports === 'function') {
+                        initializeReports();
+                    }
+                }
+            }, 100);
+        }
+        
+        function initializeMapFallback() {
+            if (document.getElementById('map') && typeof L !== 'undefined') {
+                // Basic map initialization as fallback
+                const map = L.map('map', {
+                    center: [37.7749, -122.4194],
+                    zoom: 10,
+                    zoomControl: true
+                });
+                
+                // Add satellite tile layer as default
+                const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: '© Esri'
+                });
+                satelliteLayer.addTo(map);
+                
+                window.map = map;
+            }
         }
         
         // Handle browser back/forward buttons

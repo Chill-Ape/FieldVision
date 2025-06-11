@@ -1,11 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reports - FieldVision AI</title>
-    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+{% extends "base.html" %}
+
+{% block title %}Reports - FieldVision AI{% endblock %}
+
+{% block styles %}
     <style>
         body {
             background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
@@ -175,9 +172,10 @@
             color: #58a6ff;
         }
     </style>
-</head>
-<body>
-    <div class="container py-4">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4" data-content-block>
 
         
         <!-- Page Header -->
@@ -243,6 +241,5 @@
             </a>
         </div>
         {% endif %}
-    </div>
-</body>
-</html>
+</div>
+{% endblock %}
