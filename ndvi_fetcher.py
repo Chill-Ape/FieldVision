@@ -51,8 +51,8 @@ function setup() {
 }
 
 function evaluatePixel(sample) {
-    // B04 = Red, B08 = NIR
-    let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+
+
     
     // Mask clouds using Scene Classification Layer (SCL)
     if (sample.SCL == 3 || sample.SCL == 8 || sample.SCL == 9 || sample.SCL == 10 || sample.SCL == 11) {
