@@ -244,21 +244,45 @@ def analyze_field(field_id):
         # Cache NDVI image for field
         field.cache_ndvi_image(ndvi_image_data)
         
-        # Create basic zone data for compatibility
-        zones = {
-            'zone_1': {'center': [coordinates[0][0], coordinates[0][1]], 'bounds': bbox},
-            'zone_2': {'center': [coordinates[1][0] if len(coordinates) > 1 else coordinates[0][0], 
-                                coordinates[1][1] if len(coordinates) > 1 else coordinates[0][1]], 'bounds': bbox},
-            'zone_3': {'center': [coordinates[2][0] if len(coordinates) > 2 else coordinates[0][0], 
-                                coordinates[2][1] if len(coordinates) > 2 else coordinates[0][1]], 'bounds': bbox}
+        # Analyze NDVI image using proper image processing
+        from utils.ndvi_analyzer import NDVIAnalyzer
+        ndvi_analyzer = NDVIAnalyzer()
+        
+        # Convert polygon coordinates to proper geometry format for masking
+        field_geometry = {
+            "type": "Polygon",
+            "coordinates": [[
+                [coord[1], coord[0]] for coord in coordinates
+            ] + [[coordinates[0][1], coordinates[0][0]]]]
         }
         
-        # Create basic NDVI data structure
-        ndvi_data = {
-            'zone_1': 0.65,  # Healthy vegetation baseline
-            'zone_2': 0.72,
-            'zone_3': 0.58
-        }
+        # Perform comprehensive NDVI analysis
+        ndvi_analysis_results = ndvi_analyzer.analyze_ndvi_image(ndvi_image_data, field_geometry)
+        
+        # Extract zone statistics and create proper zone data
+        zone_statistics = ndvi_analysis_results.get('zone_statistics', {})
+        zones = {}
+        ndvi_data = {}
+        
+        # Build zones and NDVI data from actual analysis
+        for zone_id, stats in zone_statistics.items():
+            zones[zone_id] = {
+                'stats': stats,
+                'bounds': bbox,
+                'health': stats.get('health_classification', 'unknown')
+            }
+            ndvi_data[zone_id] = stats.get('mean_ndvi', 0.0)
+        
+        # If no zones were analyzed, create a fallback with field-level data
+        if not zones:
+            field_stats = ndvi_analysis_results.get('field_statistics', {})
+            field_mean_ndvi = field_stats.get('field_mean_ndvi', 0.0)
+            zones['field_center'] = {
+                'stats': {'mean_ndvi': field_mean_ndvi, 'health_classification': 'unknown'},
+                'bounds': bbox,
+                'health': 'unknown'
+            }
+            ndvi_data['field_center'] = field_mean_ndvi
         
         # Initialize services for comprehensive analysis
         weather_service = WeatherService()
