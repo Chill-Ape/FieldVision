@@ -112,7 +112,7 @@
         
         /* Custom hamburger icon fallback */
         .custom-hamburger {
-            display: flex;
+            display: none; /* Hidden by default */
             flex-direction: column;
             justify-content: space-between;
             width: 20px;
@@ -131,18 +131,22 @@
             border-radius: 1px;
         }
         
-        /* Hide default icon and show custom on mobile */
+        /* Show custom hamburger on mobile, hide default */
         @media (max-width: 991.98px) {
             .navbar-toggler-icon {
                 display: none !important;
             }
             .custom-hamburger {
                 display: flex !important;
+                position: relative !important;
             }
         }
         
-        /* Hide custom icon on desktop */
+        /* Show default icon on desktop, hide custom */
         @media (min-width: 992px) {
+            .navbar-toggler-icon {
+                display: block !important;
+            }
             .custom-hamburger {
                 display: none !important;
             }
