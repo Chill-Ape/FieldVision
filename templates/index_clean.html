@@ -74,8 +74,16 @@
                 margin-bottom: 0;
             }
             
+            .main-content {
+                display: none !important; /* Hide main content on mobile */
+            }
+            
             .map-container {
                 display: none !important; /* Completely hide map container */
+            }
+            
+            .results-container {
+                display: none !important; /* Hide results container on mobile */
             }
             
             .section {
@@ -1428,6 +1436,18 @@
             if (analyzeBtn) analyzeBtn.disabled = false;
         }
         
+        function analyzeSelectedIndex() {
+            const select = document.getElementById('vegetation-index-select');
+            if (!select) {
+                console.error('Vegetation index selector not found');
+                return;
+            }
+            
+            const indexType = select.value;
+            console.log('Analyzing vegetation index:', indexType);
+            analyzeIndex(indexType);
+        }
+        
         function openImageModal(imageSrc, info) {
             document.getElementById('modalImage').src = imageSrc;
             document.getElementById('modalImageInfo').innerHTML = info;
@@ -1827,17 +1847,14 @@
                 currentLayer = window.fullscreenSelectedLayer;
                 updateCoordinatesDisplay(currentLayer);
                 
-                // Enable all vegetation index buttons
-                const indexButtons = ['ndvi-btn', 'ndre-btn', 'moisture-btn', 'evi-btn', 'ndwi-btn', 'chlorophyll-btn'];
+                // Enable analyze and save buttons
+                const analyzeBtn = document.getElementById('analyze-btn');
                 const saveSiteBtn = document.getElementById('save-site-btn');
                 
-                indexButtons.forEach(btnId => {
-                    const btn = document.getElementById(btnId);
-                    if (btn) {
-                        btn.disabled = false;
-                        console.log(`${btnId} enabled`);
-                    }
-                });
+                if (analyzeBtn) {
+                    analyzeBtn.disabled = false;
+                    console.log('Analyze button enabled');
+                }
                 
                 if (saveSiteBtn) {
                     saveSiteBtn.disabled = false;
