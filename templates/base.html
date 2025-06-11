@@ -280,7 +280,7 @@
         </div>
         
         <!-- Mobile Navigation Menu (only visible on small screens) -->
-        <div id="mobile-nav" class="mobile-nav-menu d-lg-none" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1030; display: none;">
+        <div id="mobile-nav" class="mobile-nav-menu d-lg-none">
             <a href="/" class="mobile-nav-link">
                 <i class="fas fa-map me-2"></i>Map Interface
             </a>
@@ -306,11 +306,7 @@
         function toggleMobileMenu() {
             const mobileNav = document.getElementById('mobile-nav');
             if (mobileNav) {
-                if (mobileNav.style.display === 'none' || mobileNav.style.display === '') {
-                    mobileNav.style.display = 'block';
-                } else {
-                    mobileNav.style.display = 'none';
-                }
+                mobileNav.classList.toggle('show');
             }
         }
         
