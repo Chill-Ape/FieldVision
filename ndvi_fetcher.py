@@ -78,7 +78,7 @@ function evaluatePixel(sample) {
 }
 """
     
-    def create_request_payload(self, bbox: List[float], width: int = 2500, height: int = 2500) -> dict:
+    def create_request_payload(self, bbox: List[float], width: int = 2500, height: int = 2500, geometry: Optional[dict] = None) -> dict:
         """
         Create the request payload for Sentinel Hub Process API
         
@@ -86,6 +86,7 @@ function evaluatePixel(sample) {
             bbox: Bounding box coordinates [min_lng, min_lat, max_lng, max_lat]
             width: Output image width in pixels
             height: Output image height in pixels
+            geometry: Optional field polygon geometry for precise area analysis
             
         Returns:
             Dictionary containing the complete request payload
@@ -94,9 +95,26 @@ function evaluatePixel(sample) {
         end_date = datetime.now()
         start_date = end_date - timedelta(days=30)
         
+        # Use field geometry if provided, otherwise use bounding box
+        if geometry and geometry.get('type') == 'Polygon':
+            bounds_geometry = geometry
+        else:
+            # Fall back to bounding box rectangle
+            bounds_geometry = {
+                "type": "Polygon",
+                "coordinates": [[
+                    [bbox[0], bbox[1]],  # min_lng, min_lat
+                    [bbox[2], bbox[1]],  # max_lng, min_lat
+                    [bbox[2], bbox[3]],  # max_lng, max_lat
+                    [bbox[0], bbox[3]],  # min_lng, max_lat
+                    [bbox[0], bbox[1]]   # close polygon
+                ]]
+            }
+        
         return {
             "input": {
                 "bounds": {
+                    "geometry": bounds_geometry,
                     "properties": {
                         "crs": "http://www.opengis.net/def/crs/EPSG/0/4326"
                     },
@@ -151,8 +169,8 @@ function evaluatePixel(sample) {
             logger.error("Failed to obtain access token")
             return None
         
-        # Create request payload with calculated dimensions
-        payload = self.create_request_payload(bbox, width, height)
+        # Create request payload with calculated dimensions and geometry
+        payload = self.create_request_payload(bbox, width, height, geometry)
         
         headers = {
             'Authorization': f'Bearer {token}',
