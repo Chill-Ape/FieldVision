@@ -616,7 +616,13 @@
         let currentTileLayer;
         
         function initializePage(page) {
-            if (page === '/') {
+            if (page === '/' || page === '') {
+                // Clear any existing global variables first
+                if (typeof mapInstance !== 'undefined' && mapInstance) {
+                    mapInstance.remove();
+                    mapInstance = null;
+                }
+                
                 setTimeout(() => {
                     if (typeof L !== 'undefined' && L.Control && L.Control.Draw) {
                         initializeMap();
@@ -637,7 +643,6 @@
             document.head.appendChild(script);
         }
         
-        let currentTileLayer;
         let mapLayers = {};
         
         function initializeMap() {

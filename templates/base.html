@@ -242,13 +242,25 @@
         function executeScripts() {
             const scripts = document.getElementById('mainContent').querySelectorAll('script');
             scripts.forEach(script => {
-                const newScript = document.createElement('script');
-                if (script.src) {
-                    newScript.src = script.src;
-                } else {
-                    newScript.textContent = script.textContent;
+                try {
+                    if (script.src) {
+                        // For external scripts, create new script element
+                        const newScript = document.createElement('script');
+                        newScript.src = script.src;
+                        newScript.onload = function() {
+                            // Initialize page after script loads
+                            if (typeof initializePage === 'function') {
+                                initializePage(window.currentPage);
+                            }
+                        };
+                        document.head.appendChild(newScript);
+                    } else {
+                        // For inline scripts, execute directly
+                        eval(script.textContent);
+                    }
+                } catch (error) {
+                    console.error('Error executing script:', error);
                 }
-                document.head.appendChild(newScript);
             });
         }
         
