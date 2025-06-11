@@ -72,31 +72,31 @@
             min-height: calc(100vh - 50px);
         }
         
-        /* SUPER VISIBLE mobile menu button for testing */
+        /* Mobile menu button - show only on small screens */
         .mobile-menu-btn {
-            display: block !important;
-            cursor: pointer;
-            padding: 1rem !important;
-            border: 5px solid #ff0000 !important;
-            border-radius: 10px !important;
-            background: #ff0000 !important;
-            color: white !important;
-            font-size: 20px !important;
-            font-weight: bold !important;
-            position: relative !important;
-            z-index: 9999 !important;
-            width: 60px !important;
-            height: 60px !important;
+            display: none !important;
         }
         
-        .mobile-menu-btn:hover {
-            background: #cc0000 !important;
-        }
-        
-        /* Hide mobile menu button on desktop */
-        @media (min-width: 992px) {
+        @media (max-width: 991.98px) {
             .mobile-menu-btn {
-                display: none !important;
+                display: block !important;
+                cursor: pointer;
+                padding: 1rem !important;
+                border: 5px solid #ff0000 !important;
+                border-radius: 10px !important;
+                background: #ff0000 !important;
+                color: white !important;
+                font-size: 20px !important;
+                font-weight: bold !important;
+                position: relative !important;
+                z-index: 9999 !important;
+                width: 60px !important;
+                height: 60px !important;
+                margin-left: auto !important;
+            }
+            
+            .mobile-menu-btn:hover {
+                background: #cc0000 !important;
             }
         }
         
