@@ -185,25 +185,22 @@
                                                      data-bs-parent="#ai-accordion-{{ insight.id }}">
                                                     <div class="accordion-body bg-dark text-light">
                                                         {% set ai_data = insight.get_ai_analysis() %}
-                                                        <!-- Debug: Show raw AI data -->
-                                                        <div class="mb-2 small text-muted">
-                                                            Debug: {{ ai_data | tojson }}
-                                                        </div>
-                                                        {% if ai_data %}
+                                                        {% set ai_insights = ai_data.ai_insights if ai_data and ai_data.ai_insights else {} %}
+                                                        {% if ai_insights %}
                                                             <!-- Overall Health Assessment -->
-                                                            {% if ai_data.overall_health_assessment %}
+                                                            {% if ai_insights.overall_health_assessment %}
                                                             <div class="mb-3">
                                                                 <h6 class="text-info"><i class="fas fa-heartbeat me-1"></i>Overall Health Assessment</h6>
-                                                                <p class="text-light mb-0">{{ ai_data.overall_health_assessment }}</p>
+                                                                <p class="text-light mb-0">{{ ai_insights.overall_health_assessment }}</p>
                                                             </div>
                                                             {% endif %}
                                                             
                                                             <!-- Critical Insights -->
-                                                            {% if ai_data.critical_insights %}
+                                                            {% if ai_insights.critical_insights %}
                                                             <div class="mb-3">
                                                                 <h6 class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Critical Insights</h6>
                                                                 <ul class="list-unstyled mb-0">
-                                                                    {% for insight_item in ai_data.critical_insights %}
+                                                                    {% for insight_item in ai_insights.critical_insights %}
                                                                     <li class="mb-1"><i class="fas fa-arrow-right text-warning me-2"></i>{{ insight_item }}</li>
                                                                     {% endfor %}
                                                                 </ul>
@@ -211,11 +208,11 @@
                                                             {% endif %}
                                                             
                                                             <!-- Immediate Actions -->
-                                                            {% if ai_data.immediate_actions %}
+                                                            {% if ai_insights.immediate_actions %}
                                                             <div class="mb-3">
                                                                 <h6 class="text-danger"><i class="fas fa-clock me-1"></i>Immediate Actions (1-2 weeks)</h6>
                                                                 <ul class="list-unstyled mb-0">
-                                                                    {% for action in ai_data.immediate_actions %}
+                                                                    {% for action in ai_insights.immediate_actions %}
                                                                     <li class="mb-1"><i class="fas fa-check-circle text-danger me-2"></i>{{ action }}</li>
                                                                     {% endfor %}
                                                                 </ul>
@@ -223,11 +220,11 @@
                                                             {% endif %}
                                                             
                                                             <!-- Seasonal Recommendations -->
-                                                            {% if ai_data.seasonal_recommendations %}
+                                                            {% if ai_insights.seasonal_recommendations %}
                                                             <div class="mb-3">
                                                                 <h6 class="text-success"><i class="fas fa-seedling me-1"></i>Seasonal Strategy</h6>
                                                                 <ul class="list-unstyled mb-0">
-                                                                    {% for rec in ai_data.seasonal_recommendations %}
+                                                                    {% for rec in ai_insights.seasonal_recommendations %}
                                                                     <li class="mb-1"><i class="fas fa-leaf text-success me-2"></i>{{ rec }}</li>
                                                                     {% endfor %}
                                                                 </ul>
@@ -235,29 +232,29 @@
                                                             {% endif %}
                                                             
                                                             <!-- Additional Sections -->
-                                                            {% if ai_data.yield_prediction %}
+                                                            {% if ai_insights.yield_prediction %}
                                                             <div class="mb-3">
                                                                 <h6 class="text-primary"><i class="fas fa-chart-bar me-1"></i>Yield Prediction</h6>
-                                                                <p class="text-light mb-0">{{ ai_data.yield_prediction }}</p>
+                                                                <p class="text-light mb-0">{{ ai_insights.yield_prediction }}</p>
                                                             </div>
                                                             {% endif %}
                                                             
-                                                            {% if ai_data.risk_factors %}
+                                                            {% if ai_insights.risk_factors %}
                                                             <div class="mb-3">
                                                                 <h6 class="text-warning"><i class="fas fa-shield-alt me-1"></i>Risk Factors</h6>
                                                                 <ul class="list-unstyled mb-0">
-                                                                    {% for risk in ai_data.risk_factors %}
+                                                                    {% for risk in ai_insights.risk_factors %}
                                                                     <li class="mb-1"><i class="fas fa-exclamation text-warning me-2"></i>{{ risk }}</li>
                                                                     {% endfor %}
                                                                 </ul>
                                                             </div>
                                                             {% endif %}
                                                             
-                                                            {% if ai_data.optimization_opportunities %}
+                                                            {% if ai_insights.optimization_opportunities %}
                                                             <div class="mb-0">
                                                                 <h6 class="text-info"><i class="fas fa-lightbulb me-1"></i>Optimization Opportunities</h6>
                                                                 <ul class="list-unstyled mb-0">
-                                                                    {% for opp in ai_data.optimization_opportunities %}
+                                                                    {% for opp in ai_insights.optimization_opportunities %}
                                                                     <li class="mb-1"><i class="fas fa-arrow-up text-info me-2"></i>{{ opp }}</li>
                                                                     {% endfor %}
                                                                 </ul>
