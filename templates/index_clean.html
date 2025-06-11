@@ -45,23 +45,22 @@
         /* Mobile Responsive Design */
         @media (max-width: 768px) {
             .container {
-                flex-direction: column;
+                display: block; /* Change from flex to block */
                 height: auto;
                 min-height: calc(100vh - 50px);
-                gap: 1rem;
                 padding: 0.5rem;
             }
             
             .sidebar {
                 width: 100%;
-                order: 1;
-                max-height: 50vh;
-                overflow-y: auto;
+                max-height: none; /* Remove height restriction */
+                overflow-y: visible;
                 padding: 1rem;
+                margin-bottom: 0;
             }
             
             .map-container {
-                display: none; /* Hide embedded map on mobile */
+                display: none !important; /* Completely hide map container */
             }
             
             .section {
