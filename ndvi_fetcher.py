@@ -60,7 +60,15 @@ function evaluatePixel(sample) {
         return [0.4, 0.4, 0.4]; // Dark gray for masked pixels
     }
     
-    // Agricultural stress detection color mapping
+    // Apply histogram stretch to enhance contrast in healthy vegetation zones
+    // Focus enhancement on the 0.3-0.8 range where most crops fall
+    if (ndvi > 0.3 && ndvi < 0.8) {
+        // Apply non-linear stretch to expand contrast in healthy vegetation
+        let stretched = 0.3 + ((ndvi - 0.3) / 0.5) * 0.5;
+        ndvi = Math.pow(stretched, 0.8); // Gamma correction for better visual contrast
+    }
+    
+    // Enhanced agricultural NDVI visualization with better contrast for healthy crops
     if (ndvi < -0.3) return [0.2, 0.2, 0.4]; // Deep water - dark blue
     if (ndvi < -0.1) return [0.4, 0.4, 0.6]; // Shallow water - blue
     if (ndvi < 0.05) return [0.8, 0.7, 0.6]; // Bare soil/sand - tan
@@ -70,11 +78,18 @@ function evaluatePixel(sample) {
     if (ndvi < 0.25) return [1.0, 0.8, 0.2]; // Mild stress - yellow-orange
     if (ndvi < 0.3) return [1.0, 1.0, 0.2]; // Early stress - yellow
     if (ndvi < 0.35) return [0.8, 1.0, 0.2]; // Recovery/low vigor - light green
-    if (ndvi < 0.45) return [0.6, 0.9, 0.1]; // Moderate health - green
-    if (ndvi < 0.55) return [0.4, 0.8, 0.1]; // Good health - darker green
-    if (ndvi < 0.65) return [0.2, 0.7, 0.1]; // Very healthy - dark green
-    if (ndvi < 0.75) return [0.1, 0.6, 0.1]; // Excellent health - very dark green
-    return [0.05, 0.4, 0.05]; // Peak health - deepest green
+    
+    // Enhanced contrast for healthy vegetation ranges
+    if (ndvi < 0.4) return [0.7, 0.9, 0.3]; // Fair health - yellow-green
+    if (ndvi < 0.45) return [0.6, 0.9, 0.2]; // Moderate health - light green
+    if (ndvi < 0.5) return [0.5, 0.85, 0.15]; // Good health - medium green
+    if (ndvi < 0.55) return [0.4, 0.8, 0.1]; // Very good health - green
+    if (ndvi < 0.6) return [0.3, 0.75, 0.1]; // High health - darker green
+    if (ndvi < 0.65) return [0.2, 0.7, 0.05]; // Very high health - dark green
+    if (ndvi < 0.7) return [0.15, 0.65, 0.05]; // Excellent health - deep green
+    if (ndvi < 0.75) return [0.1, 0.6, 0.05]; // Superior health - very deep green
+    if (ndvi < 0.8) return [0.05, 0.55, 0.05]; // Peak health - deepest green
+    return [0.0, 0.5, 0.1]; // Maximum vigor - forest green
 }
 """
     
