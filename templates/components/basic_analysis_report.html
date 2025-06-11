@@ -1,0 +1,168 @@
+<!-- Basic Analysis Report Component -->
+{% set ndvi_data = analysis.get_ndvi_data() %}
+{% set health_scores = analysis.get_health_scores() %}
+{% set recommendations = analysis.get_recommendations() %}
+{% set weather_data = analysis.get_weather_data() %}
+
+<!-- NDVI Data Summary -->
+{% if ndvi_data %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h6 class="text-success mb-3">
+            <i class="fas fa-leaf me-2"></i>NDVI Analysis
+        </h6>
+        <div class="bg-success bg-opacity-10 border border-success border-opacity-25 rounded p-3">
+            {% set ndvi_values = ndvi_data.values() | list %}
+            {% set ndvi_sum = ndvi_values | sum %}
+            {% set ndvi_count = ndvi_values | length %}
+            {% if ndvi_count > 0 %}
+                {% set avg_ndvi = ndvi_sum / ndvi_count %}
+                <div class="row">
+                    <div class="col-md-4">
+                        <small class="text-muted">Average NDVI</small>
+                        <div class="fw-bold text-light">{{ "%.3f"|format(avg_ndvi) }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">Zone Count</small>
+                        <div class="fw-bold text-light">{{ ndvi_count }} zones</div>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">Max NDVI</small>
+                        <div class="fw-bold text-light">{{ "%.3f"|format(ndvi_values | max) }}</div>
+                    </div>
+                </div>
+                
+                <!-- Zone Details -->
+                <div class="mt-3">
+                    <small class="text-muted d-block mb-2">Zone Breakdown:</small>
+                    <div class="row">
+                        {% for zone_id, value in ndvi_data.items() %}
+                        <div class="col-md-4 mb-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="small">{{ zone_id.replace('_', ' ').title() }}</span>
+                                <span class="badge bg-{{ 'success' if value > 0.6 else 'warning' if value > 0.3 else 'danger' }}">
+                                    {{ "%.3f"|format(value) }}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Health Scores -->
+{% if health_scores %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h6 class="text-info mb-3">
+            <i class="fas fa-heartbeat me-2"></i>Health Assessment
+        </h6>
+        <div class="bg-info bg-opacity-10 border border-info border-opacity-25 rounded p-3">
+            <div class="row">
+                {% for zone_id, health_status in health_scores.items() %}
+                <div class="col-md-4 mb-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="small">{{ zone_id.replace('_', ' ').title() }}</span>
+                        <span class="badge bg-{{ 'success' if health_status == 'healthy' else 'warning' if health_status == 'moderate' else 'danger' }}">
+                            {{ health_status|title }}
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Weather Conditions -->
+{% if weather_data %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h6 class="text-primary mb-3">
+            <i class="fas fa-cloud-sun me-2"></i>Weather Conditions
+        </h6>
+        <div class="bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded p-3">
+            <div class="row">
+                <div class="col-6">
+                    <small class="text-muted">Temperature</small>
+                    <div class="fw-bold text-light">{{ weather_data.get('temperature', 'N/A') }}°C</div>
+                </div>
+                <div class="col-6">
+                    <small class="text-muted">Humidity</small>
+                    <div class="fw-bold text-light">{{ weather_data.get('humidity', 'N/A') }}%</div>
+                </div>
+            </div>
+            <div class="mt-2">
+                <small class="text-muted">Conditions</small>
+                <div class="fw-bold text-light">{{ weather_data.get('conditions', 'Unknown')|title }}</div>
+            </div>
+            {% if weather_data.get('wind_speed') %}
+            <div class="mt-2">
+                <small class="text-muted">Wind Speed</small>
+                <div class="fw-bold text-light">{{ weather_data.get('wind_speed', 'N/A') }} m/s</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Analysis Summary -->
+    <div class="col-md-6">
+        <h6 class="text-warning mb-3">
+            <i class="fas fa-chart-bar me-2"></i>Analysis Summary
+        </h6>
+        <div class="bg-warning bg-opacity-10 border border-warning border-opacity-25 rounded p-3">
+            <div class="mb-2">
+                <small class="text-muted">Analysis Type</small>
+                <div class="fw-bold text-light">Basic NDVI Scan</div>
+            </div>
+            <div class="mb-2">
+                <small class="text-muted">Data Points</small>
+                <div class="fw-bold text-light">{{ (ndvi_data.keys()|length if ndvi_data else 0) + (health_scores.keys()|length if health_scores else 0) }}</div>
+            </div>
+            <div>
+                <small class="text-muted">Recommendations</small>
+                <div class="fw-bold text-light">{{ recommendations|length if recommendations else 0 }} generated</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recommendations -->
+{% if recommendations %}
+<div class="row">
+    <div class="col-12">
+        <h6 class="text-warning mb-3">
+            <i class="fas fa-lightbulb me-2"></i>Recommendations
+        </h6>
+        <div class="row">
+            {% for rec in recommendations %}
+            <div class="col-md-6 mb-3">
+                <div class="bg-warning bg-opacity-10 border border-warning border-opacity-25 rounded p-3">
+                    <div class="d-flex align-items-start">
+                        <i class="fas fa-arrow-right text-warning me-2 mt-1"></i>
+                        <div>
+                            {% if rec is string %}
+                                <span class="text-light">{{ rec }}</span>
+                            {% elif rec is mapping %}
+                                <span class="text-light">{{ rec.get('recommendation', rec.get('text', 'Monitor field conditions')) }}</span>
+                                {% if rec.get('priority') %}
+                                <div class="small text-muted mt-1">Priority: {{ rec.get('priority')|title }}</div>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-light">{{ rec }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}

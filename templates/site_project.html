@@ -137,21 +137,35 @@
                     {% if field.analyses %}
                         <div class="timeline">
                             {% for analysis in field.analyses[:10] %}
+                            {% set ai_analysis = analysis.get_ai_analysis_data() %}
+                            {% set has_ai_data = ai_analysis and ai_analysis.keys()|length > 0 %}
                             <div class="timeline-item mb-3">
-                                <div class="d-flex align-items-start">
-                                    <div class="timeline-marker me-3 mt-1">
-                                        <i class="fas fa-circle text-primary"></i>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <div class="d-flex justify-content-between align-items-center mb-1">
-                                            <h6 class="mb-0 text-light">
-                                                Analysis {{ loop.index }}
-                                            </h6>
-                                            <small class="text-muted">
-                                                {{ analysis.analysis_date.strftime('%m/%d/%Y %H:%M') }}
-                                            </small>
+                                <div class="card bg-secondary border-0">
+                                    <div class="card-header bg-transparent border-0 py-2" 
+                                         style="cursor: pointer;" 
+                                         data-bs-toggle="collapse" 
+                                         data-bs-target="#analysis-{{ analysis.id }}"
+                                         aria-expanded="false">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-{{ 'brain text-info' if has_ai_data else 'chart-line text-primary' }} me-2"></i>
+                                                <h6 class="mb-0 text-light">
+                                                    {{ 'AI Analysis' if has_ai_data else 'NDVI Analysis' }} #{{ loop.index }}
+                                                </h6>
+                                                {% if has_ai_data %}
+                                                <span class="badge bg-info ms-2">AI Enhanced</span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="d-flex align-items-center">
+                                                <small class="text-muted me-2">
+                                                    {{ analysis.analysis_date.strftime('%m/%d/%Y %H:%M') }}
+                                                </small>
+                                                <i class="fas fa-chevron-down text-muted"></i>
+                                            </div>
                                         </div>
-                                        <div class="row">
+                                        
+                                        <!-- Quick Preview -->
+                                        <div class="row mt-2">
                                             {% set ndvi_data = analysis.get_ndvi_data() %}
                                             {% if ndvi_data %}
                                                 {% set ndvi_values = ndvi_data.values() | list %}
@@ -159,18 +173,45 @@
                                                 {% set ndvi_count = ndvi_values | length %}
                                                 {% if ndvi_count > 0 %}
                                                     {% set avg_ndvi = ndvi_sum / ndvi_count %}
-                                                    <div class="col-md-6">
-                                                        <small class="text-muted">Average NDVI:</small>
-                                                        <span class="fw-bold text-info">{{ "%.3f"|format(avg_ndvi) }}</span>
+                                                    <div class="col-md-4">
+                                                        <small class="text-muted">Avg NDVI:</small>
+                                                        <span class="fw-bold text-info ms-1">{{ "%.3f"|format(avg_ndvi) }}</span>
                                                     </div>
                                                 {% endif %}
                                             {% endif %}
-                                            <div class="col-md-6">
+                                            {% if has_ai_data %}
+                                                {% set ai_insights = ai_analysis.get('ai_insights', {}) %}
+                                                {% set performance = ai_analysis.get('performance_metrics', {}) %}
+                                                <div class="col-md-4">
+                                                    <small class="text-muted">Health Score:</small>
+                                                    <span class="fw-bold text-success ms-1">{{ performance.get('health_score', 'N/A') }}%</span>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <small class="text-muted">AI Insights:</small>
+                                                    <span class="fw-bold text-warning ms-1">{{ ai_insights.get('key_findings', [])|length }} findings</span>
+                                                </div>
+                                            {% else %}
                                                 {% set recommendations = analysis.get_recommendations() %}
                                                 {% if recommendations %}
-                                                    <small class="text-muted">{{ recommendations|length }} recommendations</small>
+                                                    <div class="col-md-4">
+                                                        <small class="text-muted">Recommendations:</small>
+                                                        <span class="fw-bold text-warning ms-1">{{ recommendations|length }}</span>
+                                                    </div>
                                                 {% endif %}
-                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Collapsible Content -->
+                                    <div class="collapse" id="analysis-{{ analysis.id }}">
+                                        <div class="card-body bg-dark">
+                                            {% if has_ai_data %}
+                                                <!-- AI Analysis Report -->
+                                                {% include 'components/ai_analysis_report.html' %}
+                                            {% else %}
+                                                <!-- Basic Analysis Report -->
+                                                {% include 'components/basic_analysis_report.html' %}
+                                            {% endif %}
                                         </div>
                                     </div>
                                 </div>
@@ -335,7 +376,14 @@ function updateNDVI(fieldId) {
 }
 
 function runAIAnalysis(fieldId) {
-    showLoading();
+    // Scroll to analysis history section
+    const historySection = document.querySelector('.card-body .timeline');
+    if (historySection) {
+        historySection.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    // Show loading overlay on history section
+    showHistoryLoading();
     showInfo('Running comprehensive AI analysis with weather integration...');
     
     fetch(`/api/analyze_field/${fieldId}`, {
@@ -346,16 +394,17 @@ function runAIAnalysis(fieldId) {
     })
     .then(response => response.json())
     .then(data => {
-        hideLoading();
+        hideHistoryLoading();
         if (data.success) {
             showSuccess('AI analysis completed successfully! Comprehensive insights generated.');
-            setTimeout(() => location.reload(), 2000);
+            // Reload the page to show new analysis
+            setTimeout(() => location.reload(), 1500);
         } else {
             showError('AI analysis failed: ' + (data.error || 'Unknown error'));
         }
     })
     .catch(error => {
-        hideLoading();
+        hideHistoryLoading();
         console.error('Error running AI analysis:', error);
         showError('Failed to run AI analysis. Please try again.');
     });
@@ -389,6 +438,36 @@ function showLoading() {
 
 function hideLoading() {
     const loadingDiv = document.getElementById('loading-overlay');
+    if (loadingDiv) {
+        loadingDiv.remove();
+    }
+}
+
+// History section loading
+function showHistoryLoading() {
+    const historyCard = document.querySelector('.card-body .timeline').closest('.card-body');
+    if (historyCard) {
+        const loadingDiv = document.createElement('div');
+        loadingDiv.id = 'history-loading-overlay';
+        loadingDiv.className = 'position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center';
+        loadingDiv.style.backgroundColor = 'rgba(13, 17, 23, 0.9)';
+        loadingDiv.style.zIndex = '100';
+        loadingDiv.innerHTML = `
+            <div class="text-center text-white">
+                <div class="spinner-border text-info mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <div class="h6">AI Analysis in Progress</div>
+                <div class="small text-muted">Analyzing satellite data, weather patterns, and generating insights...</div>
+            </div>
+        `;
+        historyCard.style.position = 'relative';
+        historyCard.appendChild(loadingDiv);
+    }
+}
+
+function hideHistoryLoading() {
+    const loadingDiv = document.getElementById('history-loading-overlay');
     if (loadingDiv) {
         loadingDiv.remove();
     }
