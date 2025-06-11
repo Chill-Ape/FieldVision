@@ -166,17 +166,16 @@
                                 {% endif %}
                             </div>
                         </div>
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-satellite-dish fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">No Analysis Data Available</h5>
+                                <p class="text-muted mb-4">Generate your first NDVI analysis to start monitoring crop health.</p>
+                                <button class="btn btn-primary" onclick="updateNDVI({{ field.id }})">
+                                    <i class="fas fa-satellite me-1"></i>Generate NDVI Analysis
+                                </button>
+                            </div>
                         {% endif %}
-                    {% else %}
-                        <div class="text-center py-5">
-                            <i class="fas fa-satellite-dish fa-3x text-muted mb-3"></i>
-                            <h5 class="text-muted">No NDVI Data Available</h5>
-                            <p class="text-muted mb-4">Generate your first NDVI analysis to start monitoring crop health.</p>
-                            <button class="btn btn-primary" onclick="updateNDVI({{ field.id }})">
-                                <i class="fas fa-satellite me-1"></i>Generate NDVI Analysis
-                            </button>
-                        </div>
-                    {% endif %}
                 </div>
             </div>
 
