@@ -519,20 +519,20 @@ def generate_ai_insights(field_id):
     try:
         field = Field.query.get_or_404(field_id)
         
-        # Daily restriction temporarily disabled for testing
-        # from datetime import datetime, timedelta
-        # today = datetime.utcnow().date()
-        # existing_insight = AIInsight.query.filter(
-        #     AIInsight.field_id == field_id,
-        #     AIInsight.analysis_date >= today,
-        #     AIInsight.analysis_date < today + timedelta(days=1)
-        # ).first()
-        # 
-        # if existing_insight:
-        #     return jsonify({
-        #         'error': 'AI insight already generated today for this field. Only one AI analysis per day is allowed.',
-        #         'existing_insight_id': existing_insight.id
-        #     }), 400
+        # Check if AI insight was already generated today for this field
+        from datetime import datetime, timedelta
+        today = datetime.utcnow().date()
+        existing_insight = AIInsight.query.filter(
+            AIInsight.field_id == field_id,
+            AIInsight.analysis_date >= today,
+            AIInsight.analysis_date < today + timedelta(days=1)
+        ).first()
+        
+        if existing_insight:
+            return jsonify({
+                'error': 'AI insight already generated today for this field. Only one AI analysis per day is allowed.',
+                'existing_insight_id': existing_insight.id
+            }), 400
         
         # Get the latest analysis for this field
         latest_analysis = FieldAnalysis.query.filter_by(field_id=field_id).order_by(FieldAnalysis.analysis_date.desc()).first()
