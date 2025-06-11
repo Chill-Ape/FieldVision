@@ -53,7 +53,7 @@
                 <div class="card-body">
                     {% if field.has_cached_ndvi() %}
                         <div class="text-center mb-3">
-                            <img src="/api/fields/{{ field.id }}/ndvi-image" 
+                            <img src="/field/{{ field.id }}/cached_ndvi" 
                                  alt="NDVI Analysis" 
                                  class="img-fluid rounded"
                                  style="max-height: 400px; width: auto;">
