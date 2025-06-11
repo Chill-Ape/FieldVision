@@ -1,4 +1,4 @@
-from flask import render_template, request, jsonify, flash, redirect, url_for, Response
+from flask import render_template, request, jsonify, flash, redirect, url_for, Response, render_template_string
 from app import app, db
 from models import Field, FieldAnalysis
 from utils.sentinel_hub import fetch_ndvi_image
@@ -16,16 +16,37 @@ logger = logging.getLogger(__name__)
 auth_handler = SentinelHubAuth()
 ndvi_fetcher = NDVIFetcher(auth_handler)
 
+def is_ajax_request():
+    """Check if the current request is an AJAX request"""
+    return request.args.get('ajax') == '1'
+
+def render_spa_template(template_name, **context):
+    """Render template for SPA - return only content block for AJAX requests"""
+    if is_ajax_request():
+        # For AJAX requests, render only the content block
+        full_template = render_template(template_name, **context)
+        # Extract content between {% block content %} and {% endblock %}
+        # For now, we'll create content-only templates
+        content_template = template_name.replace('.html', '_content.html')
+        try:
+            return render_template(content_template, **context)
+        except:
+            # Fallback to full template if content template doesn't exist
+            return full_template
+    else:
+        # For regular requests, render full template
+        return render_template(template_name, **context)
+
 @app.route('/')
 def index():
     """Main page with map interface"""
-    return render_template('index.html')
+    return render_spa_template('index.html')
 
 @app.route('/dashboard')
 def dashboard():
     """Dashboard showing all saved fields"""
     fields = Field.query.order_by(Field.created_at.desc()).all()
-    return render_template('dashboard.html', fields=fields)
+    return render_spa_template('dashboard.html', fields=fields)
 
 @app.route('/field/<int:field_id>')
 def field_detail(field_id):
@@ -48,10 +69,10 @@ def reports():
         logger.info(f"Found {len(fields)} fields for reports page")
         for field in fields:
             logger.info(f"Field: {field.name}, ID: {field.id}")
-        return render_template('reports.html', fields=fields)
+        return render_spa_template('reports.html', fields=fields)
     except Exception as e:
         logger.error(f"Error loading reports: {e}")
-        return render_template('reports.html', fields=[])
+        return render_spa_template('reports.html', fields=[])
 
 @app.route('/field/<int:field_id>/report')
 def field_report(field_id):
