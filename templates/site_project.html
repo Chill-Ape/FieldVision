@@ -82,9 +82,35 @@
                                 {% if health_scores %}
                                     {% for zone_id, stats in health_scores.items() %}
                                     <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <span class="text-muted">{{ zone_id.replace('_', ' ').title() }}</span>
+                                        {% set zone_name = zone_id %}
+                                        {% if zone_id == 'zone_0_0' %}
+                                            {% set zone_name = 'Northwest' %}
+                                        {% elif zone_id == 'zone_0_1' %}
+                                            {% set zone_name = 'North' %}
+                                        {% elif zone_id == 'zone_0_2' %}
+                                            {% set zone_name = 'Northeast' %}
+                                        {% elif zone_id == 'zone_1_0' %}
+                                            {% set zone_name = 'West' %}
+                                        {% elif zone_id == 'zone_1_1' %}
+                                            {% set zone_name = 'Center' %}
+                                        {% elif zone_id == 'zone_1_2' %}
+                                            {% set zone_name = 'East' %}
+                                        {% elif zone_id == 'zone_2_0' %}
+                                            {% set zone_name = 'Southwest' %}
+                                        {% elif zone_id == 'zone_2_1' %}
+                                            {% set zone_name = 'South' %}
+                                        {% elif zone_id == 'zone_2_2' %}
+                                            {% set zone_name = 'Southeast' %}
+                                        {% endif %}
+                                        <span class="text-muted">{{ zone_name }}</span>
                                         <div class="d-flex align-items-center">
-                                            {% set avg_ndvi = stats.get('mean_ndvi', 0) %}
+                                            {% if stats is mapping and 'mean_ndvi' in stats %}
+                                                {% set avg_ndvi = stats.mean_ndvi %}
+                                            {% elif stats is number %}
+                                                {% set avg_ndvi = stats %}
+                                            {% else %}
+                                                {% set avg_ndvi = 0 %}
+                                            {% endif %}
                                             {% if avg_ndvi >= 0.7 %}
                                                 <span class="badge bg-success me-2">Excellent</span>
                                             {% elif avg_ndvi >= 0.5 %}
@@ -98,6 +124,11 @@
                                         </div>
                                     </div>
                                     {% endfor %}
+                                {% else %}
+                                    <div class="text-center text-muted py-3">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        No zone data available. Run NDVI analysis first.
+                                    </div>
                                 {% endif %}
                             </div>
                             <div class="col-md-6">
