@@ -547,11 +547,11 @@ function displayAIAnalysisResults(aiData, analysisResults) {
         </div>
         
         <div class="row">
-            <!-- Current Recommendations -->
+            <!-- Immediate Actions -->
             <div class="col-md-6 mb-4">
                 <div class="card bg-warning bg-opacity-10 border-warning">
                     <div class="card-body">
-                        <h6 class="card-title text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Immediate Actions Needed</h6>
+                        <h6 class="card-title text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Immediate Actions Required</h6>
                         <div class="recommendations-content">
                             ${aiData.immediate_actions ? aiData.immediate_actions.map(action => 
                                 `<div class="alert alert-warning alert-sm mb-2 py-2">
@@ -560,9 +560,6 @@ function displayAIAnalysisResults(aiData, analysisResults) {
                             ).join('') : `
                                 <div class="alert alert-warning alert-sm mb-2 py-2">
                                     <i class="fas fa-arrow-right me-2"></i>Monitor areas with lower vegetation indices for stress signs
-                                </div>
-                                <div class="alert alert-warning alert-sm mb-2 py-2">
-                                    <i class="fas fa-arrow-right me-2"></i>Consider soil moisture testing in dry zones
                                 </div>
                             `}
                         </div>
@@ -574,7 +571,7 @@ function displayAIAnalysisResults(aiData, analysisResults) {
             <div class="col-md-6 mb-4">
                 <div class="card bg-info bg-opacity-10 border-info">
                     <div class="card-body">
-                        <h6 class="card-title text-info"><i class="fas fa-cloud-sun me-2"></i>Weather & Planning</h6>
+                        <h6 class="card-title text-info"><i class="fas fa-cloud-sun me-2"></i>Weather-Integrated Planning</h6>
                         <div class="weather-content">
                             ${aiData.weather_recommendations ? aiData.weather_recommendations.map(rec => 
                                 `<div class="alert alert-info alert-sm mb-2 py-2">
@@ -584,8 +581,47 @@ function displayAIAnalysisResults(aiData, analysisResults) {
                                 <div class="alert alert-info alert-sm mb-2 py-2">
                                     <i class="fas fa-calendar me-2"></i>Check upcoming weather for irrigation planning
                                 </div>
-                                <div class="alert alert-info alert-sm mb-2 py-2">
-                                    <i class="fas fa-calendar me-2"></i>Monitor temperature patterns for crop stress
+                            `}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <!-- Risk Factors -->
+            <div class="col-md-6 mb-4">
+                <div class="card bg-danger bg-opacity-10 border-danger">
+                    <div class="card-body">
+                        <h6 class="card-title text-danger"><i class="fas fa-triangle-exclamation me-2"></i>Risk Factors & Concerns</h6>
+                        <div class="risk-content">
+                            ${aiData.risk_factors ? aiData.risk_factors.map(risk => 
+                                `<div class="alert alert-danger alert-sm mb-2 py-2">
+                                    <i class="fas fa-warning me-2"></i>${risk}
+                                </div>`
+                            ).join('') : `
+                                <div class="alert alert-danger alert-sm mb-2 py-2">
+                                    <i class="fas fa-warning me-2"></i>Monitor for potential crop stress indicators
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Cost Analysis -->
+            <div class="col-md-6 mb-4">
+                <div class="card bg-success bg-opacity-10 border-success">
+                    <div class="card-body">
+                        <h6 class="card-title text-success"><i class="fas fa-dollar-sign me-2"></i>Economic Analysis & ROI</h6>
+                        <div class="cost-content">
+                            ${aiData.cost_analysis ? aiData.cost_analysis.map(cost => 
+                                `<div class="alert alert-success alert-sm mb-2 py-2">
+                                    <i class="fas fa-calculator me-2"></i>${cost}
+                                </div>`
+                            ).join('') : `
+                                <div class="alert alert-success alert-sm mb-2 py-2">
+                                    <i class="fas fa-calculator me-2"></i>Cost analysis data being processed
                                 </div>
                             `}
                         </div>

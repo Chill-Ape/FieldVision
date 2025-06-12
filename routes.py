@@ -268,6 +268,7 @@ def comprehensive_ai_analysis(field_id):
         weather_data = None
         try:
             import requests
+            import os
             weather_api_key = os.environ.get('OPENWEATHERMAP_API_KEY')
             if weather_api_key:
                 weather_url = f"http://api.openweathermap.org/data/2.5/weather?lat={field.center_lat}&lon={field.center_lng}&appid={weather_api_key}&units=imperial"
@@ -298,10 +299,9 @@ def comprehensive_ai_analysis(field_id):
         
         # Store analysis in database
         try:
-            new_analysis = FieldAnalysis(
-                field_id=field.id,
-                ai_analysis_data=json.dumps(ai_insights)
-            )
+            new_analysis = FieldAnalysis()
+            new_analysis.field_id = field.id
+            new_analysis.ai_analysis_data = json.dumps(ai_insights)
             db.session.add(new_analysis)
             field.last_analyzed = datetime.utcnow()
             db.session.commit()
@@ -326,60 +326,97 @@ def comprehensive_ai_analysis(field_id):
 def generate_field_ai_insights(analysis_context):
     """Generate AI insights using OpenAI based on field analysis data"""
     try:
+        import os
         from openai import OpenAI
         
         openai_client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
         
-        # Create comprehensive prompt for agricultural analysis
+        # Create comprehensive prompt for detailed agricultural analysis
+        weather_info = ""
+        if analysis_context.get('weather'):
+            weather = analysis_context['weather']
+            weather_info = f"""
+        CURRENT WEATHER CONDITIONS:
+        - Weather: {weather['weather'][0]['description']}
+        - Temperature: {weather['main']['temp']}°F (feels like {weather['main']['feels_like']}°F)
+        - Humidity: {weather['main']['humidity']}%
+        - Wind Speed: {weather['wind']['speed']} mph
+        - Pressure: {weather['main']['pressure']} hPa
+        - Visibility: {weather.get('visibility', 'N/A')} meters"""
+        else:
+            weather_info = "WEATHER CONDITIONS: Data unavailable"
+
         prompt = f"""
-        You are an expert agricultural consultant analyzing satellite data for a farm field. Provide comprehensive, actionable insights based on the following field analysis:
+        You are Dr. Sarah Martinez, a leading agricultural consultant with 20+ years experience in precision farming, satellite imagery analysis, and crop management. You specialize in translating complex vegetation index data into actionable farming strategies.
 
-        FIELD INFORMATION:
-        - Field Name: {analysis_context['field_name']}
-        - Area: {analysis_context['field_area_acres']} acres
-        - Location: {analysis_context['field_coordinates']['center_lat']:.4f}, {analysis_context['field_coordinates']['center_lng']:.4f}
-        - Analysis Date: {analysis_context['analysis_date']}
+        FIELD ANALYSIS SUMMARY:
+        ═══════════════════════
+        Field: {analysis_context['field_name']}
+        Size: {analysis_context['field_area_acres']} acres
+        Location: {analysis_context['field_coordinates']['center_lat']:.4f}°N, {analysis_context['field_coordinates']['center_lng']:.4f}°W
+        Analysis Date: {analysis_context['analysis_date']}
 
-        VEGETATION ANALYSIS RESULTS:
-        - Total Indices Analyzed: {analysis_context['total_vegetation_indices']}
-        - Successful Analyses: {analysis_context['successful_analyses']}
-        - Successfully Generated: {', '.join(analysis_context['successful_indices'])}
-        - Failed Analyses: {', '.join(analysis_context['failed_indices']) if analysis_context['failed_indices'] else 'None'}
+        VEGETATION INDEX RESULTS:
+        ═══════════════════════
+        Total Indices: {analysis_context['total_vegetation_indices']}
+        Successfully Generated: {analysis_context['successful_analyses']}/{analysis_context['total_vegetation_indices']}
+        ✓ Available: {', '.join(analysis_context['successful_indices']).upper()}
+        ✗ Failed: {', '.join(analysis_context['failed_indices']).upper() if analysis_context['failed_indices'] else 'None'}
 
-        WEATHER CONDITIONS:
-        {f"Current Weather: {analysis_context['weather']['weather'][0]['description'] if analysis_context.get('weather') else 'Weather data unavailable'}"
-         f"Temperature: {analysis_context['weather']['main']['temp']}°F" if analysis_context.get('weather') else ""}
-        {f"Humidity: {analysis_context['weather']['main']['humidity']}%" if analysis_context.get('weather') else ""}
+        {weather_info}
 
-        Based on this agricultural satellite analysis, provide a JSON response with the following structure:
+        ANALYSIS CONTEXT:
+        ═══════════════════════
+        Each vegetation index reveals different aspects of crop health:
+        - NDVI: Overall vegetation vigor and biomass
+        - NDRE: Chlorophyll content and nitrogen status  
+        - MOISTURE: Plant water stress and irrigation needs
+        - EVI: Enhanced vegetation detection in dense canopy areas
+        - NDWI: Water stress and drought monitoring
+        - CHLOROPHYLL: Photosynthetic activity and plant health
+
+        REQUIRED ANALYSIS:
+        ═══════════════════════
+        As an expert agricultural consultant, provide a comprehensive field assessment. Focus on:
+
+        1. DETAILED CROP HEALTH ASSESSMENT: What do the vegetation indices specifically tell us about crop stress, nutrient deficiencies, water status, and overall plant vigor?
+
+        2. ZONE-SPECIFIC INSIGHTS: Identify which areas of the field need attention and why.
+
+        3. PRECISION AGRICULTURE RECOMMENDATIONS: Specific actions for irrigation timing, fertilizer application rates, and targeted treatments.
+
+        4. WEATHER-INTEGRATED PLANNING: How current and upcoming weather affects immediate and short-term field management decisions.
+
+        5. ECONOMIC IMPACT: Cost-effective solutions and ROI considerations for recommended actions.
+
+        Provide response in JSON format:
         {{
             "overall_health": "Excellent/Good/Moderate/Poor/Critical",
             "overall_health_class": "text-success/text-info/text-warning/text-danger/text-danger",
-            "insights": "Detailed paragraph about field conditions, vegetation health patterns, and key observations",
+            "insights": "Write 3-4 detailed sentences analyzing what the combination of vegetation indices reveals about this specific field. Include specific observations about crop stress patterns, water status, nutrient levels, and vegetation vigor. Reference the actual indices generated and what they indicate about field conditions.",
             "immediate_actions": [
-                "Action 1: Specific immediate step needed",
-                "Action 2: Another urgent recommendation",
-                "Action 3: Additional immediate action"
+                "Specific action 1 with timing (e.g., 'Apply nitrogen fertilizer at 40-60 lbs/acre within next 5-7 days to address chlorophyll deficiency shown in NDRE analysis')",
+                "Specific action 2 with method (e.g., 'Implement targeted irrigation in zones showing moisture stress, focus on field sections with NDWI values below optimal range')",
+                "Specific action 3 with monitoring (e.g., 'Conduct soil moisture testing in areas showing vegetation stress to confirm satellite observations and adjust irrigation scheduling')"
             ],
             "weather_recommendations": [
-                "Weather consideration 1",
-                "Weather consideration 2", 
-                "Weather consideration 3"
+                "Weather-specific recommendation 1 (e.g., 'With current humidity at X% and temperature Y°F, adjust irrigation timing to early morning to minimize evaporation losses')",
+                "Weather-specific recommendation 2 (e.g., 'Monitor upcoming weather patterns - if rainfall expected within 48 hours, delay planned fertilizer application to prevent nutrient runoff')",
+                "Weather-specific recommendation 3 (e.g., 'Current wind conditions at X mph may affect spray application effectiveness - consider timing adjustments for optimal coverage')"
             ],
-            "long_term_planning": [
-                "Long-term recommendation 1",
-                "Long-term recommendation 2"
+            "risk_factors": [
+                "Specific risk 1 based on vegetation analysis",
+                "Specific risk 2 considering weather patterns",
+                "Specific risk 3 related to crop management timing"
+            ],
+            "cost_analysis": [
+                "Cost consideration 1 (e.g., 'Estimated $X per acre for recommended nitrogen application')",
+                "Cost consideration 2 (e.g., 'ROI analysis: Early intervention could prevent $Y yield loss per acre')",
+                "Cost consideration 3 (e.g., 'Budget approximately $Z for targeted irrigation improvements in identified stress zones')"
             ]
         }}
 
-        Focus on:
-        1. What the combination of vegetation indices reveals about field health
-        2. Immediate actions farmers should take based on current conditions
-        3. Weather-related considerations for upcoming farming decisions
-        4. Specific agricultural advice based on vegetation stress indicators
-        5. Irrigation, fertilization, and crop management recommendations
-
-        Be specific, actionable, and focused on practical farming decisions.
+        Be extremely specific, use actual agricultural terminology, include numerical recommendations where appropriate, and provide actionable steps that a farmer can implement immediately.
         """
 
         response = openai_client.chat.completions.create(
@@ -393,7 +430,7 @@ def generate_field_ai_insights(analysis_context):
             temperature=0.3
         )
         
-        ai_response = json.loads(response.choices[0].message.content)
+        ai_response = json.loads(response.choices[0].message.content or "{}")
         
         # Validate and ensure all required fields exist
         required_fields = ['overall_health', 'insights', 'immediate_actions', 'weather_recommendations']
