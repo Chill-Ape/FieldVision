@@ -343,6 +343,21 @@ function evaluatePixel(sample) {
             },
             "evalscript": self.get_evalscript(index_type)
         }
+
+    def fetch_ndvi_image(self, bbox: List[float], width: int = 2500, height: int = 2500, geometry: Optional[dict] = None) -> Optional[bytes]:
+        """
+        Legacy method for NDVI image fetching - calls the new vegetation index method
+        
+        Args:
+            bbox: Bounding box coordinates [min_lng, min_lat, max_lng, max_lat] in EPSG:4326
+            width: Output image width in pixels
+            height: Output image height in pixels
+            geometry: Optional GeoJSON geometry for polygon masking
+            
+        Returns:
+            PNG image bytes or None if request fails
+        """
+        return self.fetch_vegetation_index_image(bbox, 'ndvi', width, height, geometry)
     
     def fetch_vegetation_index_image(self, bbox: List[float], index_type: str = 'ndvi', width: int = 2500, height: int = 2500, geometry: Optional[dict] = None) -> Optional[bytes]:
         """
@@ -371,7 +386,7 @@ function evaluatePixel(sample) {
             return None
         
         # Create request payload with calculated dimensions and geometry
-        payload = self.create_request_payload(bbox, width, height, geometry)
+        payload = self.create_request_payload(bbox, width, height, geometry, index_type)
         
         headers = {
             'Authorization': f'Bearer {token}',
@@ -380,7 +395,7 @@ function evaluatePixel(sample) {
         }
         
         try:
-            logger.info(f"Requesting NDVI image for bbox: {bbox}")
+            logger.info(f"Requesting {index_type.upper()} image for bbox: {bbox}")
             response = requests.post(
                 self.process_url,
                 json=payload,
@@ -389,7 +404,7 @@ function evaluatePixel(sample) {
             )
             
             if response.status_code == 200:
-                logger.info(f"Successfully fetched NDVI image ({len(response.content)} bytes)")
+                logger.info(f"Successfully fetched {index_type.upper()} image ({len(response.content)} bytes)")
                 
                 # Apply polygon masking if geometry is provided
                 if geometry:
