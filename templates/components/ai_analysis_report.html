@@ -7,6 +7,22 @@
 {% set action_plan = ai_analysis.get('action_plan', {}) %}
 {% set risk_assessment = ai_analysis.get('risk_assessment', {}) %}
 
+<!-- Farmer Report -->
+{% if ai_insights.get('farmer_report') %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h6 class="text-success mb-3">
+            <i class="fas fa-user-tie me-2"></i>Field Report - Plain English Summary
+        </h6>
+        <div class="bg-success bg-opacity-10 border border-success border-opacity-25 rounded p-4">
+            <div class="farmer-report text-light" style="line-height: 1.6; font-size: 1.05em;">
+                {{ ai_insights.get('farmer_report')|replace('\n\n', '</p><p class="mb-3">')|replace('\n', '<br>')|safe }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Executive Summary -->
 <div class="row mb-4">
     <div class="col-12">

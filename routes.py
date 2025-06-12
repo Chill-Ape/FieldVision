@@ -394,6 +394,7 @@ def generate_field_ai_insights(analysis_context):
             "overall_health": "Excellent/Good/Moderate/Poor/Critical",
             "overall_health_class": "text-success/text-info/text-warning/text-danger/text-danger",
             "insights": "Write 3-4 detailed sentences analyzing what the combination of vegetation indices reveals about this specific field. Include specific observations about crop stress patterns, water status, nutrient levels, and vegetation vigor. Reference the actual indices generated and what they indicate about field conditions.",
+            "farmer_report": "Write 2-3 paragraphs explaining the satellite analysis results in simple, conversational language that any farmer can understand. Imagine you're explaining to a neighbor farmer over coffee. Avoid technical jargon. Start with what the satellite images show about crop health, then explain what this means for the farmer's operations and bottom line, and finish with the most important next steps. Use everyday farming language and practical examples.",
             "immediate_actions": [
                 "Specific action 1 with timing (e.g., 'Apply nitrogen fertilizer at 40-60 lbs/acre within next 5-7 days to address chlorophyll deficiency shown in NDRE analysis')",
                 "Specific action 2 with method (e.g., 'Implement targeted irrigation in zones showing moisture stress, focus on field sections with NDWI values below optimal range')",
@@ -433,7 +434,7 @@ def generate_field_ai_insights(analysis_context):
         ai_response = json.loads(response.choices[0].message.content or "{}")
         
         # Validate and ensure all required fields exist
-        required_fields = ['overall_health', 'insights', 'immediate_actions', 'weather_recommendations']
+        required_fields = ['overall_health', 'insights', 'farmer_report', 'immediate_actions', 'weather_recommendations']
         for field in required_fields:
             if field not in ai_response:
                 ai_response[field] = get_fallback_response(field)
@@ -491,6 +492,7 @@ def get_fallback_response(field_name):
     fallbacks = {
         'overall_health': 'Moderate',
         'insights': 'Field analysis shows varied vegetation health patterns that require monitoring.',
+        'farmer_report': 'The satellite images show your field has mixed vegetation health across different areas. Some sections look healthy and green, while others might need attention. This could mean parts of your field are getting enough water and nutrients, but other areas might be stressed. The most important thing right now is to check those weaker spots and see if they need extra irrigation or fertilizer. Focus on the areas that look different from the rest - they could be telling you something important about soil conditions or water distribution.',
         'immediate_actions': ['Monitor field conditions', 'Check irrigation systems', 'Review crop health'],
         'weather_recommendations': ['Monitor weather patterns', 'Plan irrigation accordingly', 'Consider weather timing for field work']
     }
