@@ -1750,8 +1750,11 @@
                 window.fullscreenDrawnItems.addLayer(layer);
                 window.fullscreenSelectedLayer = layer;
                 
-                document.getElementById('fullscreen-confirm-btn').style.display = 'block';
-                document.getElementById('fullscreen-help-text').textContent = 'Selection made - click Confirm to use this area';
+                const confirmBtn = document.getElementById('fullscreen-confirm-btn');
+                const helpText = document.getElementById('fullscreen-help-text');
+                
+                if (confirmBtn) confirmBtn.style.display = 'block';
+                if (helpText) helpText.textContent = 'Selection made - click Confirm to use this area';
                 
                 console.log('Area selected in fullscreen map');
             });
