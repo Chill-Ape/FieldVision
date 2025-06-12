@@ -211,6 +211,43 @@ def save_field():
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Failed to save field: {str(e)}'}), 500
 
+@app.route('/field/<int:field_id>/analyze', methods=['POST'])
+def analyze_field_vegetation_index(field_id):
+    """Generate vegetation index analysis for a specific field"""
+    try:
+        field = Field.query.get_or_404(field_id)
+        data = request.get_json()
+        index_type = data.get('index_type', 'ndvi')
+        
+        # Get polygon coordinates
+        coordinates = field.get_polygon_coordinates()
+        
+        # Calculate bounding box from coordinates
+        lats = [coord[0] for coord in coordinates]
+        lngs = [coord[1] for coord in coordinates]
+        bbox = [min(lngs), min(lats), max(lngs), max(lats)]
+        
+        # Create GeoJSON geometry for polygon masking
+        geometry = {
+            "type": "Polygon",
+            "coordinates": [[
+                [coord[1], coord[0]] for coord in coordinates
+            ] + [[coordinates[0][1], coordinates[0][0]]]]
+        }
+        
+        logging.info(f"Generating {index_type.upper()} analysis for field {field_id}")
+        
+        return jsonify({
+            'success': True, 
+            'bbox': bbox, 
+            'geometry': geometry,
+            'index_type': index_type
+        })
+        
+    except Exception as e:
+        logging.error(f"Error analyzing field {field_id}: {str(e)}")
+        return jsonify({'error': f'Failed to analyze field: {str(e)}'}), 500
+
 @app.route('/api/analyze_field/<int:field_id>', methods=['POST'])
 def analyze_field(field_id):
     """Analyze a field using NDVI data and AI recommendations"""
