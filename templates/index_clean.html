@@ -587,22 +587,22 @@
             <!-- Vegetation Index Buttons -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem;">
                 <button id="ndvi-btn" class="btn btn-secondary" onclick="analyzeIndex('ndvi')" disabled style="font-size: 0.8rem; padding: 0.6rem;">
-                    📊 NDVI
+                    NDVI
                 </button>
                 <button id="ndre-btn" class="btn btn-secondary" onclick="analyzeIndex('ndre')" disabled style="font-size: 0.8rem; padding: 0.6rem;">
-                    🌿 NDRE
+                    NDRE
                 </button>
                 <button id="moisture-btn" class="btn btn-secondary" onclick="analyzeIndex('moisture')" disabled style="font-size: 0.8rem; padding: 0.6rem;">
-                    💧 Moisture
+                    Moisture
                 </button>
                 <button id="evi-btn" class="btn btn-secondary" onclick="analyzeIndex('evi')" disabled style="font-size: 0.8rem; padding: 0.6rem;">
-                    🌾 EVI
+                    EVI
                 </button>
                 <button id="ndwi-btn" class="btn btn-secondary" onclick="analyzeIndex('ndwi')" disabled style="font-size: 0.8rem; padding: 0.6rem;">
-                    🏞️ NDWI
+                    NDWI
                 </button>
                 <button id="chlorophyll-btn" class="btn btn-secondary" onclick="analyzeIndex('chlorophyll')" disabled style="font-size: 0.8rem; padding: 0.6rem;">
-                    🍃 Chlorophyll
+                    Chlorophyll
                 </button>
             </div>
         </div>
@@ -1112,17 +1112,33 @@
             
             // Enable all vegetation index buttons
             const indexButtons = ['ndvi-btn', 'ndre-btn', 'moisture-btn', 'evi-btn', 'ndwi-btn', 'chlorophyll-btn'];
+            console.log('Enabling analysis buttons...');
+            
             indexButtons.forEach(btnId => {
                 const btn = document.getElementById(btnId);
                 if (btn) {
                     btn.disabled = false;
-                    console.log(`${btnId} enabled`);
+                    btn.classList.remove('disabled');
+                    btn.style.pointerEvents = 'auto';
+                    btn.style.opacity = '1';
+                    console.log(`${btnId} enabled successfully`);
+                } else {
+                    console.log(`${btnId} button not found`);
                 }
             });
             
-            if (analyzeBtn) analyzeBtn.disabled = false;
-            if (saveBtn) saveBtn.disabled = false;
-            if (clearBtn) clearBtn.disabled = false;
+            if (analyzeBtn) {
+                analyzeBtn.disabled = false;
+                console.log('Simple analyze button enabled');
+            }
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                console.log('Save button enabled');
+            }
+            if (clearBtn) {
+                clearBtn.disabled = false;
+                console.log('Clear button enabled');
+            }
         }
         
         function clearDrawings() {
@@ -1679,15 +1695,19 @@
                 currentLayer = window.fullscreenSelectedLayer;
                 updateCoordinatesDisplay(currentLayer);
                 
-                // Enable all vegetation index buttons
+                // Enable all vegetation index buttons with debugging
                 const indexButtons = ['ndvi-btn', 'ndre-btn', 'moisture-btn', 'evi-btn', 'ndwi-btn', 'chlorophyll-btn'];
                 const saveSiteBtn = document.getElementById('save-site-btn');
                 
+                console.log('About to enable buttons...');
                 indexButtons.forEach(btnId => {
                     const btn = document.getElementById(btnId);
+                    console.log(`Button ${btnId}:`, btn ? 'found' : 'NOT FOUND');
                     if (btn) {
                         btn.disabled = false;
-                        console.log(`${btnId} enabled`);
+                        btn.classList.remove('disabled');
+                        btn.style.pointerEvents = 'auto';
+                        console.log(`${btnId} enabled - disabled status:`, btn.disabled);
                     }
                 });
                 
@@ -1695,6 +1715,9 @@
                     saveSiteBtn.disabled = false;
                     console.log('Save button enabled');
                 }
+                
+                // Also call the enableAnalysisButtons function for redundancy
+                enableAnalysisButtons();
                 
                 console.log('Selection transferred to main interface');
                 closeFullscreenMap();
