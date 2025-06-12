@@ -407,7 +407,7 @@ def generate_field_ai_insights(analysis_context):
             "overall_health": "Excellent/Good/Moderate/Poor/Critical",
             "overall_health_class": "text-success/text-info/text-warning/text-danger/text-danger",
             "insights": "Write 3-4 detailed sentences analyzing what the combination of vegetation indices reveals about this specific field. Include specific observations about crop stress patterns, water status, nutrient levels, and vegetation vigor. Reference the actual indices generated and what they indicate about field conditions.",
-            "farmer_report": "Write 4-5 detailed paragraphs (at least 150 words each) explaining the satellite analysis results in conversational farmer language. Be very specific about different zones/areas of the field - use directional references like 'northeast corner', 'southern edge', 'center sections', 'western strip', etc. Mention specific vegetation index findings by zone (e.g., 'the northeast zone shows low moisture levels in the NDWI analysis', 'southern sections have EVI deficiency indicating stress'). Make each report unique by focusing on the actual data patterns, seasonal timing, local weather impacts, and field-specific conditions. Include practical farming wisdom, cost considerations, timing recommendations, and specific equipment or input needs. Avoid generic advice - make it feel like a personalized consultation from an experienced agricultural advisor who knows this exact field.",
+            "farmer_report": "REQUIRED: Write exactly 5 comprehensive paragraphs (minimum 120 words each, 600+ total words) in plain farmer language explaining what this satellite analysis means for your operation. Structure as follows: 1) Zone-by-zone breakdown of what satellite sees (northeast corner moisture stress, southern edge vegetation patterns, etc.), 2) What this means for your yields and profits this season, 3) Immediate action steps with specific timing and costs, 4) Weather timing and seasonal considerations, 5) Long-term field improvements. Include specific zone references, actual index values, cost estimates per acre, equipment needs, fertilizer rates, irrigation adjustments, and step-by-step implementation advice. Write like an experienced farm advisor explaining to a neighbor.",
             "immediate_actions": [
                 "Specific action 1 with timing (e.g., 'Apply nitrogen fertilizer at 40-60 lbs/acre within next 5-7 days to address chlorophyll deficiency shown in NDRE analysis')",
                 "Specific action 2 with method (e.g., 'Implement targeted irrigation in zones showing moisture stress, focus on field sections with NDWI values below optimal range')",
@@ -430,6 +430,16 @@ def generate_field_ai_insights(analysis_context):
             ]
         }}
 
+        CRITICAL: The "farmer_report" field is MANDATORY and must be 600-800 words minimum. Structure it as 4-5 paragraphs covering:
+        
+        Paragraph 1: What the satellite data shows about different zones of the field
+        Paragraph 2: What these findings mean for crop health and potential yield impact
+        Paragraph 3: Specific immediate actions needed with timing and costs
+        Paragraph 4: Weather considerations and seasonal timing advice
+        Paragraph 5: Long-term field management recommendations
+        
+        Use conversational farmer language, include specific zone references, mention actual vegetation index values, provide cost estimates, and give step-by-step implementation advice.
+        
         Be extremely specific, use actual agricultural terminology, include numerical recommendations where appropriate, and provide actionable steps that a farmer can implement immediately.
         """
 
@@ -446,10 +456,18 @@ def generate_field_ai_insights(analysis_context):
         
         ai_response = json.loads(response.choices[0].message.content or "{}")
         
+        # Log the AI response for debugging
+        logging.info(f"AI response keys: {list(ai_response.keys())}")
+        if 'farmer_report' in ai_response:
+            logging.info(f"Farmer report length: {len(ai_response['farmer_report'])} characters")
+        else:
+            logging.warning("farmer_report field missing from AI response")
+        
         # Validate and ensure all required fields exist
         required_fields = ['overall_health', 'insights', 'farmer_report', 'immediate_actions', 'weather_recommendations']
         for field in required_fields:
             if field not in ai_response:
+                logging.warning(f"Missing field {field}, using fallback")
                 ai_response[field] = get_fallback_response(field)
         
         # Ensure health class is set
