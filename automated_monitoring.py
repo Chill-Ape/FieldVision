@@ -231,7 +231,7 @@ class FieldMonitor:
             email_content = self.generate_email_content(field_analysis)
             
             message = Mail(
-                from_email='noreply@fieldvision.ai',
+                from_email='alerts@fieldvision-ai.com',
                 to_emails=recipient_email,
                 subject=subject,
                 html_content=email_content
@@ -253,6 +253,27 @@ class FieldMonitor:
             
         except Exception as e:
             logging.error(f"Failed to send email alert: {str(e)}")
+            
+            # Log the analysis details as a fallback notification
+            field = field_analysis['field']
+            ai_insights = field_analysis.get('ai_insights', {})
+            urgent_alerts = field_analysis.get('urgent_alerts', [])
+            
+            logging.info(f"=== EMAIL FAILED - ANALYSIS DETAILS ===")
+            logging.info(f"Field: {field.name} (ID: {field.id})")
+            logging.info(f"Intended recipient: {recipient_email}")
+            logging.info(f"Health status: {ai_insights.get('overall_health', 'Unknown')}")
+            logging.info(f"Alert count: {len(urgent_alerts)}")
+            
+            if urgent_alerts:
+                logging.warning("URGENT ALERTS DETECTED:")
+                for i, alert in enumerate(urgent_alerts, 1):
+                    logging.warning(f"  {i}. {alert.get('message', 'Unknown alert')} (Priority: {alert.get('priority', 'unknown')})")
+            
+            if ai_insights.get('insights'):
+                logging.info(f"Analysis summary: {ai_insights['insights'][:200]}...")
+            
+            logging.info("=== END ANALYSIS NOTIFICATION ===")
             return False
     
     def generate_email_content(self, field_analysis: Dict) -> str:
