@@ -240,8 +240,16 @@ class FieldMonitor:
             sg = SendGridAPIClient(sendgrid_api_key)
             response = sg.send(message)
             
-            logging.info(f"Email alert sent successfully for field {field.id} to {recipient_email}")
-            return True
+            logging.info(f"SendGrid response status: {response.status_code}")
+            logging.info(f"SendGrid response body: {response.body}")
+            logging.info(f"SendGrid response headers: {response.headers}")
+            
+            if response.status_code == 202:
+                logging.info(f"Email alert sent successfully for field {field.id} to {recipient_email}")
+                return True
+            else:
+                logging.error(f"SendGrid returned non-202 status: {response.status_code}")
+                return False
             
         except Exception as e:
             logging.error(f"Failed to send email alert: {str(e)}")
