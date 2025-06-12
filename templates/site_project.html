@@ -821,6 +821,12 @@ function restoreAnalysis(analysisId, fieldId) {
     }
 }
 
+// Initialize analysis history on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const fieldId = {{ field.id }};
+    loadAnalysisHistory(fieldId);
+});
+
 function scheduleUpdates(fieldId) {
     // Show scheduling modal
     const modalHtml = `
