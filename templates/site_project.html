@@ -270,13 +270,33 @@
         </div>
     </div>
 
+    <!-- Analysis History Section -->
+    <div class="row mt-4" id="analysis-history-section" style="display: none;">
+        <div class="col-12">
+            <div class="card bg-dark border-secondary mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-history me-2 text-info"></i>Previous Analyses
+                        <small class="text-muted ms-2">(Click items to expand)</small>
+                    </h6>
+                </div>
+                <div class="card-body p-2">
+                    <div id="analysis-history-list">
+                        <!-- Previous analyses will be listed here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- AI Analysis Results -->
     <div class="row mt-4" id="ai-analysis-section" style="display: none;">
         <div class="col-12">
             <div class="card bg-dark border-secondary">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="fas fa-brain me-2 text-primary"></i>Comprehensive AI Analysis Results
+                        <i class="fas fa-brain me-2 text-primary"></i>Latest AI Analysis Results
+                        <small class="text-muted ms-2" id="analysis-timestamp"></small>
                     </h5>
                 </div>
                 <div class="card-body" id="ai-analysis-content">
@@ -475,6 +495,14 @@ async function runComprehensiveAIAnalysis(fieldId) {
             // Display comprehensive results
             setTimeout(() => {
                 displayAIAnalysisResults(aiData, analysisResults);
+                
+                // Save to analysis history
+                saveAnalysisToHistory(fieldId, aiData);
+                
+                // Update timestamp
+                document.getElementById('analysis-timestamp').textContent = 
+                    `Generated: ${new Date().toLocaleString()}`;
+                
                 loadingModal.hide();
             }, 1000);
         } else {
@@ -538,8 +566,18 @@ function displayAIAnalysisResults(aiData, analysisResults) {
                 <div class="card bg-secondary bg-opacity-25 border-secondary">
                     <div class="card-body">
                         <h6 class="card-title"><i class="fas fa-brain me-2"></i>AI Insights & Observations</h6>
-                        <div class="ai-insights-content">
-                            ${aiData.insights || 'Comprehensive field analysis shows mixed vegetation health across different zones. Monitor areas with lower NDVI values for potential stress indicators.'}
+                        <div class="ai-insights-content" style="max-height: 300px; overflow-y: auto; padding-right: 10px;">
+                            <div class="insights-text" style="line-height: 1.6; font-size: 0.95em;">
+                                ${aiData.insights || 'Comprehensive field analysis shows mixed vegetation health across different zones. Monitor areas with lower NDVI values for potential stress indicators.'}
+                            </div>
+                            ${aiData.farmer_report ? `
+                                <div class="mt-3 pt-3 border-top border-secondary">
+                                    <h6 class="text-success mb-2"><i class="fas fa-user-tie me-2"></i>Detailed Farmer Report</h6>
+                                    <div class="farmer-report-text" style="line-height: 1.6; font-size: 0.9em; color: #b8d4b8;">
+                                        ${aiData.farmer_report.replace(/\n\n/g, '</p><p class="mb-2">').replace(/\n/g, '<br>')}
+                                    </div>
+                                </div>
+                            ` : ''}
                         </div>
                     </div>
                 </div>
@@ -674,6 +712,113 @@ function getIndexDescription(indexType) {
 
 function runAIAnalysis(fieldId) {
     runComprehensiveAIAnalysis(fieldId);
+}
+
+// Analysis storage and history functions
+function saveAnalysisToHistory(fieldId, analysisData) {
+    const historyKey = `field_${fieldId}_analysis_history`;
+    let history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+    
+    const analysisRecord = {
+        id: Date.now(),
+        timestamp: new Date().toISOString(),
+        data: analysisData,
+        summary: analysisData.overall_health || 'Unknown'
+    };
+    
+    history.unshift(analysisRecord); // Add to beginning
+    history = history.slice(0, 10); // Keep only last 10 analyses
+    
+    localStorage.setItem(historyKey, JSON.stringify(history));
+    loadAnalysisHistory(fieldId);
+}
+
+function loadAnalysisHistory(fieldId) {
+    const historyKey = `field_${fieldId}_analysis_history`;
+    const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+    const historyList = document.getElementById('analysis-history-list');
+    
+    if (history.length === 0) {
+        historyList.innerHTML = '<p class="text-muted small mb-0">No previous analyses available</p>';
+        return;
+    }
+    
+    historyList.innerHTML = history.map((record, index) => `
+        <div class="analysis-history-item border-bottom border-secondary pb-2 mb-2" data-analysis-id="${record.id}">
+            <div class="d-flex justify-content-between align-items-center cursor-pointer" onclick="toggleAnalysisDetails(${record.id})" style="cursor: pointer;">
+                <div>
+                    <small class="text-light">
+                        <i class="fas fa-calendar me-1"></i>
+                        ${new Date(record.timestamp).toLocaleString()}
+                    </small>
+                    <span class="badge bg-${getHealthColor(record.summary)} ms-2">${record.summary}</span>
+                </div>
+                <i class="fas fa-chevron-down text-muted" id="chevron-${record.id}"></i>
+            </div>
+            <div class="analysis-details mt-2" id="details-${record.id}" style="display: none;">
+                <div class="bg-secondary bg-opacity-25 rounded p-3">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-info mb-2">Technical Analysis</h6>
+                            <div class="small text-light" style="max-height: 150px; overflow-y: auto;">
+                                ${record.data.insights || 'No insights available'}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-success mb-2">Farmer Report</h6>
+                            <div class="small text-light" style="max-height: 150px; overflow-y: auto;">
+                                ${record.data.farmer_report ? record.data.farmer_report.substring(0, 300) + '...' : 'No farmer report available'}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-outline-primary" onclick="restoreAnalysis(${record.id}, ${fieldId})">
+                            <i class="fas fa-redo me-1"></i>Restore This Analysis
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+    
+    document.getElementById('analysis-history-section').style.display = 'block';
+}
+
+function getHealthColor(health) {
+    const colors = {
+        'Excellent': 'success',
+        'Good': 'success',
+        'Moderate': 'warning',
+        'Poor': 'danger',
+        'Critical': 'danger'
+    };
+    return colors[health] || 'secondary';
+}
+
+function toggleAnalysisDetails(analysisId) {
+    const details = document.getElementById(`details-${analysisId}`);
+    const chevron = document.getElementById(`chevron-${analysisId}`);
+    
+    if (details.style.display === 'none') {
+        details.style.display = 'block';
+        chevron.classList.remove('fa-chevron-down');
+        chevron.classList.add('fa-chevron-up');
+    } else {
+        details.style.display = 'none';
+        chevron.classList.remove('fa-chevron-up');
+        chevron.classList.add('fa-chevron-down');
+    }
+}
+
+function restoreAnalysis(analysisId, fieldId) {
+    const historyKey = `field_${fieldId}_analysis_history`;
+    const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+    const analysis = history.find(record => record.id === analysisId);
+    
+    if (analysis) {
+        displayComprehensiveAnalysis(analysis.data);
+        showAlert('success', 'Analysis restored from history');
+    }
 }
 
 function scheduleUpdates(fieldId) {
