@@ -254,6 +254,12 @@ class FieldMonitor:
         urgent_alerts = field_analysis.get('urgent_alerts', [])
         change_analysis = field_analysis.get('change_analysis', {})
         
+        # Safely get field area
+        try:
+            field_area = field.calculate_area_acres()
+        except:
+            field_area = 0.0
+        
         # Determine overall status color
         health = ai_insights.get('overall_health', 'Unknown')
         if health in ['Excellent', 'Good']:
@@ -293,7 +299,7 @@ class FieldMonitor:
                 <div class="field-info">
                     <h3>Field Information</h3>
                     <p><strong>Field:</strong> {field.name}</p>
-                    <p><strong>Area:</strong> {field.calculate_area_acres():.1f} acres</p>
+                    <p><strong>Area:</strong> {field_area:.1f} acres</p>
                     <p><strong>Analysis Date:</strong> {datetime.utcnow().strftime('%B %d, %Y at %H:%M UTC')}</p>
                     <p><strong>Overall Health:</strong> <span class="status-badge">{health}</span></p>
                 </div>
