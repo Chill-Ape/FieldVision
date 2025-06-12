@@ -1110,6 +1110,16 @@
             const saveBtn = document.getElementById('save-site-btn');
             const clearBtn = document.getElementById('clear-btn');
             
+            // Enable all vegetation index buttons
+            const indexButtons = ['ndvi-btn', 'ndre-btn', 'moisture-btn', 'evi-btn', 'ndwi-btn', 'chlorophyll-btn'];
+            indexButtons.forEach(btnId => {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    btn.disabled = false;
+                    console.log(`${btnId} enabled`);
+                }
+            });
+            
             if (analyzeBtn) analyzeBtn.disabled = false;
             if (saveBtn) saveBtn.disabled = false;
             if (clearBtn) clearBtn.disabled = false;
@@ -1548,7 +1558,7 @@
         }
         
         // Ensure all functions are globally available
-        window.analyzeNDVI = analyzeNDVI;
+        window.analyzeIndex = analyzeIndex;
         window.searchAddress = searchAddress;
         window.clearDrawings = clearDrawings;
         window.showSaveSiteModal = showSaveSiteModal;
