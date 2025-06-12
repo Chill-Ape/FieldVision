@@ -623,48 +623,10 @@
             </div>
         </div>
         
-        <div class="section">
-            <h3>NDVI Legend</h3>
-            <div style="display: grid; gap: 0.5rem; font-size: 0.8rem;">
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #8b4513;"></div>
-                    <span>Poor health - Stressed vegetation</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #daa520;"></div>
-                    <span>Fair health - Needs attention</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #9acd32;"></div>
-                    <span>Moderate health - Developing</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #66cc19;"></div>
-                    <span>Good health - Thriving crops</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #33b319;"></div>
-                    <span>Very healthy - Excellent conditions</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #199919;"></div>
-                    <span>Excellent health - Peak performance</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #0d660d;"></div>
-                    <span>Peak health - Optimal growth</span>
-                </div>
-            </div>
-            
-            <div style="border-top: 1px solid rgba(88, 166, 255, 0.15); padding-top: 0.5rem;">
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #cc9966;"></div>
-                    <span>Bare soil/sand</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #6666aa;"></div>
-                    <span>Water bodies</span>
-                </div>
+        <div class="section" id="legend-section" style="display: none;">
+            <h3 id="legend-title">Vegetation Index Legend</h3>
+            <div id="legend-content" style="display: grid; gap: 0.5rem; font-size: 0.8rem;">
+                <!-- Dynamic legend content will be inserted here -->
             </div>
         </div>
     </div>
@@ -1345,6 +1307,123 @@
             });
         }
         
+        function updateLegend(indexType) {
+            const legends = {
+                'ndvi': {
+                    title: 'NDVI - Vegetation Health Legend',
+                    items: [
+                        { color: '#8b4513', label: 'Poor health - Stressed vegetation' },
+                        { color: '#daa520', label: 'Fair health - Needs attention' },
+                        { color: '#9acd32', label: 'Moderate health - Developing' },
+                        { color: '#66cc19', label: 'Good health - Thriving crops' },
+                        { color: '#33b319', label: 'Very healthy - Excellent conditions' },
+                        { color: '#199919', label: 'Excellent health - Peak performance' },
+                        { color: '#0d660d', label: 'Peak health - Optimal growth' }
+                    ],
+                    additionalItems: [
+                        { color: '#cc9966', label: 'Bare soil/sand' },
+                        { color: '#6666aa', label: 'Water bodies' }
+                    ]
+                },
+                'ndre': {
+                    title: 'NDRE - Chlorophyll & Nitrogen Legend',
+                    items: [
+                        { color: '#cc6633', label: 'Very low chlorophyll - Nutrient deficient' },
+                        { color: '#e6994d', label: 'Low chlorophyll - Needs fertilization' },
+                        { color: '#e6cc66', label: 'Moderate chlorophyll - Developing' },
+                        { color: '#99cc4d', label: 'Good chlorophyll - Healthy nitrogen levels' },
+                        { color: '#66b333', label: 'High chlorophyll - Optimal nutrition' },
+                        { color: '#339919', label: 'Very high chlorophyll - Peak nutrition' }
+                    ]
+                },
+                'moisture': {
+                    title: 'Moisture Index - Water Content Legend',
+                    items: [
+                        { color: '#cc3319', label: 'Very dry - Immediate irrigation needed' },
+                        { color: '#e6804d', label: 'Dry - Water stress detected' },
+                        { color: '#e6cc4d', label: 'Moderate moisture - Monitor closely' },
+                        { color: '#66cc99', label: 'Good moisture - Adequate water content' },
+                        { color: '#3399cc', label: 'High moisture - Well hydrated' },
+                        { color: '#1966e6', label: 'Very high moisture - Saturated' }
+                    ]
+                },
+                'evi': {
+                    title: 'EVI - Enhanced Vegetation Legend',
+                    items: [
+                        { color: '#b36633', label: 'Very low vegetation - Bare/sparse' },
+                        { color: '#cc9966', label: 'Low vegetation - Early growth' },
+                        { color: '#e6cc66', label: 'Moderate vegetation - Developing canopy' },
+                        { color: '#99cc33', label: 'Good vegetation - Healthy canopy' },
+                        { color: '#66b319', label: 'High vegetation - Dense canopy' },
+                        { color: '#33800d', label: 'Very high vegetation - Maximum density' }
+                    ]
+                },
+                'ndwi': {
+                    title: 'NDWI - Water Detection Legend',
+                    items: [
+                        { color: '#994d19', label: 'Very dry soil - No water content' },
+                        { color: '#cc9966', label: 'Dry soil - Low moisture' },
+                        { color: '#b3cc99', label: 'Moist soil - Some water present' },
+                        { color: '#66b3cc', label: 'Wet areas - High water content' },
+                        { color: '#3380e6', label: 'Water bodies - Surface water' },
+                        { color: '#1a4dcc', label: 'Deep water - Permanent water bodies' }
+                    ]
+                },
+                'chlorophyll': {
+                    title: 'Chlorophyll Index - Plant Health Legend',
+                    items: [
+                        { color: '#cc3333', label: 'Very low chlorophyll - Plant stress' },
+                        { color: '#e68019', label: 'Low chlorophyll - Declining health' },
+                        { color: '#e6cc33', label: 'Moderate chlorophyll - Stable condition' },
+                        { color: '#80cc4d', label: 'Good chlorophyll - Healthy plants' },
+                        { color: '#4db333', label: 'High chlorophyll - Vigorous growth' },
+                        { color: '#198019', label: 'Very high chlorophyll - Peak health' }
+                    ]
+                }
+            };
+
+            const legend = legends[indexType];
+            if (!legend) return;
+
+            const legendSection = document.getElementById('legend-section');
+            const legendTitle = document.getElementById('legend-title');
+            const legendContent = document.getElementById('legend-content');
+
+            if (legendTitle) legendTitle.textContent = legend.title;
+            
+            if (legendContent) {
+                let html = '';
+                
+                // Main legend items
+                legend.items.forEach(item => {
+                    html += `
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: ${item.color};"></div>
+                            <span>${item.label}</span>
+                        </div>
+                    `;
+                });
+                
+                // Additional items (for NDVI only)
+                if (legend.additionalItems) {
+                    html += '<div style="border-top: 1px solid rgba(88, 166, 255, 0.15); padding-top: 0.5rem; margin-top: 0.5rem;">';
+                    legend.additionalItems.forEach(item => {
+                        html += `
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: ${item.color};"></div>
+                                <span>${item.label}</span>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                }
+                
+                legendContent.innerHTML = html;
+            }
+            
+            if (legendSection) legendSection.style.display = 'block';
+        }
+
         async function analyzeIndex(indexType) {
             if (!currentLayer || !currentBounds) {
                 alert('Please select an area first');
@@ -1407,9 +1486,9 @@
                             <div style="position: relative; display: inline-block;">
                                 <img src="${imageUrl}" alt="${indexNames[indexType]} Analysis" class="ndvi-image" style="cursor: pointer; width: 100%;" onclick="openImageModal('${imageUrl}', '${indexNames[indexType]} Analysis<br>Shape: ${shapeType.toUpperCase()}<br>Area: ${areaInfo}')">
                                 <div style="position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.8); color: white; padding: 0.5rem; border-radius: 4px; font-size: 0.75rem;">
-                                    📍 ${shapeType.toUpperCase()}: ${areaInfo}
+                                    ${shapeType.toUpperCase()}: ${areaInfo}
                                 </div>
-                                <button onclick="openImageModal('${imageUrl}', '${indexNames[indexType]} Analysis')" style="position: absolute; top: 5px; right: 5px; background: rgba(88, 166, 255, 0.9); color: white; border: none; padding: 0.5rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 500;">🔍 Fullscreen</button>
+                                <button onclick="openImageModal('${imageUrl}', '${indexNames[indexType]} Analysis')" style="position: absolute; top: 5px; right: 5px; background: rgba(88, 166, 255, 0.9); color: white; border: none; padding: 0.5rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 500;">Fullscreen</button>
                             </div>
                         `;
                     }
@@ -1419,6 +1498,9 @@
                     if (titleEl) {
                         titleEl.textContent = indexNames[indexType] || 'Vegetation Analysis';
                     }
+                    
+                    // Update legend for the selected index type
+                    updateLegend(indexType);
                     
                     if (resultEl) resultEl.style.display = 'block';
                 } else {
