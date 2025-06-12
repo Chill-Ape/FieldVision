@@ -341,15 +341,16 @@ function evaluatePixel(sample) {
                     }
                 }]
             },
-            "evalscript": self.get_ndvi_evalscript()
+            "evalscript": self.get_evalscript(index_type)
         }
     
-    def fetch_ndvi_image(self, bbox: List[float], width: int = 2500, height: int = 2500, geometry: Optional[dict] = None) -> Optional[bytes]:
+    def fetch_vegetation_index_image(self, bbox: List[float], index_type: str = 'ndvi', width: int = 2500, height: int = 2500, geometry: Optional[dict] = None) -> Optional[bytes]:
         """
-        Fetch NDVI image for the given bounding box with proper aspect ratio
+        Fetch vegetation index image for the given bounding box with proper aspect ratio
         
         Args:
             bbox: Bounding box coordinates [min_lng, min_lat, max_lng, max_lat] in EPSG:4326
+            index_type: Type of vegetation index ('ndvi', 'ndre', 'moisture', 'evi', 'ndwi', 'chlorophyll')
             width: Output image width in pixels (auto-calculated if None)
             height: Output image height in pixels (auto-calculated if None)
             geometry: Optional GeoJSON geometry for polygon masking

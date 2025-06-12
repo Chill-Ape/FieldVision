@@ -165,7 +165,7 @@ def save_field():
         # Schedule NDVI processing in background (faster user experience)
         try:
             # Quick NDVI fetch for immediate feedback
-            ndvi_image_bytes = ndvi_fetcher.fetch_ndvi_image(bbox, geometry=geometry)
+            ndvi_image_bytes = ndvi_fetcher.fetch_vegetation_index_image(bbox, 'ndvi', geometry=geometry)
             
             if ndvi_image_bytes:
                 # Basic validation - just check if we got data
@@ -236,7 +236,7 @@ def analyze_field(field_id):
             ] + [[coordinates[0][1], coordinates[0][0]]]]
         }
         
-        ndvi_image_data = ndvi_fetcher.fetch_ndvi_image(bbox, geometry=geometry)
+        ndvi_image_data = ndvi_fetcher.fetch_vegetation_index_image(bbox, 'ndvi', geometry=geometry)
         
         if not ndvi_image_data:
             return jsonify({'error': 'Failed to fetch satellite imagery'}), 500
@@ -570,7 +570,7 @@ def get_ndvi_image():
                 logger.warning(f"Could not check cached NDVI: {e}")
         
         # Fetch NDVI image from API
-        image_data = ndvi_fetcher.fetch_ndvi_image(bbox, geometry=geometry)
+        image_data = ndvi_fetcher.fetch_vegetation_index_image(bbox, 'ndvi', geometry=geometry)
         
         if image_data:
             # Cache the image if this is for an existing saved field
@@ -600,4 +600,59 @@ def get_ndvi_image():
             
     except Exception as e:
         logger.error(f"Error in /ndvi endpoint: {e}")
+        return jsonify({"error": "Internal server error", "message": str(e)}), 500
+
+@app.route('/vegetation-index', methods=['POST'])
+def get_vegetation_index():
+    """
+    Fetch vegetation index image from Sentinel Hub API
+    
+    POST: Accepts bounding box and index type in JSON format:
+    {"bbox": [lng1, lat1, lng2, lat2], "index_type": "ndvi", "geometry": {...}}
+    
+    Returns:
+        PNG image response or error message
+    """
+    try:
+        data = request.get_json()
+        
+        if not data or 'bbox' not in data:
+            return jsonify({"error": "Missing bounding box"}), 400
+        
+        bbox = data['bbox']
+        index_type = data.get('index_type', 'ndvi')
+        geometry = data.get('geometry')
+        
+        # Validate index type
+        valid_indices = ['ndvi', 'ndre', 'moisture', 'evi', 'ndwi', 'chlorophyll']
+        if index_type not in valid_indices:
+            return jsonify({"error": f"Invalid index type. Must be one of: {valid_indices}"}), 400
+        
+        if not ndvi_fetcher.auth.is_authenticated():
+            return jsonify({"error": "Sentinel Hub authentication not configured"}), 503
+        
+        # Validate bbox format
+        if not isinstance(bbox, list) or len(bbox) != 4:
+            return jsonify({"error": "Invalid bounding box format"}), 400
+        
+        if not ndvi_fetcher.validate_bbox(bbox):
+            return jsonify({"error": "Invalid bounding box coordinates"}), 400
+        
+        # Fetch vegetation index image from API
+        image_data = ndvi_fetcher.fetch_vegetation_index_image(bbox, index_type, geometry=geometry)
+        
+        if image_data:
+            return Response(
+                image_data,
+                mimetype='image/png',
+                headers={
+                    'Cache-Control': 'public, max-age=3600',
+                    'Content-Type': 'image/png'
+                }
+            )
+        else:
+            return jsonify({"error": "Failed to fetch satellite imagery"}), 500
+            
+    except Exception as e:
+        logger.error(f"Error in /vegetation-index endpoint: {e}")
         return jsonify({"error": "Internal server error", "message": str(e)}), 500
