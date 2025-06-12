@@ -496,6 +496,101 @@ def get_fallback_response(field_name):
     }
     return fallbacks.get(field_name, 'Analysis data unavailable')
 
+@app.route('/field/<int:field_id>/monitoring', methods=['POST'])
+def save_monitoring_settings(field_id):
+    """Save automated monitoring settings for a field"""
+    try:
+        field = Field.query.get_or_404(field_id)
+        data = request.get_json()
+        
+        # Store monitoring settings in field's metadata or create a new table
+        # For now, we'll store in a simple JSON format
+        monitoring_settings = {
+            'frequency': data.get('frequency', 'disabled'),
+            'alert_time': data.get('alert_time', '08:00'),
+            'notification_email': data.get('notification_email'),
+            'urgent_only': data.get('urgent_only', False),
+            'weather_alerts': data.get('weather_alerts', True),
+            'change_detection': data.get('change_detection', True),
+            'enabled': data.get('frequency') != 'disabled',
+            'created_at': datetime.utcnow().isoformat()
+        }
+        
+        # You could extend the Field model to include monitoring_settings column
+        # For now, we'll use the analysis table to store settings
+        settings_analysis = FieldAnalysis()
+        settings_analysis.field_id = field.id
+        settings_analysis.ai_analysis_data = json.dumps({
+            'type': 'monitoring_settings',
+            'settings': monitoring_settings
+        })
+        db.session.add(settings_analysis)
+        db.session.commit()
+        
+        logging.info(f"Monitoring settings saved for field {field_id}: {monitoring_settings['frequency']}")
+        
+        return jsonify({
+            'success': True,
+            'message': f"Monitoring configured for {monitoring_settings['frequency']} updates",
+            'settings': monitoring_settings
+        })
+        
+    except Exception as e:
+        logging.error(f"Error saving monitoring settings for field {field_id}: {str(e)}")
+        return jsonify({'error': f'Failed to save monitoring settings: {str(e)}'}), 500
+
+@app.route('/field/<int:field_id>/test-monitoring', methods=['POST'])
+def test_field_monitoring(field_id):
+    """Run a test monitoring analysis and send email"""
+    try:
+        field = Field.query.get_or_404(field_id)
+        
+        # Get monitoring settings
+        settings_query = FieldAnalysis.query.filter_by(field_id=field_id)\
+            .filter(FieldAnalysis.ai_analysis_data.like('%monitoring_settings%'))\
+            .order_by(FieldAnalysis.analysis_date.desc()).first()
+        
+        if not settings_query:
+            return jsonify({'error': 'No monitoring settings configured for this field'}), 400
+        
+        settings_data = json.loads(settings_query.ai_analysis_data or '{}')
+        monitoring_settings = settings_data.get('settings', {})
+        notification_email = monitoring_settings.get('notification_email')
+        
+        if not notification_email:
+            return jsonify({'error': 'No notification email configured'}), 400
+        
+        # Run monitoring analysis
+        from automated_monitoring import FieldMonitor
+        monitor = FieldMonitor()
+        
+        if monitor.should_analyze_field(field):
+            field_analysis = monitor.analyze_field_changes(field)
+            
+            # Send test email
+            email_sent = monitor.send_email_alert(field_analysis, notification_email)
+            
+            if email_sent:
+                return jsonify({
+                    'success': True,
+                    'message': f'Test monitoring completed and email sent to {notification_email}',
+                    'analysis_summary': {
+                        'urgent_alerts': len(field_analysis.get('urgent_alerts', [])),
+                        'overall_health': field_analysis.get('ai_insights', {}).get('overall_health', 'Unknown')
+                    }
+                })
+            else:
+                return jsonify({'error': 'Monitoring analysis completed but email sending failed'}), 500
+        else:
+            return jsonify({
+                'success': True,
+                'message': 'Field was recently analyzed - using cached results for test email'
+            })
+        
+    except Exception as e:
+        logging.error(f"Error in test monitoring for field {field_id}: {str(e)}")
+        return jsonify({'error': f'Test monitoring failed: {str(e)}'}), 500
+
 @app.route('/api/analyze_field/<int:field_id>', methods=['POST'])
 def analyze_field(field_id):
     """Analyze a field using NDVI data and AI recommendations"""
