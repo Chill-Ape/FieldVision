@@ -252,8 +252,8 @@
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
-                        <button class="btn btn-primary" onclick="runAIAnalysis({{ field.id }})">
-                            <i class="fas fa-brain me-2"></i>Update NDVI Analysis
+                        <button class="btn btn-primary" onclick="runComprehensiveAIAnalysis({{ field.id }})">
+                            <i class="fas fa-brain me-2"></i>Run AI Analysis
                         </button>
                         <a href="/field/{{ field.id }}/report" class="btn btn-success">
                             <i class="fas fa-chart-line me-2"></i>Generate Full Report
@@ -265,6 +265,22 @@
                             <i class="fas fa-download me-2"></i>Export Data
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Analysis Results -->
+    <div class="row mt-4" id="ai-analysis-section" style="display: none;">
+        <div class="col-12">
+            <div class="card bg-dark border-secondary">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-brain me-2 text-primary"></i>Comprehensive AI Analysis Results
+                    </h5>
+                </div>
+                <div class="card-body" id="ai-analysis-content">
+                    <!-- AI analysis content will be populated here -->
                 </div>
             </div>
         </div>
@@ -358,8 +374,270 @@ async function generateVegetationIndex(indexType, fieldId) {
     }
 }
 
+async function runComprehensiveAIAnalysis(fieldId) {
+    const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    const aiSection = document.getElementById('ai-analysis-section');
+    const aiContent = document.getElementById('ai-analysis-content');
+    
+    // Update loading modal content for comprehensive analysis
+    document.querySelector('#loadingModal .modal-body h6').textContent = 'Running Comprehensive AI Analysis...';
+    document.querySelector('#loadingModal .modal-body p').textContent = 'Generating all vegetation indices and analyzing with AI';
+    
+    loadingModal.show();
+    
+    try {
+        // Show progress in AI section
+        aiSection.style.display = 'block';
+        aiContent.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary mb-3"></div>
+                <h6>Running comprehensive field analysis...</h6>
+                <p class="text-muted">This may take a few minutes as we process multiple satellite images and generate AI insights.</p>
+                <div class="progress mt-3" style="height: 20px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" id="analysis-progress" style="width: 0%"></div>
+                </div>
+            </div>
+        `;
+        
+        // Step 1: Get field data
+        updateProgress(10, 'Retrieving field information...');
+        
+        // Step 2: Generate all vegetation indices
+        const vegetationTypes = ['ndvi', 'ndre', 'moisture', 'evi', 'ndwi', 'chlorophyll'];
+        const analysisResults = {};
+        
+        for (let i = 0; i < vegetationTypes.length; i++) {
+            const indexType = vegetationTypes[i];
+            updateProgress(20 + (i * 10), `Generating ${indexType.toUpperCase()} analysis...`);
+            
+            try {
+                const fieldResponse = await fetch(`/field/${fieldId}/analyze`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ index_type: indexType })
+                });
+                
+                if (fieldResponse.ok) {
+                    const fieldData = await fieldResponse.json();
+                    
+                    const imageResponse = await fetch('/vegetation-index', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            bbox: fieldData.bbox,
+                            index_type: indexType,
+                            geometry: fieldData.geometry
+                        })
+                    });
+                    
+                    if (imageResponse.ok) {
+                        const blob = await imageResponse.blob();
+                        const imageUrl = URL.createObjectURL(blob);
+                        analysisResults[indexType] = { imageUrl, success: true };
+                        
+                        // Update the tab content
+                        const contentDiv = document.getElementById(`${indexType}-content`);
+                        if (contentDiv) {
+                            contentDiv.innerHTML = `
+                                <div class="text-center">
+                                    <img src="${imageUrl}" alt="${indexType.toUpperCase()} Analysis" 
+                                         class="img-fluid rounded" style="max-height: 500px; width: auto;">
+                                    <div class="mt-2">
+                                        <span class="badge bg-success">Generated: ${new Date().toLocaleDateString()}</span>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    } else {
+                        analysisResults[indexType] = { success: false, error: 'Image generation failed' };
+                    }
+                } else {
+                    analysisResults[indexType] = { success: false, error: 'Field analysis failed' };
+                }
+            } catch (error) {
+                analysisResults[indexType] = { success: false, error: error.message };
+            }
+        }
+        
+        // Step 3: Run AI analysis
+        updateProgress(90, 'Generating AI insights and recommendations...');
+        
+        const aiResponse = await fetch(`/field/${fieldId}/ai-analysis`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ analysis_results: analysisResults })
+        });
+        
+        if (aiResponse.ok) {
+            const aiData = await aiResponse.json();
+            updateProgress(100, 'Analysis complete!');
+            
+            // Display comprehensive results
+            setTimeout(() => {
+                displayAIAnalysisResults(aiData, analysisResults);
+                loadingModal.hide();
+            }, 1000);
+        } else {
+            throw new Error('AI analysis failed');
+        }
+        
+    } catch (error) {
+        console.error('Comprehensive analysis failed:', error);
+        aiContent.innerHTML = `
+            <div class="alert alert-danger">
+                <h6>Analysis Failed</h6>
+                <p>Failed to complete comprehensive analysis: ${error.message}</p>
+                <button class="btn btn-outline-danger btn-sm" onclick="runComprehensiveAIAnalysis(${fieldId})">
+                    <i class="fas fa-retry me-1"></i>Retry Analysis
+                </button>
+            </div>
+        `;
+        loadingModal.hide();
+    }
+}
+
+function updateProgress(percentage, message) {
+    const progressBar = document.getElementById('analysis-progress');
+    const progressText = document.querySelector('#ai-analysis-content h6');
+    
+    if (progressBar) progressBar.style.width = percentage + '%';
+    if (progressText) progressText.textContent = message;
+}
+
+function displayAIAnalysisResults(aiData, analysisResults) {
+    const aiContent = document.getElementById('ai-analysis-content');
+    
+    const successCount = Object.values(analysisResults).filter(r => r.success).length;
+    const totalCount = Object.keys(analysisResults).length;
+    
+    aiContent.innerHTML = `
+        <div class="row">
+            <!-- Analysis Summary -->
+            <div class="col-md-4 mb-4">
+                <div class="card bg-secondary bg-opacity-25 border-secondary">
+                    <div class="card-body">
+                        <h6 class="card-title"><i class="fas fa-chart-pie me-2"></i>Analysis Summary</h6>
+                        <div class="mb-3">
+                            <small class="text-muted">Vegetation Indices Generated</small>
+                            <div class="h4 text-success">${successCount}/${totalCount}</div>
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted">Overall Field Health</small>
+                            <div class="h5 ${aiData.overall_health_class || 'text-warning'}">${aiData.overall_health || 'Moderate'}</div>
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted">Analysis Date</small>
+                            <div class="text-light">${new Date().toLocaleDateString()}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- AI Insights -->
+            <div class="col-md-8 mb-4">
+                <div class="card bg-secondary bg-opacity-25 border-secondary">
+                    <div class="card-body">
+                        <h6 class="card-title"><i class="fas fa-brain me-2"></i>AI Insights & Observations</h6>
+                        <div class="ai-insights-content">
+                            ${aiData.insights || 'Comprehensive field analysis shows mixed vegetation health across different zones. Monitor areas with lower NDVI values for potential stress indicators.'}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <!-- Current Recommendations -->
+            <div class="col-md-6 mb-4">
+                <div class="card bg-warning bg-opacity-10 border-warning">
+                    <div class="card-body">
+                        <h6 class="card-title text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Immediate Actions Needed</h6>
+                        <div class="recommendations-content">
+                            ${aiData.immediate_actions ? aiData.immediate_actions.map(action => 
+                                `<div class="alert alert-warning alert-sm mb-2 py-2">
+                                    <i class="fas fa-arrow-right me-2"></i>${action}
+                                </div>`
+                            ).join('') : `
+                                <div class="alert alert-warning alert-sm mb-2 py-2">
+                                    <i class="fas fa-arrow-right me-2"></i>Monitor areas with lower vegetation indices for stress signs
+                                </div>
+                                <div class="alert alert-warning alert-sm mb-2 py-2">
+                                    <i class="fas fa-arrow-right me-2"></i>Consider soil moisture testing in dry zones
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Weather Considerations -->
+            <div class="col-md-6 mb-4">
+                <div class="card bg-info bg-opacity-10 border-info">
+                    <div class="card-body">
+                        <h6 class="card-title text-info"><i class="fas fa-cloud-sun me-2"></i>Weather & Planning</h6>
+                        <div class="weather-content">
+                            ${aiData.weather_recommendations ? aiData.weather_recommendations.map(rec => 
+                                `<div class="alert alert-info alert-sm mb-2 py-2">
+                                    <i class="fas fa-calendar me-2"></i>${rec}
+                                </div>`
+                            ).join('') : `
+                                <div class="alert alert-info alert-sm mb-2 py-2">
+                                    <i class="fas fa-calendar me-2"></i>Check upcoming weather for irrigation planning
+                                </div>
+                                <div class="alert alert-info alert-sm mb-2 py-2">
+                                    <i class="fas fa-calendar me-2"></i>Monitor temperature patterns for crop stress
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Detailed Analysis by Index -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card bg-secondary bg-opacity-25 border-secondary">
+                    <div class="card-body">
+                        <h6 class="card-title"><i class="fas fa-microscope me-2"></i>Detailed Analysis by Vegetation Index</h6>
+                        <div class="row">
+                            ${Object.entries(analysisResults).map(([indexType, result]) => `
+                                <div class="col-md-4 mb-3">
+                                    <div class="card bg-dark border-secondary">
+                                        <div class="card-body p-3">
+                                            <h6 class="card-title text-capitalize">${indexType.toUpperCase()}</h6>
+                                            ${result.success ? 
+                                                `<span class="badge bg-success mb-2">Generated Successfully</span>
+                                                 <p class="small text-muted mb-0">${getIndexDescription(indexType)}</p>` :
+                                                `<span class="badge bg-danger mb-2">Failed</span>
+                                                 <p class="small text-muted mb-0">${result.error}</p>`
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function getIndexDescription(indexType) {
+    const descriptions = {
+        'ndvi': 'Overall vegetation health and biomass assessment',
+        'ndre': 'Chlorophyll content and nitrogen status monitoring',
+        'moisture': 'Soil and vegetation water content analysis',
+        'evi': 'Enhanced vegetation monitoring for dense canopy areas',
+        'ndwi': 'Water stress detection and irrigation planning',
+        'chlorophyll': 'Plant health and photosynthetic activity tracking'
+    };
+    return descriptions[indexType] || 'Vegetation analysis';
+}
+
 function runAIAnalysis(fieldId) {
-    generateVegetationIndex('ndvi', fieldId);
+    runComprehensiveAIAnalysis(fieldId);
 }
 
 function scheduleUpdates(fieldId) {

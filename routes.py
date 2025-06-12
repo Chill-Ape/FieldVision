@@ -248,6 +248,217 @@ def analyze_field_vegetation_index(field_id):
         logging.error(f"Error analyzing field {field_id}: {str(e)}")
         return jsonify({'error': f'Failed to analyze field: {str(e)}'}), 500
 
+@app.route('/field/<int:field_id>/ai-analysis', methods=['POST'])
+def comprehensive_ai_analysis(field_id):
+    """Generate comprehensive AI analysis for all vegetation indices"""
+    try:
+        field = Field.query.get_or_404(field_id)
+        data = request.get_json()
+        analysis_results = data.get('analysis_results', {})
+        
+        # Count successful analyses
+        successful_indices = [idx for idx, result in analysis_results.items() if result.get('success')]
+        total_indices = len(analysis_results)
+        
+        # Get field information
+        field_area = field.calculate_area_acres()
+        coordinates = field.get_polygon_coordinates()
+        
+        # Get weather data for the field location
+        weather_data = None
+        try:
+            import requests
+            weather_api_key = os.environ.get('OPENWEATHERMAP_API_KEY')
+            if weather_api_key:
+                weather_url = f"http://api.openweathermap.org/data/2.5/weather?lat={field.center_lat}&lon={field.center_lng}&appid={weather_api_key}&units=imperial"
+                weather_response = requests.get(weather_url, timeout=10)
+                if weather_response.status_code == 200:
+                    weather_data = weather_response.json()
+        except Exception as e:
+            logging.warning(f"Failed to fetch weather data: {e}")
+        
+        # Prepare data for AI analysis
+        analysis_context = {
+            "field_name": field.name,
+            "field_area_acres": round(field_area, 1),
+            "total_vegetation_indices": total_indices,
+            "successful_analyses": len(successful_indices),
+            "successful_indices": successful_indices,
+            "failed_indices": [idx for idx, result in analysis_results.items() if not result.get('success')],
+            "analysis_date": datetime.utcnow().strftime('%Y-%m-%d'),
+            "weather": weather_data,
+            "field_coordinates": {
+                "center_lat": field.center_lat,
+                "center_lng": field.center_lng
+            }
+        }
+        
+        # Generate AI insights using OpenAI
+        ai_insights = generate_field_ai_insights(analysis_context)
+        
+        # Store analysis in database
+        try:
+            new_analysis = FieldAnalysis(
+                field_id=field.id,
+                ai_analysis_data=json.dumps(ai_insights)
+            )
+            db.session.add(new_analysis)
+            field.last_analyzed = datetime.utcnow()
+            db.session.commit()
+            
+            logging.info(f"Comprehensive AI analysis completed for field {field_id}")
+        except Exception as e:
+            logging.warning(f"Failed to store AI analysis: {e}")
+            db.session.rollback()
+        
+        return jsonify(ai_insights)
+        
+    except Exception as e:
+        logging.error(f"Error in comprehensive AI analysis for field {field_id}: {str(e)}")
+        return jsonify({
+            'error': f'AI analysis failed: {str(e)}',
+            'insights': 'Unable to generate AI insights at this time. Please try again later.',
+            'overall_health': 'Unknown',
+            'immediate_actions': ['Retry analysis when system is available'],
+            'weather_recommendations': ['Monitor field conditions manually']
+        }), 500
+
+def generate_field_ai_insights(analysis_context):
+    """Generate AI insights using OpenAI based on field analysis data"""
+    try:
+        from openai import OpenAI
+        
+        openai_client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+        
+        # Create comprehensive prompt for agricultural analysis
+        prompt = f"""
+        You are an expert agricultural consultant analyzing satellite data for a farm field. Provide comprehensive, actionable insights based on the following field analysis:
+
+        FIELD INFORMATION:
+        - Field Name: {analysis_context['field_name']}
+        - Area: {analysis_context['field_area_acres']} acres
+        - Location: {analysis_context['field_coordinates']['center_lat']:.4f}, {analysis_context['field_coordinates']['center_lng']:.4f}
+        - Analysis Date: {analysis_context['analysis_date']}
+
+        VEGETATION ANALYSIS RESULTS:
+        - Total Indices Analyzed: {analysis_context['total_vegetation_indices']}
+        - Successful Analyses: {analysis_context['successful_analyses']}
+        - Successfully Generated: {', '.join(analysis_context['successful_indices'])}
+        - Failed Analyses: {', '.join(analysis_context['failed_indices']) if analysis_context['failed_indices'] else 'None'}
+
+        WEATHER CONDITIONS:
+        {f"Current Weather: {analysis_context['weather']['weather'][0]['description'] if analysis_context.get('weather') else 'Weather data unavailable'}"
+         f"Temperature: {analysis_context['weather']['main']['temp']}°F" if analysis_context.get('weather') else ""}
+        {f"Humidity: {analysis_context['weather']['main']['humidity']}%" if analysis_context.get('weather') else ""}
+
+        Based on this agricultural satellite analysis, provide a JSON response with the following structure:
+        {{
+            "overall_health": "Excellent/Good/Moderate/Poor/Critical",
+            "overall_health_class": "text-success/text-info/text-warning/text-danger/text-danger",
+            "insights": "Detailed paragraph about field conditions, vegetation health patterns, and key observations",
+            "immediate_actions": [
+                "Action 1: Specific immediate step needed",
+                "Action 2: Another urgent recommendation",
+                "Action 3: Additional immediate action"
+            ],
+            "weather_recommendations": [
+                "Weather consideration 1",
+                "Weather consideration 2", 
+                "Weather consideration 3"
+            ],
+            "long_term_planning": [
+                "Long-term recommendation 1",
+                "Long-term recommendation 2"
+            ]
+        }}
+
+        Focus on:
+        1. What the combination of vegetation indices reveals about field health
+        2. Immediate actions farmers should take based on current conditions
+        3. Weather-related considerations for upcoming farming decisions
+        4. Specific agricultural advice based on vegetation stress indicators
+        5. Irrigation, fertilization, and crop management recommendations
+
+        Be specific, actionable, and focused on practical farming decisions.
+        """
+
+        response = openai_client.chat.completions.create(
+            model="gpt-4o",  # Using latest model as specified in blueprint
+            messages=[
+                {"role": "system", "content": "You are an expert agricultural consultant specializing in satellite imagery analysis and precision farming. Provide practical, actionable recommendations for farmers."},
+                {"role": "user", "content": prompt}
+            ],
+            response_format={"type": "json_object"},
+            max_tokens=1500,
+            temperature=0.3
+        )
+        
+        ai_response = json.loads(response.choices[0].message.content)
+        
+        # Validate and ensure all required fields exist
+        required_fields = ['overall_health', 'insights', 'immediate_actions', 'weather_recommendations']
+        for field in required_fields:
+            if field not in ai_response:
+                ai_response[field] = get_fallback_response(field)
+        
+        # Ensure health class is set
+        if 'overall_health_class' not in ai_response:
+            health_classes = {
+                'Excellent': 'text-success',
+                'Good': 'text-success', 
+                'Moderate': 'text-warning',
+                'Poor': 'text-danger',
+                'Critical': 'text-danger'
+            }
+            ai_response['overall_health_class'] = health_classes.get(ai_response.get('overall_health', 'Moderate'), 'text-warning')
+        
+        return ai_response
+        
+    except Exception as e:
+        logging.error(f"OpenAI analysis failed: {str(e)}")
+        return get_fallback_ai_response(analysis_context)
+
+def get_fallback_ai_response(analysis_context):
+    """Provide fallback response when AI analysis fails"""
+    successful_count = analysis_context['successful_analyses']
+    total_count = analysis_context['total_vegetation_indices']
+    
+    if successful_count >= 4:
+        health = "Good"
+        health_class = "text-success"
+    elif successful_count >= 2:
+        health = "Moderate" 
+        health_class = "text-warning"
+    else:
+        health = "Poor"
+        health_class = "text-danger"
+    
+    return {
+        "overall_health": health,
+        "overall_health_class": health_class,
+        "insights": f"Field analysis completed with {successful_count} of {total_count} vegetation indices successfully generated. Multi-spectral analysis provides comprehensive view of crop health, water stress, and vegetation vigor across the {analysis_context['field_area_acres']} acre field.",
+        "immediate_actions": [
+            "Review generated vegetation index maps for areas of concern",
+            "Monitor field zones showing stress indicators",
+            "Consider soil testing in areas with poor vegetation health"
+        ],
+        "weather_recommendations": [
+            "Check local weather forecast for irrigation planning",
+            "Monitor temperature patterns for crop stress indicators", 
+            "Plan field activities around upcoming weather conditions"
+        ]
+    }
+
+def get_fallback_response(field_name):
+    """Get fallback content for missing AI response fields"""
+    fallbacks = {
+        'overall_health': 'Moderate',
+        'insights': 'Field analysis shows varied vegetation health patterns that require monitoring.',
+        'immediate_actions': ['Monitor field conditions', 'Check irrigation systems', 'Review crop health'],
+        'weather_recommendations': ['Monitor weather patterns', 'Plan irrigation accordingly', 'Consider weather timing for field work']
+    }
+    return fallbacks.get(field_name, 'Analysis data unavailable')
+
 @app.route('/api/analyze_field/<int:field_id>', methods=['POST'])
 def analyze_field(field_id):
     """Analyze a field using NDVI data and AI recommendations"""
