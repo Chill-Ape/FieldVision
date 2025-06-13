@@ -352,6 +352,30 @@ def generate_field_ai_insights(analysis_context):
         season_context = "mid-June growing season" if "2025-06" in analysis_context['analysis_date'] else "growing season"
         region_hint = "Northern California wine country" if analysis_context['field_coordinates']['center_lat'] > 38 else "California Central Valley"
         
+        # Get geospatial context for accurate land use analysis
+        geospatial_context = {}
+        field_object = None
+        
+        # Try to get field object for geospatial analysis
+        try:
+            field_id = analysis_context.get('field_id')
+            if field_id:
+                field_object = Field.query.get(field_id)
+                if field_object:
+                    from utils.geospatial_context import GeospatialContextAnalyzer
+                    analyzer = GeospatialContextAnalyzer()
+                    field_coords = field_object.get_polygon_coordinates()
+                    
+                    if field_coords:
+                        lats = [coord[0] for coord in field_coords]
+                        lngs = [coord[1] for coord in field_coords]
+                        bbox = [min(lngs), min(lats), max(lngs), max(lats)]
+                        
+                        geospatial_context = analyzer.analyze_field_context(field_coords, bbox)
+                        app.logger.info(f"Geospatial analysis: {geospatial_context['contextual_description']}")
+        except Exception as e:
+            app.logger.warning(f"Geospatial context analysis failed: {str(e)}")
+
         prompt = f"""
         You are Dr. Sarah Martinez, a leading agricultural consultant with 20+ years experience in precision farming, satellite imagery analysis, and crop management. You specialize in translating complex vegetation index data into actionable farming strategies.
 
@@ -371,6 +395,38 @@ def generate_field_ai_insights(analysis_context):
         ✗ Failed: {', '.join(analysis_context['failed_indices']).upper() if analysis_context['failed_indices'] else 'None'}
 
         {weather_info}
+
+        GEOSPATIAL LAND USE CONTEXT:
+        ═══════════════════════════"""
+        
+        # Add geospatial context to prompt if available
+        if geospatial_context:
+            prompt += f"""
+        Land Use Analysis: {geospatial_context['contextual_description']}
+        Actual Cropland: {geospatial_context['actual_cropland_percentage']:.0f}% of field area
+        
+        NON-CROP AREAS TO EXCLUDE FROM ANALYSIS:"""
+            
+            for zone in geospatial_context['exclusion_zones'][:5]:  # Limit to 5 for prompt length
+                prompt += f"""
+        - {zone['description']}: {zone['reason']}"""
+                
+            prompt += f"""
+        
+        CRITICAL ANALYSIS GUIDELINES:
+        - Only analyze vegetation health in actual cropland areas ({geospatial_context['actual_cropland_percentage']:.0f}% of field)
+        - DO NOT flag roads, buildings, water bodies, or infrastructure as crop stress
+        - Use landmarks (roads, buildings) as spatial reference points in recommendations
+        - Adjust treatment recommendations based on actual cropland area, not total field area
+        - When describing zones, reference nearby landmarks for farmer navigation
+        """
+        else:
+            prompt += f"""
+        Land Use Analysis: Detailed geospatial context not available
+        Note: Analysis assumes primarily agricultural land use
+        """
+
+        prompt += f"""
 
         ANALYSIS CONTEXT:
         ═══════════════════════
