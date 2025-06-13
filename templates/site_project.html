@@ -2,6 +2,47 @@
 
 {% block title %}{{ field.name }} - Site Project{% endblock %}
 
+{% block head %}
+<style>
+/* Image comparison styling */
+.comparison-mode {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.comparison-mode .satellite-image-container {
+    border: 2px solid var(--bs-border-color);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background: var(--bs-body-bg);
+}
+
+.comparison-mode .satellite-image-container:first-child {
+    border-color: var(--bs-success);
+}
+
+.comparison-mode .comparison-image {
+    border-color: var(--bs-info);
+}
+
+.satellite-image-container img {
+    transition: transform 0.2s ease-in-out;
+}
+
+.satellite-image-container:hover img {
+    transform: scale(1.02);
+}
+
+/* Responsive behavior for comparison mode */
+@media (max-width: 768px) {
+    .comparison-mode {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid mt-4">
     <!-- Project Header -->
@@ -400,21 +441,57 @@ async function generateVegetationIndex(indexType, fieldId) {
                 const blob = await imageResponse.blob();
                 const imageUrl = URL.createObjectURL(blob);
                 
-                // Update the content for this index type
+                // Update the content for this index type with replacement and comparison options
                 const contentDiv = document.getElementById(`${indexType}-content`);
-                contentDiv.innerHTML = `
-                    <div class="text-center">
-                        <img src="${imageUrl}" 
-                             alt="${indexType.toUpperCase()} Analysis" 
-                             class="img-fluid rounded"
-                             style="max-height: 500px; width: auto;">
-                        <div class="mt-2">
-                            <span class="badge bg-success">
-                                Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}
-                            </span>
+                const imageId = `img-${indexType}-${Date.now()}`;
+                
+                // Check if there's already an image to determine replacement or comparison
+                const existingImages = contentDiv.querySelectorAll('.satellite-image-container');
+                const shouldReplace = existingImages.length === 0 || !contentDiv.querySelector('.comparison-mode');
+                
+                if (shouldReplace) {
+                    // Replace existing content
+                    contentDiv.innerHTML = `
+                        <div class="satellite-image-container" id="${imageId}">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="badge bg-success">
+                                    Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}
+                                </span>
+                                <button class="btn btn-sm btn-outline-primary" onclick="enableComparison('${indexType}', '${imageId}')" title="Add comparison image">
+                                    <i class="fas fa-plus"></i> Compare
+                                </button>
+                            </div>
+                            <div class="text-center">
+                                <img src="${imageUrl}" 
+                                     alt="${indexType.toUpperCase()} Analysis" 
+                                     class="img-fluid rounded"
+                                     style="max-height: 500px; width: auto;">
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                } else {
+                    // Add as comparison image
+                    const comparisonHtml = `
+                        <div class="satellite-image-container comparison-image" id="${imageId}">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="badge bg-info">
+                                    Comparison: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}
+                                </span>
+                                <button class="btn btn-sm btn-outline-danger" onclick="removeComparison('${imageId}')" title="Remove comparison">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="text-center">
+                                <img src="${imageUrl}" 
+                                     alt="${indexType.toUpperCase()} Analysis Comparison" 
+                                     class="img-fluid rounded"
+                                     style="max-height: 500px; width: auto;">
+                            </div>
+                        </div>
+                    `;
+                    contentDiv.insertAdjacentHTML('beforeend', comparisonHtml);
+                    contentDiv.classList.add('comparison-mode');
+                }
                 
                 // Show success message
                 showAlert('success', `${indexType.toUpperCase()} analysis generated successfully!`);
@@ -429,6 +506,48 @@ async function generateVegetationIndex(indexType, fieldId) {
         showAlert('error', `Failed to generate ${indexType.toUpperCase()} analysis. Please try again.`);
     } finally {
         loadingModal.hide();
+    }
+}
+
+// Image comparison functions
+function enableComparison(indexType, currentImageId) {
+    const contentDiv = document.getElementById(`${indexType}-content`);
+    contentDiv.classList.add('comparison-mode');
+    
+    // Update the current image's compare button to show it's in comparison mode
+    const currentContainer = document.getElementById(currentImageId);
+    const compareBtn = currentContainer.querySelector('button');
+    compareBtn.innerHTML = '<i class="fas fa-eye"></i> Comparing';
+    compareBtn.disabled = true;
+    compareBtn.classList.remove('btn-outline-primary');
+    compareBtn.classList.add('btn-primary');
+    
+    // Show message about generating new image for comparison
+    showAlert('info', `Comparison mode enabled for ${indexType.toUpperCase()}. Generate a new image to compare side-by-side.`);
+}
+
+function removeComparison(imageId) {
+    const imageContainer = document.getElementById(imageId);
+    const contentDiv = imageContainer.parentElement;
+    
+    // Remove the comparison image
+    imageContainer.remove();
+    
+    // Check if there are any comparison images left
+    const remainingComparisons = contentDiv.querySelectorAll('.comparison-image');
+    if (remainingComparisons.length === 0) {
+        // Exit comparison mode
+        contentDiv.classList.remove('comparison-mode');
+        
+        // Re-enable the compare button on the main image
+        const mainContainer = contentDiv.querySelector('.satellite-image-container:not(.comparison-image)');
+        if (mainContainer) {
+            const compareBtn = mainContainer.querySelector('button');
+            compareBtn.innerHTML = '<i class="fas fa-plus"></i> Compare';
+            compareBtn.disabled = false;
+            compareBtn.classList.remove('btn-primary');
+            compareBtn.classList.add('btn-outline-primary');
+        }
     }
 }
 
