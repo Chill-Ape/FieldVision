@@ -334,6 +334,24 @@
     </div>
 </div>
 
+<!-- Fullscreen Image Modal -->
+<div class="modal fade" id="fullscreenModal" tabindex="-1" aria-labelledby="fullscreenModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-white" id="fullscreenModalLabel">Fullscreen View</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body d-flex align-items-center justify-content-center p-0">
+                <img id="fullscreenImage" src="" alt="Fullscreen Image" class="img-fluid" style="max-height: 100vh; max-width: 100vw; object-fit: contain;">
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 async function generateVegetationIndex(indexType, fieldId) {
     // Show loading modal
@@ -394,9 +412,14 @@ async function generateVegetationIndex(indexType, fieldId) {
                                 <span class="badge bg-success">
                                     Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}
                                 </span>
-                                <button class="btn btn-sm btn-outline-primary" onclick="enableComparison('${indexType}', '${imageId}')" title="Add comparison image">
-                                    <i class="fas fa-plus"></i> Compare
-                                </button>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-secondary me-2" onclick="openFullscreen('${imageUrl}', '${indexType.toUpperCase()} Analysis')" title="View fullscreen">
+                                        <i class="fas fa-expand"></i> Fullscreen
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="enableComparison('${indexType}', '${imageId}')" title="Add comparison image">
+                                        <i class="fas fa-plus"></i> Compare
+                                    </button>
+                                </div>
                             </div>
                             <div class="text-center">
                                 <img src="${imageUrl}" 
@@ -414,9 +437,14 @@ async function generateVegetationIndex(indexType, fieldId) {
                                 <span class="badge bg-info">
                                     Comparison: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}
                                 </span>
-                                <button class="btn btn-sm btn-outline-danger" onclick="removeComparison('${imageId}')" title="Remove comparison">
-                                    <i class="fas fa-times"></i>
-                                </button>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-secondary me-2" onclick="openFullscreen('${imageUrl}', '${indexType.toUpperCase()} Analysis Comparison')" title="View fullscreen">
+                                        <i class="fas fa-expand"></i> Fullscreen
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="removeComparison('${imageId}')" title="Remove comparison">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
                             </div>
                             <div class="text-center">
                                 <img src="${imageUrl}" 
@@ -571,15 +599,42 @@ function showCachedImage(indexType, imageUrl, altText) {
         <div class="satellite-image-container" id="${imageId}">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <span class="badge bg-success">Cached Image</span>
-                <button class="btn btn-sm btn-outline-primary" onclick="enableComparison('${indexType}', '${imageId}')" title="Add comparison image">
-                    <i class="fas fa-plus"></i> Compare
-                </button>
+                <div>
+                    <button class="btn btn-sm btn-outline-secondary me-2" onclick="openFullscreen('${imageUrl}', '${altText}')" title="View fullscreen">
+                        <i class="fas fa-expand"></i> Fullscreen
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" onclick="enableComparison('${indexType}', '${imageId}')" title="Add comparison image">
+                        <i class="fas fa-plus"></i> Compare
+                    </button>
+                </div>
             </div>
             <div class="text-center">
                 <img src="${imageUrl}" alt="${altText}" class="img-fluid rounded" style="max-height: 500px; width: auto;">
             </div>
         </div>
     `;
+}
+
+// Fullscreen functionality
+function openFullscreen(imageUrl, title) {
+    const modal = new bootstrap.Modal(document.getElementById('fullscreenModal'));
+    const fullscreenImage = document.getElementById('fullscreenImage');
+    const modalTitle = document.getElementById('fullscreenModalLabel');
+    
+    // Set the image source and title
+    fullscreenImage.src = imageUrl;
+    fullscreenImage.alt = title;
+    modalTitle.textContent = title;
+    
+    // Show the modal
+    modal.show();
+    
+    // Add keyboard navigation for fullscreen modal
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            modal.hide();
+        }
+    });
 }
 
 // Image comparison functions
