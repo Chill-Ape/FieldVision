@@ -472,7 +472,7 @@ function updateAnalysisHeader(indexType, fieldId) {
     document.getElementById('current-analysis-button').innerHTML = `<i class="${icons[indexType]} me-1"></i>Update ${indexType.toUpperCase()}`;
 }
 
-// Handle tab clicks to update the shared display
+// Handle tab clicks to update the shared display and auto-load images
 document.addEventListener('DOMContentLoaded', function() {
     const tabs = document.querySelectorAll('[data-bs-toggle="tab"]');
     tabs.forEach(tab => {
@@ -481,11 +481,53 @@ document.addEventListener('DOMContentLoaded', function() {
             const indexType = targetId.replace('#', '').replace('-panel', '');
             const fieldId = {{ field.id }};
             
-            // Update header without generating new image
+            // Update header 
             updateAnalysisHeader(indexType, fieldId);
+            
+            // Auto-switch to show cached image if available, otherwise generate new one
+            setTimeout(() => {
+                switchToIndexType(indexType, fieldId);
+            }, 100);
         });
     });
 });
+
+// Function to switch to a specific index type (show cached or generate new)
+async function switchToIndexType(indexType, fieldId) {
+    const contentDiv = document.getElementById('shared-image-content');
+    
+    // Check if we have a cached image for this type
+    if (indexType === 'ndvi' && {{ 'true' if field.has_cached_ndvi() else 'false' }}) {
+        // Show cached NDVI
+        showCachedImage(indexType, '/field/{{ field.id }}/cached_ndvi', 'NDVI Analysis');
+    } else if (indexType === 'true_color' && {{ 'true' if field.has_cached_rgb() else 'false' }}) {
+        // Show cached RGB
+        showCachedImage(indexType, '/field/{{ field.id }}/cached_rgb', 'True Color Satellite Image');
+    } else {
+        // Generate new image for this type
+        generateVegetationIndex(indexType, fieldId);
+    }
+}
+
+// Function to show cached image
+function showCachedImage(indexType, imageUrl, altText) {
+    const contentDiv = document.getElementById('shared-image-content');
+    const imageId = `img-${indexType}-cached`;
+    
+    contentDiv.innerHTML = `
+        <div class="satellite-image-container" id="${imageId}">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge bg-success">Cached Image</span>
+                <button class="btn btn-sm btn-outline-primary" onclick="enableComparison('${indexType}', '${imageId}')" title="Add comparison image">
+                    <i class="fas fa-plus"></i> Compare
+                </button>
+            </div>
+            <div class="text-center">
+                <img src="${imageUrl}" alt="${altText}" class="img-fluid rounded" style="max-height: 500px; width: auto;">
+            </div>
+        </div>
+    `;
+}
 
 // Image comparison functions
 function enableComparison(indexType, currentImageId) {
