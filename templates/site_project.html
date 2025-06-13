@@ -454,7 +454,8 @@ function updateAnalysisHeader(indexType, fieldId) {
         'evi': 'EVI - Enhanced Vegetation Index',
         'ndwi': 'NDWI - Water Detection Analysis', 
         'chlorophyll': 'Chlorophyll Index - Plant Health',
-        'true_color': 'True Color Satellite Image'
+        'true_color': 'True Color Satellite Image',
+        'image': 'True Color Satellite Image'
     };
     
     const icons = {
@@ -464,12 +465,24 @@ function updateAnalysisHeader(indexType, fieldId) {
         'evi': 'fas fa-tree',
         'ndwi': 'fas fa-water',
         'chlorophyll': 'fas fa-cannabis',
-        'true_color': 'fas fa-image'
+        'true_color': 'fas fa-image',
+        'image': 'fas fa-image'
+    };
+    
+    const displayNames = {
+        'ndvi': 'NDVI',
+        'ndre': 'NDRE', 
+        'moisture': 'Moisture',
+        'evi': 'EVI',
+        'ndwi': 'NDWI',
+        'chlorophyll': 'Chlorophyll',
+        'true_color': 'Image',
+        'image': 'Image'
     };
     
     document.getElementById('current-analysis-title').textContent = titles[indexType] || 'Analysis';
     document.getElementById('current-analysis-button').setAttribute('onclick', `generateVegetationIndex('${indexType}', ${fieldId})`);
-    document.getElementById('current-analysis-button').innerHTML = `<i class="${icons[indexType]} me-1"></i>Update ${indexType.toUpperCase()}`;
+    document.getElementById('current-analysis-button').innerHTML = `<i class="${icons[indexType]} me-1"></i>Update ${displayNames[indexType] || indexType.toUpperCase()}`;
 }
 
 // Handle tab clicks to update the shared display and auto-load images
@@ -478,8 +491,13 @@ document.addEventListener('DOMContentLoaded', function() {
     tabs.forEach(tab => {
         tab.addEventListener('click', function() {
             const targetId = this.getAttribute('data-bs-target');
-            const indexType = targetId.replace('#', '').replace('-panel', '');
+            let indexType = targetId.replace('#', '').replace('-panel', '');
             const fieldId = {{ field.id }};
+            
+            // Map 'image' tab to 'true_color' index type for API calls
+            if (indexType === 'image') {
+                indexType = 'true_color';
+            }
             
             // Update header 
             updateAnalysisHeader(indexType, fieldId);
