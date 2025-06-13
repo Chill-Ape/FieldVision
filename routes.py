@@ -379,6 +379,7 @@ def generate_field_ai_insights(analysis_context):
     """Generate AI insights using OpenAI based on field analysis data"""
     try:
         import os
+        import time
         from openai import OpenAI
         
         openai_client = OpenAI(
@@ -484,17 +485,33 @@ def generate_field_ai_insights(analysis_context):
         }}
         """
 
-        response = openai_client.chat.completions.create(
-            model="gpt-4o",  # Using latest model as specified in blueprint
-            messages=[
-                {"role": "system", "content": "You are an expert agricultural consultant specializing in satellite imagery analysis and precision farming. Provide practical, actionable recommendations for farmers."},
-                {"role": "user", "content": prompt}
-            ],
-            response_format={"type": "json_object"},
-            max_tokens=2500,
-            temperature=0.3
-        )
+        # Try multiple times with exponential backoff for reliability
+        max_retries = 3
+        response = None
         
+        for attempt in range(max_retries):
+            try:
+                response = openai_client.chat.completions.create(
+                    model="gpt-4o",  # Using latest model as specified in blueprint
+                    messages=[
+                        {"role": "system", "content": "You are an expert agricultural consultant specializing in satellite imagery analysis and precision farming. Provide practical, actionable recommendations for farmers."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    response_format={"type": "json_object"},
+                    max_tokens=2500,
+                    temperature=0.3,
+                    timeout=30.0  # 30 second timeout per request
+                )
+                break  # Success, exit retry loop
+            except Exception as retry_error:
+                logging.warning(f"OpenAI attempt {attempt + 1} failed: {retry_error}")
+                if attempt == max_retries - 1:  # Last attempt failed
+                    raise retry_error
+                time.sleep(2 ** attempt)  # Exponential backoff: 1s, 2s, 4s
+        
+        if not response:
+            raise Exception("Failed to get response from OpenAI after all retries")
+            
         ai_response = json.loads(response.choices[0].message.content or "{}")
         
         # Log the AI response for debugging
