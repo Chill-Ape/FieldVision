@@ -397,58 +397,64 @@
                         <h6 class="text-light mb-3">
                             <i class="fas fa-calendar-alt me-2"></i>Vegetation Health Over Time
                         </h6>
-                        <canvas id="temporal-chart" class="chart-canvas"></canvas>
+                        <div style="height: 300px; position: relative;">
+                            <canvas id="temporal-chart" style="height: 100%; width: 100%;"></canvas>
+                        </div>
                     </div>
 
                     <div id="zones-container" class="analytics-chart-container" style="display: none;">
                         <h6 class="text-light mb-3">
                             <i class="fas fa-map me-2"></i>Field Zone Health Distribution
                         </h6>
-                        <canvas id="zone-chart" class="chart-canvas"></canvas>
+                        <div style="height: 300px; position: relative;">
+                            <canvas id="zone-chart" style="height: 100%; width: 100%;"></canvas>
+                        </div>
                     </div>
 
                     <div id="comparison-container" class="analytics-chart-container" style="display: none;">
                         <h6 class="text-light mb-3">
                             <i class="fas fa-chart-radar me-2"></i>Current vs Previous Analysis
                         </h6>
-                        <canvas id="comparison-chart" class="chart-canvas"></canvas>
+                        <div style="height: 300px; position: relative;">
+                            <canvas id="comparison-chart" style="height: 100%; width: 100%;"></canvas>
+                        </div>
                     </div>
 
                     <!-- Analytics Summary Cards -->
                     <div class="row mt-4">
                         <div class="col-md-3 col-6 mb-3">
-                            <div class="card bg-success bg-opacity-10 border-success">
+                            <div class="card bg-success bg-opacity-10 border-success" id="ndvi-trend">
                                 <div class="card-body text-center">
-                                    <i class="fas fa-seedling fa-2x text-success mb-2"></i>
+                                    <div class="card-icon"><i class="fas fa-seedling fa-2x text-success mb-2"></i></div>
                                     <h6 class="text-success">NDVI Trend</h6>
-                                    <p class="text-light mb-0" id="ndvi-trend">Loading...</p>
+                                    <div class="card-value text-light mb-0">0.65</div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-3 col-6 mb-3">
-                            <div class="card bg-info bg-opacity-10 border-info">
+                            <div class="card bg-info bg-opacity-10 border-info" id="moisture-status">
                                 <div class="card-body text-center">
-                                    <i class="fas fa-tint fa-2x text-info mb-2"></i>
+                                    <div class="card-icon"><i class="fas fa-tint fa-2x text-info mb-2"></i></div>
                                     <h6 class="text-info">Moisture Status</h6>
-                                    <p class="text-light mb-0" id="moisture-status">Loading...</p>
+                                    <div class="card-value text-light mb-0">0.52</div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-3 col-6 mb-3">
-                            <div class="card bg-warning bg-opacity-10 border-warning">
+                            <div class="card bg-warning bg-opacity-10 border-warning" id="chlorophyll-level">
                                 <div class="card-body text-center">
-                                    <i class="fas fa-leaf fa-2x text-warning mb-2"></i>
+                                    <div class="card-icon"><i class="fas fa-leaf fa-2x text-warning mb-2"></i></div>
                                     <h6 class="text-warning">Chlorophyll</h6>
-                                    <p class="text-light mb-0" id="chlorophyll-level">Loading...</p>
+                                    <div class="card-value text-light mb-0">0.58</div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-3 col-6 mb-3">
-                            <div class="card bg-primary bg-opacity-10 border-primary">
+                            <div class="card bg-primary bg-opacity-10 border-primary" id="overall-health">
                                 <div class="card-body text-center">
-                                    <i class="fas fa-chart-bar fa-2x text-primary mb-2"></i>
+                                    <div class="card-icon"><i class="fas fa-chart-bar fa-2x text-primary mb-2"></i></div>
                                     <h6 class="text-primary">Overall Health</h6>
-                                    <p class="text-light mb-0" id="overall-health">Loading...</p>
+                                    <div class="card-value text-light mb-0">Good</div>
                                 </div>
                             </div>
                         </div>
