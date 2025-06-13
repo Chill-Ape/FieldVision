@@ -15,6 +15,18 @@ class Field(db.Model):
     cached_rgb_image = db.Column(db.LargeBinary)  # Store RGB satellite image bytes
     rgb_cache_date = db.Column(db.DateTime)  # When RGB image was cached
     
+    # Additional vegetation index caches
+    cached_ndre_image = db.Column(db.LargeBinary)  # Store NDRE image bytes
+    ndre_cache_date = db.Column(db.DateTime)  # When NDRE was cached
+    cached_moisture_image = db.Column(db.LargeBinary)  # Store Moisture index image bytes
+    moisture_cache_date = db.Column(db.DateTime)  # When Moisture was cached
+    cached_evi_image = db.Column(db.LargeBinary)  # Store EVI image bytes
+    evi_cache_date = db.Column(db.DateTime)  # When EVI was cached
+    cached_ndwi_image = db.Column(db.LargeBinary)  # Store NDWI image bytes
+    ndwi_cache_date = db.Column(db.DateTime)  # When NDWI was cached
+    cached_chlorophyll_image = db.Column(db.LargeBinary)  # Store Chlorophyll image bytes
+    chlorophyll_cache_date = db.Column(db.DateTime)  # When Chlorophyll was cached
+    
     # Relationship to analyses
     analyses = db.relationship('FieldAnalysis', backref='field', lazy=True, cascade='all, delete-orphan')
     
@@ -90,6 +102,29 @@ class Field(db.Model):
         if not self.rgb_cache_date:
             return False
         age = datetime.utcnow() - self.rgb_cache_date
+        return age.days <= max_age_days
+    
+    # Generic methods for all vegetation index types
+    def cache_vegetation_index_image(self, index_type, image_bytes):
+        """Cache vegetation index image bytes for this field"""
+        setattr(self, f'cached_{index_type}_image', image_bytes)
+        setattr(self, f'{index_type}_cache_date', datetime.utcnow())
+    
+    def get_cached_vegetation_index_image(self, index_type):
+        """Get cached vegetation index image if available"""
+        return getattr(self, f'cached_{index_type}_image', None)
+    
+    def has_cached_vegetation_index(self, index_type):
+        """Check if field has a cached vegetation index image"""
+        cached_image = getattr(self, f'cached_{index_type}_image', None)
+        return cached_image is not None
+    
+    def is_vegetation_index_cache_fresh(self, index_type, max_age_days=30):
+        """Check if cached vegetation index is still fresh (within max_age_days)"""
+        cache_date = getattr(self, f'{index_type}_cache_date', None)
+        if not cache_date:
+            return False
+        age = datetime.utcnow() - cache_date
         return age.days <= max_age_days
 
 class FieldAnalysis(db.Model):

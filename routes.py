@@ -961,6 +961,23 @@ def get_cached_rgb(field_id):
         }
     )
 
+@app.route('/field/<int:field_id>/cached_<index_type>')
+def get_cached_vegetation_index(field_id, index_type):
+    """Serve cached vegetation index image for a field"""
+    field = Field.query.get_or_404(field_id)
+    
+    if not field.has_cached_vegetation_index(index_type):
+        return jsonify({"error": f"No cached {index_type} image available"}), 404
+    
+    return Response(
+        field.get_cached_vegetation_index_image(index_type),
+        mimetype='image/png',
+        headers={
+            'Content-Disposition': f'inline; filename="{index_type}_{field.name}.png"',
+            'Cache-Control': 'public, max-age=86400'
+        }
+    )
+
 @app.route('/health')
 def health_check():
     """API health check endpoint"""
@@ -1093,6 +1110,7 @@ def get_vegetation_index():
         bbox = data['bbox']
         index_type = data.get('index_type', 'ndvi')
         geometry = data.get('geometry')
+        field_id = data.get('field_id')  # Optional field ID for caching
         
         # Validate index type
         valid_indices = ['ndvi', 'ndre', 'moisture', 'evi', 'ndwi', 'chlorophyll', 'true_color']
@@ -1109,10 +1127,38 @@ def get_vegetation_index():
         if not ndvi_fetcher.validate_bbox(bbox):
             return jsonify({"error": "Invalid bounding box coordinates"}), 400
         
+        # Check for cached image if field_id is provided
+        if field_id:
+            try:
+                field = Field.query.get(field_id)
+                if field and field.has_cached_vegetation_index(index_type) and field.is_vegetation_index_cache_fresh(index_type):
+                    logging.info(f"Serving cached {index_type} for field {field_id}")
+                    return Response(
+                        field.get_cached_vegetation_index_image(index_type),
+                        mimetype='image/png',
+                        headers={
+                            'Cache-Control': 'public, max-age=86400',
+                            'Content-Type': 'image/png'
+                        }
+                    )
+            except Exception as e:
+                logging.warning(f"Could not check cached {index_type}: {e}")
+        
         # Fetch vegetation index image from API
         image_data = ndvi_fetcher.fetch_vegetation_index_image(bbox, index_type, geometry=geometry)
         
         if image_data:
+            # Cache the image if field_id is provided
+            if field_id:
+                try:
+                    field = Field.query.get(field_id)
+                    if field:
+                        field.cache_vegetation_index_image(index_type, image_data)
+                        db.session.commit()
+                        logging.info(f"Cached {index_type} image for field {field_id}")
+                except Exception as e:
+                    logging.warning(f"Could not cache {index_type}: {e}")
+            
             return Response(
                 image_data,
                 mimetype='image/png',
