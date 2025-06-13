@@ -75,7 +75,8 @@ class VisualFieldAnalyzer:
                 ],
                 response_format={"type": "json_object"},
                 max_tokens=2000,
-                temperature=0.2
+                temperature=0.2,
+                timeout=30  # Add timeout to prevent hanging
             )
             
             visual_analysis = json.loads(response.choices[0].message.content or "{}")
