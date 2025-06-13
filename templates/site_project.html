@@ -115,95 +115,75 @@
                     </ul>
                 </div>
                 <div class="card-body">
-                    <div class="tab-content" id="vegetationTabContent">
-                        
-                        <!-- NDVI Panel -->
-                        <div class="tab-pane fade show active" id="ndvi-panel" role="tabpanel">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="mb-0">NDVI - Vegetation Health Analysis</h5>
-                                <button class="btn btn-primary btn-sm" onclick="generateVegetationIndex('ndvi', {{ field.id }})">
-                                    <i class="fas fa-sync me-1"></i>Update NDVI
-                                </button>
-                            </div>
-                            <div id="ndvi-content">
-                                {% if field.has_cached_ndvi() %}
+                    <!-- Shared Image Display Area -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0" id="current-analysis-title">NDVI - Vegetation Health Analysis</h5>
+                            <button class="btn btn-primary btn-sm" id="current-analysis-button" onclick="generateVegetationIndex('ndvi', {{ field.id }})">
+                                <i class="fas fa-sync me-1"></i>Update NDVI
+                            </button>
+                        </div>
+                        <div id="shared-image-content">
+                            {% if field.has_cached_ndvi() %}
+                                <div class="satellite-image-container">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="badge bg-success">
+                                            Last updated: {{ field.ndvi_cache_date.strftime('%m/%d/%Y %H:%M') if field.ndvi_cache_date else 'Unknown' }}
+                                        </span>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="enableComparison('ndvi', 'main-ndvi-image')" title="Add comparison image">
+                                            <i class="fas fa-plus"></i> Compare
+                                        </button>
+                                    </div>
                                     <div class="text-center">
                                         <img src="{{ url_for('get_cached_ndvi', field_id=field.id) }}" 
                                              alt="NDVI Analysis" 
                                              class="img-fluid rounded"
                                              style="max-height: 500px; width: auto;">
-                                        <div class="mt-2">
-                                            <span class="badge bg-success">
-                                                Last updated: {{ field.ndvi_cache_date.strftime('%m/%d/%Y %H:%M') if field.ndvi_cache_date else 'Unknown' }}
-                                            </span>
-                                        </div>
                                     </div>
-                                {% else %}
-                                    <div class="text-center py-5">
-                                        <i class="fas fa-satellite fa-3x text-muted mb-3"></i>
-                                        <h6 class="text-muted mb-3">No NDVI analysis available</h6>
-                                        <button class="btn btn-primary" onclick="generateVegetationIndex('ndvi', {{ field.id }})">
-                                            <i class="fas fa-play me-1"></i>Generate NDVI Analysis
-                                        </button>
-                                    </div>
-                                {% endif %}
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-leaf fa-3x text-muted mb-3"></i>
+                                    <h6 class="text-muted mb-3">No vegetation analysis available</h6>
+                                    <button class="btn btn-primary" onclick="generateVegetationIndex('ndvi', {{ field.id }})">
+                                        <i class="fas fa-play me-1"></i>Generate NDVI Analysis
+                                    </button>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="tab-content" id="vegetationTabContent">
+                        
+                        <!-- NDVI Panel -->
+                        <div class="tab-pane fade show active" id="ndvi-panel" role="tabpanel">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>NDVI (Normalized Difference Vegetation Index)</strong> measures vegetation health by analyzing chlorophyll absorption. Higher values (green) indicate healthier vegetation, while lower values (red/brown) may indicate stress, disease, or sparse vegetation.
                             </div>
                         </div>
 
                         <!-- NDRE Panel -->
                         <div class="tab-pane fade" id="ndre-panel" role="tabpanel">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="mb-0">NDRE - Chlorophyll & Nitrogen</h5>
-                                <button class="btn btn-primary btn-sm" onclick="generateVegetationIndex('ndre', {{ field.id }})">
-                                    <i class="fas fa-sync me-1"></i>Update NDRE
-                                </button>
-                            </div>
-                            <div id="ndre-content">
-                                <div class="text-center py-5">
-                                    <i class="fas fa-seedling fa-3x text-muted mb-3"></i>
-                                    <h6 class="text-muted mb-3">No NDRE analysis available</h6>
-                                    <button class="btn btn-primary" onclick="generateVegetationIndex('ndre', {{ field.id }})">
-                                        <i class="fas fa-play me-1"></i>Generate NDRE Analysis
-                                    </button>
-                                </div>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>NDRE (Normalized Difference Red Edge)</strong> is sensitive to chlorophyll content and nitrogen levels in plants. It's particularly useful for detecting early stress and optimizing fertilizer application.
                             </div>
                         </div>
 
                         <!-- Moisture Panel -->
                         <div class="tab-pane fade" id="moisture-panel" role="tabpanel">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="mb-0">Moisture Index - Water Content</h5>
-                                <button class="btn btn-primary btn-sm" onclick="generateVegetationIndex('moisture', {{ field.id }})">
-                                    <i class="fas fa-sync me-1"></i>Update Moisture
-                                </button>
-                            </div>
-                            <div id="moisture-content">
-                                <div class="text-center py-5">
-                                    <i class="fas fa-tint fa-3x text-muted mb-3"></i>
-                                    <h6 class="text-muted mb-3">No moisture analysis available</h6>
-                                    <button class="btn btn-primary" onclick="generateVegetationIndex('moisture', {{ field.id }})">
-                                        <i class="fas fa-play me-1"></i>Generate Moisture Analysis
-                                    </button>
-                                </div>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Moisture Index (NDMI)</strong> estimates water content in vegetation and soil. This helps identify irrigation needs and monitor drought stress in crops.
                             </div>
                         </div>
 
                         <!-- EVI Panel -->
                         <div class="tab-pane fade" id="evi-panel" role="tabpanel">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="mb-0">EVI - Enhanced Vegetation Index</h5>
-                                <button class="btn btn-primary btn-sm" onclick="generateVegetationIndex('evi', {{ field.id }})">
-                                    <i class="fas fa-sync me-1"></i>Update EVI
-                                </button>
-                            </div>
-                            <div id="evi-content">
-                                <div class="text-center py-5">
-                                    <i class="fas fa-tree fa-3x text-muted mb-3"></i>
-                                    <h6 class="text-muted mb-3">No EVI analysis available</h6>
-                                    <button class="btn btn-primary" onclick="generateVegetationIndex('evi', {{ field.id }})">
-                                        <i class="fas fa-play me-1"></i>Generate EVI Analysis
-                                    </button>
-                                </div>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>EVI (Enhanced Vegetation Index)</strong> provides improved sensitivity in high biomass regions and better vegetation monitoring through reduced atmospheric influences.
                             </div>
                         </div>
 
@@ -441,9 +421,12 @@ async function generateVegetationIndex(indexType, fieldId) {
                 const blob = await imageResponse.blob();
                 const imageUrl = URL.createObjectURL(blob);
                 
-                // Update the content for this index type with replacement and comparison options
-                const contentDiv = document.getElementById(`${indexType}-content`);
+                // Update the shared image display area with replacement and comparison options
+                const contentDiv = document.getElementById('shared-image-content');
                 const imageId = `img-${indexType}-${Date.now()}`;
+                
+                // Update the title and button for current analysis type
+                updateAnalysisHeader(indexType, fieldId);
                 
                 // Check if there's already an image to determine replacement or comparison
                 const existingImages = contentDiv.querySelectorAll('.satellite-image-container');
@@ -509,9 +492,51 @@ async function generateVegetationIndex(indexType, fieldId) {
     }
 }
 
+// Update header and button for current analysis type
+function updateAnalysisHeader(indexType, fieldId) {
+    const titles = {
+        'ndvi': 'NDVI - Vegetation Health Analysis',
+        'ndre': 'NDRE - Chlorophyll & Nitrogen Status',
+        'moisture': 'Moisture Index - Water Content Analysis',
+        'evi': 'EVI - Enhanced Vegetation Index',
+        'ndwi': 'NDWI - Water Detection Analysis', 
+        'chlorophyll': 'Chlorophyll Index - Plant Health',
+        'true_color': 'True Color Satellite Image'
+    };
+    
+    const icons = {
+        'ndvi': 'fas fa-leaf',
+        'ndre': 'fas fa-seedling',
+        'moisture': 'fas fa-tint',
+        'evi': 'fas fa-tree',
+        'ndwi': 'fas fa-water',
+        'chlorophyll': 'fas fa-cannabis',
+        'true_color': 'fas fa-image'
+    };
+    
+    document.getElementById('current-analysis-title').textContent = titles[indexType] || 'Analysis';
+    document.getElementById('current-analysis-button').setAttribute('onclick', `generateVegetationIndex('${indexType}', ${fieldId})`);
+    document.getElementById('current-analysis-button').innerHTML = `<i class="${icons[indexType]} me-1"></i>Update ${indexType.toUpperCase()}`;
+}
+
+// Handle tab clicks to update the shared display
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('[data-bs-toggle="tab"]');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-bs-target');
+            const indexType = targetId.replace('#', '').replace('-panel', '');
+            const fieldId = {{ field.id }};
+            
+            // Update header without generating new image
+            updateAnalysisHeader(indexType, fieldId);
+        });
+    });
+});
+
 // Image comparison functions
 function enableComparison(indexType, currentImageId) {
-    const contentDiv = document.getElementById(`${indexType}-content`);
+    const contentDiv = document.getElementById('shared-image-content');
     contentDiv.classList.add('comparison-mode');
     
     // Update the current image's compare button to show it's in comparison mode
