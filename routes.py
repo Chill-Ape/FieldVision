@@ -383,7 +383,7 @@ def generate_field_ai_insights(analysis_context):
         
         openai_client = OpenAI(
             api_key=os.environ.get('OPENAI_API_KEY'),
-            timeout=30.0  # Set 30 second timeout to prevent hanging
+            timeout=15.0  # Shorter timeout to prevent hanging
         )
         
         # Create comprehensive prompt for detailed agricultural analysis
@@ -451,136 +451,37 @@ def generate_field_ai_insights(analysis_context):
         except Exception as e:
             app.logger.warning(f"Field analysis failed: {str(e)}")
 
+        # Create a simplified prompt to avoid timeouts
         prompt = f"""
-        You are Dr. Sarah Martinez, a leading agricultural consultant with 20+ years experience in precision farming, satellite imagery analysis, and crop management. You specialize in translating complex vegetation index data into actionable farming strategies.
+        Analyze this agricultural field data and provide actionable recommendations:
 
-        FIELD ANALYSIS SUMMARY:
-        ═══════════════════════
-        Field: {analysis_context['field_name']} (Field ID: {field_hash % 10000})
+        Field: {analysis_context['field_name']}
         Size: {analysis_context['field_area_acres']} acres
-        Location: {analysis_context['field_coordinates']['center_lat']:.4f}°N, {analysis_context['field_coordinates']['center_lng']:.4f}°W ({region_hint})
-        Analysis Date: {analysis_context['analysis_date']} ({season_context})
-        Unique Analysis Timestamp: {int(time.time())}
+        Location: {analysis_context['field_coordinates']['center_lat']:.4f}°N, {analysis_context['field_coordinates']['center_lng']:.4f}°W
+        Analysis Date: {analysis_context['analysis_date']}
 
-        VEGETATION INDEX RESULTS:
-        ═══════════════════════
-        Total Indices: {analysis_context['total_vegetation_indices']}
-        Successfully Generated: {analysis_context['successful_analyses']}/{analysis_context['total_vegetation_indices']}
-        ✓ Available: {', '.join(analysis_context['successful_indices']).upper()}
-        ✗ Failed: {', '.join(analysis_context['failed_indices']).upper() if analysis_context['failed_indices'] else 'None'}
+        VEGETATION DATA:
+        Successfully analyzed: {analysis_context['successful_analyses']} of {analysis_context['total_vegetation_indices']} indices
+        Available indices: {', '.join(analysis_context['successful_indices']).upper()}
 
-        {weather_info}"""
+        {weather_info[:200] if weather_info else 'Weather data: Not available'}
         
-        # Add visual analysis results to prompt
-        if analysis_context.get('visual_analysis'):
-            from utils.visual_field_analyzer import VisualFieldAnalyzer
-            visual_analyzer = VisualFieldAnalyzer()
-            visual_prompt = visual_analyzer.integrate_visual_analysis_into_prompt(analysis_context['visual_analysis'])
-            prompt += visual_prompt
-        
-        # Add geospatial context to prompt if available
-        prompt += f"""
-
-        GEOSPATIAL LAND USE CONTEXT:
-        ═══════════════════════════"""
-        
-        if geospatial_context:
-            prompt += f"""
-        Land Use Analysis: {geospatial_context['contextual_description']}
-        Actual Cropland: {geospatial_context['actual_cropland_percentage']:.0f}% of field area
-        
-        NON-CROP AREAS TO EXCLUDE FROM ANALYSIS:"""
-            
-            for zone in geospatial_context['exclusion_zones'][:5]:  # Limit to 5 for prompt length
-                prompt += f"""
-        - {zone['description']}: {zone['reason']}"""
-                
-            prompt += f"""
-        
-        CRITICAL ANALYSIS GUIDELINES:
-        - Only analyze vegetation health in actual cropland areas ({geospatial_context['actual_cropland_percentage']:.0f}% of field)
-        - DO NOT flag roads, buildings, water bodies, or infrastructure as crop stress
-        - Use landmarks (roads, buildings) as spatial reference points in recommendations
-        - Adjust treatment recommendations based on actual cropland area, not total field area
-        - When describing zones, reference nearby landmarks for farmer navigation
-        """
-        else:
-            prompt += f"""
-        Land Use Analysis: Detailed geospatial context not available
-        Note: Analysis assumes primarily agricultural land use
-        """
-
-        prompt += f"""
-
-        ANALYSIS CONTEXT:
-        ═══════════════════════
-        Each vegetation index reveals different aspects of crop health:
-        - NDVI: Overall vegetation vigor and biomass
-        - NDRE: Chlorophyll content and nitrogen status  
-        - MOISTURE: Plant water stress and irrigation needs
-        - EVI: Enhanced vegetation detection in dense canopy areas
-        - NDWI: Water stress and drought monitoring
-        - CHLOROPHYLL: Photosynthetic activity and plant health
-
-        CRITICAL REQUIREMENTS FOR SPATIALLY-SPECIFIC ANALYSIS:
-        ═══════════════════════════════════════════════════
-        1. USE VISUAL SATELLITE ANALYSIS: Base all spatial descriptions on the actual satellite imagery analysis provided above. Reference specific field shapes, positions, and arrangements visible in the imagery.
-
-        2. PRECISE SPATIAL REFERENCES: Instead of generic "northern area," use specific descriptions like "the large circular field in the northwest," "the rectangular plot adjacent to the buildings," or "the third pivot field from the southern boundary."
-
-        3. INFRASTRUCTURE-AWARE NAVIGATION: Use visible buildings, roads, and structures as navigation landmarks (e.g., "the circular field east of the farmhouse," "irrigate the rectangular plots near the main access road").
-
-        4. FIELD-BY-FIELD ANALYSIS: Analyze each distinct field section identified in the visual analysis separately, using their specific shapes, sizes, and positions.
-
-        5. VEGETATION HEALTH BY LOCATION: Reference actual vegetation patterns seen in the satellite imagery for each specific field section.
-
-        6. OPERATIONAL LOGISTICS: Consider the field layout and infrastructure when making recommendations (equipment access, irrigation infrastructure, etc.).
-
-        7. AVOID GENERIC ZONES: Never use vague directional descriptions when specific field locations and shapes are available from visual analysis.
-
-        REQUIRED ANALYSIS DEPTH:
-        ═══════════════════════
-        Generate comprehensive, field-specific insights that vary significantly between different fields based on their actual data patterns, location, size, and seasonal context. Make each report feel like a personalized consultation from an experienced agricultural advisor.
-
-        Provide response in JSON format:
+        Provide analysis in JSON format with these required fields:
         {{
-            "overall_health": "Excellent/Good/Moderate/Poor/Critical",
-            "overall_health_class": "text-success/text-info/text-warning/text-danger/text-danger",
-            "insights": "Write 3-4 detailed sentences analyzing what the combination of vegetation indices reveals about this specific field. Include specific observations about crop stress patterns, water status, nutrient levels, and vegetation vigor. Reference the actual indices generated and what they indicate about field conditions.",
-            "farmer_report": "REQUIRED: Write exactly 5 comprehensive paragraphs (minimum 120 words each, 600+ total words) in plain farmer language explaining what this satellite analysis means for your operation. Structure as follows: 1) Zone-by-zone breakdown of what satellite sees (northeast corner moisture stress, southern edge vegetation patterns, etc.), 2) What this means for your yields and profits this season, 3) Immediate action steps with specific timing and costs, 4) Weather timing and seasonal considerations, 5) Long-term field improvements. Include specific zone references, actual index values, cost estimates per acre, equipment needs, fertilizer rates, irrigation adjustments, and step-by-step implementation advice. Write like an experienced farm advisor explaining to a neighbor.",
+            "overall_health": "Good/Moderate/Poor",
+            "overall_health_class": "text-success/text-warning/text-danger",
+            "insights": "Brief analysis of vegetation health based on available indices",
             "immediate_actions": [
-                "Specific action 1 with timing (e.g., 'Apply nitrogen fertilizer at 40-60 lbs/acre within next 5-7 days to address chlorophyll deficiency shown in NDRE analysis')",
-                "Specific action 2 with method (e.g., 'Implement targeted irrigation in zones showing moisture stress, focus on field sections with NDWI values below optimal range')",
-                "Specific action 3 with monitoring (e.g., 'Conduct soil moisture testing in areas showing vegetation stress to confirm satellite observations and adjust irrigation scheduling')"
+                "Action 1: Check vegetation health patterns",
+                "Action 2: Monitor field conditions",
+                "Action 3: Review analysis results"
             ],
             "weather_recommendations": [
-                "Weather-specific recommendation 1 (e.g., 'With current humidity at X% and temperature Y°F, adjust irrigation timing to early morning to minimize evaporation losses')",
-                "Weather-specific recommendation 2 (e.g., 'Monitor upcoming weather patterns - if rainfall expected within 48 hours, delay planned fertilizer application to prevent nutrient runoff')",
-                "Weather-specific recommendation 3 (e.g., 'Current wind conditions at X mph may affect spray application effectiveness - consider timing adjustments for optimal coverage')"
-            ],
-            "risk_factors": [
-                "Specific risk 1 based on vegetation analysis",
-                "Specific risk 2 considering weather patterns",
-                "Specific risk 3 related to crop management timing"
-            ],
-            "cost_analysis": [
-                "Cost consideration 1 (e.g., 'Estimated $X per acre for recommended nitrogen application')",
-                "Cost consideration 2 (e.g., 'ROI analysis: Early intervention could prevent $Y yield loss per acre')",
-                "Cost consideration 3 (e.g., 'Budget approximately $Z for targeted irrigation improvements in identified stress zones')"
+                "Monitor current weather conditions",
+                "Plan field activities based on weather",
+                "Adjust irrigation as needed"
             ]
         }}
-
-        CRITICAL: The "farmer_report" field is MANDATORY and must be 600-800 words minimum. Structure it as 4-5 paragraphs covering:
-        
-        Paragraph 1: What the satellite data shows about different zones of the field
-        Paragraph 2: What these findings mean for crop health and potential yield impact
-        Paragraph 3: Specific immediate actions needed with timing and costs
-        Paragraph 4: Weather considerations and seasonal timing advice
-        Paragraph 5: Long-term field management recommendations
-        
-        Use conversational farmer language, include specific zone references, mention actual vegetation index values, provide cost estimates, and give step-by-step implementation advice.
-        
-        Be extremely specific, use actual agricultural terminology, include numerical recommendations where appropriate, and provide actionable steps that a farmer can implement immediately.
         """
 
         response = openai_client.chat.completions.create(
