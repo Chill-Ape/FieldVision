@@ -487,9 +487,116 @@ class FieldAnalytics {
         `;
     }
 
-    createDefaultCharts() {
-        // Create initial temporal chart
-        this.createTemporalChart();
+    async loadSummaryCards() {
+        try {
+            const historyData = await this.loadFieldHistory();
+            const latest = historyData.analyses[0];
+            
+            if (!latest) {
+                this.updateSummaryCard('ndvi-trend', 'No Data', 'secondary', 'fa-question');
+                this.updateSummaryCard('moisture-status', 'No Data', 'secondary', 'fa-question');
+                this.updateSummaryCard('chlorophyll-level', 'No Data', 'secondary', 'fa-question');
+                this.updateSummaryCard('overall-health', 'No Data', 'secondary', 'fa-question');
+                return;
+            }
+            
+            // Update summary cards with latest data
+            this.updateSummaryCard('ndvi-trend', 
+                `${(latest.ndvi_avg || 0.6).toFixed(2)}`, 
+                this.getStatusColor(latest.ndvi_avg || 0.6, [0.3, 0.5, 0.7]), 
+                'fa-leaf');
+                
+            this.updateSummaryCard('moisture-status', 
+                `${(latest.moisture_avg || 0.5).toFixed(2)}`, 
+                this.getStatusColor(latest.moisture_avg || 0.5, [0.3, 0.5, 0.7]), 
+                'fa-tint');
+                
+            this.updateSummaryCard('chlorophyll-level', 
+                `${(latest.chlorophyll_avg || 0.6).toFixed(2)}`, 
+                this.getStatusColor(latest.chlorophyll_avg || 0.6, [0.4, 0.6, 0.8]), 
+                'fa-seedling');
+                
+            this.updateSummaryCard('overall-health', 
+                latest.ai_analysis?.overall_health || 'Moderate',
+                this.getHealthStatusColor(latest.ai_analysis?.overall_health || 'Moderate'),
+                'fa-heartbeat');
+                
+        } catch (error) {
+            console.error('Error loading summary cards:', error);
+        }
+    }
+    
+    updateSummaryCard(cardId, value, colorClass, iconClass) {
+        const card = document.getElementById(cardId);
+        if (card) {
+            const valueElement = card.querySelector('.card-value');
+            const iconElement = card.querySelector('.card-icon i');
+            
+            if (valueElement) valueElement.textContent = value;
+            if (iconElement) {
+                iconElement.className = `fas ${iconClass}`;
+            }
+            
+            // Update card border color
+            card.className = `card analytics-summary-card border-${colorClass}`;
+        }
+    }
+    
+    getStatusColor(value, thresholds) {
+        if (value >= thresholds[2]) return 'success';
+        if (value >= thresholds[1]) return 'warning';
+        if (value >= thresholds[0]) return 'danger';
+        return 'dark';
+    }
+    
+    getHealthStatusColor(health) {
+        const colors = {
+            'Excellent': 'success',
+            'Good': 'success', 
+            'Moderate': 'warning',
+            'Poor': 'danger',
+            'Critical': 'danger'
+        };
+        return colors[health] || 'secondary';
+    }
+    
+    async loadAnalyticsTable() {
+        try {
+            const historyData = await this.loadFieldHistory();
+            const tableBody = document.getElementById('analytics-table-body');
+            
+            if (!tableBody) return;
+            
+            if (historyData.analyses.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">
+                            No analysis data available. Run a field analysis to see results here.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // Show latest 10 analyses
+            const recentAnalyses = historyData.analyses.slice(0, 10);
+            
+            tableBody.innerHTML = recentAnalyses.map(analysis => `
+                <tr>
+                    <td>${new Date(analysis.analysis_date).toLocaleDateString()}</td>
+                    <td><span class="badge bg-${this.getStatusColor(analysis.ndvi_avg || 0.6, [0.3, 0.5, 0.7])}">${(analysis.ndvi_avg || 0.6).toFixed(2)}</span></td>
+                    <td><span class="badge bg-${this.getHealthStatusColor(analysis.ai_analysis?.overall_health || 'Moderate')}">${analysis.ai_analysis?.overall_health || 'Moderate'}</span></td>
+                    <td>${analysis.weather_summary || 'N/A'}</td>
+                    <td>
+                        <span class="badge bg-info">${analysis.weather_temp ? Math.round(analysis.weather_temp) + '°C' : 'N/A'}</span>
+                        <span class="badge bg-secondary ms-1">${analysis.weather_humidity ? analysis.weather_humidity + '%' : 'N/A'}</span>
+                    </td>
+                </tr>
+            `).join('');
+            
+        } catch (error) {
+            console.error('Error loading analytics table:', error);
+        }
     }
 }
 
