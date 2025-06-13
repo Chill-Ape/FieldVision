@@ -430,6 +430,11 @@ async function generateVegetationIndex(indexType, fieldId) {
                     contentDiv.classList.add('comparison-mode');
                 }
                 
+                // Update the cached images map to reflect that this image is now cached
+                if (typeof window.cachedImages !== 'undefined') {
+                    window.cachedImages[indexType] = true;
+                }
+                
                 // Show success message
                 showAlert('success', `${indexType.toUpperCase()} analysis generated successfully!`);
             } else {
@@ -515,35 +520,44 @@ document.addEventListener('DOMContentLoaded', function() {
 async function switchToIndexType(indexType, fieldId) {
     const contentDiv = document.getElementById('shared-image-content');
     
-    // Map of cached image availability (updated from server)
-    const cachedImages = {
-        'ndvi': {{ 'true' if field.has_cached_ndvi() else 'false' }},
-        'true_color': {{ 'true' if field.has_cached_rgb() else 'false' }},
-        'ndre': {{ 'true' if field.has_cached_vegetation_index('ndre') else 'false' }},
-        'moisture': {{ 'true' if field.has_cached_vegetation_index('moisture') else 'false' }},
-        'evi': {{ 'true' if field.has_cached_vegetation_index('evi') else 'false' }},
-        'ndwi': {{ 'true' if field.has_cached_vegetation_index('ndwi') else 'false' }},
-        'chlorophyll': {{ 'true' if field.has_cached_vegetation_index('chlorophyll') else 'false' }}
-    };
+    // Initialize cached images map if not exists
+    if (typeof window.cachedImages === 'undefined') {
+        window.cachedImages = {
+            'ndvi': {{ 'true' if field.has_cached_ndvi() else 'false' }},
+            'true_color': {{ 'true' if field.has_cached_rgb() else 'false' }},
+            'ndre': {{ 'true' if field.has_cached_vegetation_index('ndre') else 'false' }},
+            'moisture': {{ 'true' if field.has_cached_vegetation_index('moisture') else 'false' }},
+            'evi': {{ 'true' if field.has_cached_vegetation_index('evi') else 'false' }},
+            'ndwi': {{ 'true' if field.has_cached_vegetation_index('ndwi') else 'false' }},
+            'chlorophyll': {{ 'true' if field.has_cached_vegetation_index('chlorophyll') else 'false' }}
+        };
+    }
     
-    // Check if we have a cached image for this type
-    if (cachedImages[indexType]) {
-        let imageUrl, altText;
-        
+    // Check if we have a cached image for this type by making a HEAD request
+    try {
+        let cacheUrl;
         if (indexType === 'ndvi') {
-            imageUrl = '/field/{{ field.id }}/cached_ndvi';
-            altText = 'NDVI Analysis';
+            cacheUrl = '/field/{{ field.id }}/cached_ndvi';
         } else if (indexType === 'true_color') {
-            imageUrl = '/field/{{ field.id }}/cached_rgb';
-            altText = 'True Color Satellite Image';
+            cacheUrl = '/field/{{ field.id }}/cached_rgb';
         } else {
-            imageUrl = `/field/{{ field.id }}/cached_${indexType}`;
-            altText = `${indexType.toUpperCase()} Analysis`;
+            cacheUrl = `/field/{{ field.id }}/cached_${indexType}`;
         }
         
-        showCachedImage(indexType, imageUrl, altText);
-    } else {
-        // Generate new image for this type
+        const cacheResponse = await fetch(cacheUrl, { method: 'HEAD' });
+        
+        if (cacheResponse.ok) {
+            // Cached image exists, show it
+            let altText = indexType === 'true_color' ? 'True Color Satellite Image' : `${indexType.toUpperCase()} Analysis`;
+            showCachedImage(indexType, cacheUrl, altText);
+            // Update cache status
+            window.cachedImages[indexType] = true;
+        } else {
+            // No cached image, generate new one
+            generateVegetationIndex(indexType, fieldId);
+        }
+    } catch (error) {
+        // If cache check fails, try to generate new image
         generateVegetationIndex(indexType, fieldId);
     }
 }
