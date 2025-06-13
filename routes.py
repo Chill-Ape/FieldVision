@@ -1194,7 +1194,7 @@ def get_vegetation_index():
         geometry = data.get('geometry')
         
         # Validate index type
-        valid_indices = ['ndvi', 'ndre', 'moisture', 'evi', 'ndwi', 'chlorophyll']
+        valid_indices = ['ndvi', 'ndre', 'moisture', 'evi', 'ndwi', 'chlorophyll', 'true_color']
         if index_type not in valid_indices:
             return jsonify({"error": f"Invalid index type. Must be one of: {valid_indices}"}), 400
         
