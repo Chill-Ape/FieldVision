@@ -130,9 +130,14 @@
                                         <span class="badge bg-success">
                                             Last updated: {{ field.ndvi_cache_date.strftime('%m/%d/%Y %H:%M') if field.ndvi_cache_date else 'Unknown' }}
                                         </span>
-                                        <button class="btn btn-sm btn-outline-primary" onclick="enableComparison('ndvi', 'main-ndvi-image')" title="Add comparison image">
-                                            <i class="fas fa-plus"></i> Compare
-                                        </button>
+                                        <div>
+                                            <button class="btn btn-sm btn-outline-secondary me-2" onclick="openFullscreen('{{ url_for('get_cached_ndvi', field_id=field.id) }}', 'NDVI Analysis')" title="View fullscreen">
+                                                <i class="fas fa-expand"></i> Fullscreen
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-primary" onclick="enableComparison('ndvi', 'main-ndvi-image')" title="Add comparison image">
+                                                <i class="fas fa-plus"></i> Compare
+                                            </button>
+                                        </div>
                                     </div>
                                     <div class="text-center">
                                         <img src="{{ url_for('get_cached_ndvi', field_id=field.id) }}" 
