@@ -574,3 +574,39 @@ function evaluatePixel(sample) {
         except Exception as e:
             logger.error(f"Error applying polygon mask: {e}")
             return image_bytes  # Return original on error
+
+    def get_true_color_evalscript(self) -> str:
+        """True Color RGB satellite image for visual analysis"""
+        return """
+//VERSION=3
+function setup() {
+    return {
+        input: [{
+            bands: ["B04", "B03", "B02"],
+            units: "DN"
+        }],
+        output: {
+            bands: 3,
+            sampleType: "AUTO"
+        }
+    };
+}
+
+function evaluatePixel(sample) {
+    // True color RGB: Red=B04, Green=B03, Blue=B02
+    // Apply atmospheric correction and enhance visibility
+    let gain = 2.5;
+    let gamma = 1.1;
+    
+    let r = Math.pow((sample.B04 * gain) / 10000, 1/gamma);
+    let g = Math.pow((sample.B03 * gain) / 10000, 1/gamma);
+    let b = Math.pow((sample.B02 * gain) / 10000, 1/gamma);
+    
+    // Ensure values are in valid range
+    r = Math.max(0, Math.min(1, r));
+    g = Math.max(0, Math.min(1, g));
+    b = Math.max(0, Math.min(1, b));
+    
+    return [r, g, b];
+}
+        """

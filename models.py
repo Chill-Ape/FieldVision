@@ -12,6 +12,8 @@ class Field(db.Model):
     last_analyzed = db.Column(db.DateTime)
     cached_ndvi_image = db.Column(db.LargeBinary)  # Store NDVI image bytes
     ndvi_cache_date = db.Column(db.DateTime)  # When NDVI was cached
+    cached_rgb_image = db.Column(db.LargeBinary)  # Store RGB satellite image bytes
+    rgb_cache_date = db.Column(db.DateTime)  # When RGB image was cached
     
     # Relationship to analyses
     analyses = db.relationship('FieldAnalysis', backref='field', lazy=True, cascade='all, delete-orphan')
@@ -68,6 +70,26 @@ class Field(db.Model):
         if not self.ndvi_cache_date:
             return False
         age = datetime.utcnow() - self.ndvi_cache_date
+        return age.days <= max_age_days
+    
+    def cache_rgb_image(self, image_bytes):
+        """Cache RGB satellite image bytes for this field"""
+        self.cached_rgb_image = image_bytes
+        self.rgb_cache_date = datetime.utcnow()
+    
+    def get_cached_rgb_image(self):
+        """Get cached RGB satellite image if available"""
+        return self.cached_rgb_image
+    
+    def has_cached_rgb(self):
+        """Check if field has a cached RGB satellite image"""
+        return self.cached_rgb_image is not None
+    
+    def is_rgb_cache_fresh(self, max_age_days=30):
+        """Check if cached RGB image is still fresh (within max_age_days)"""
+        if not self.rgb_cache_date:
+            return False
+        age = datetime.utcnow() - self.rgb_cache_date
         return age.days <= max_age_days
 
 class FieldAnalysis(db.Model):

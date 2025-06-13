@@ -14,13 +14,14 @@ class VisualFieldAnalyzer:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
     
-    def analyze_field_imagery(self, ndvi_image_bytes: bytes, field_info: Dict) -> Dict:
+    def analyze_field_imagery(self, ndvi_image_bytes: bytes, field_info: Dict, rgb_image_bytes: Optional[bytes] = None) -> Dict:
         """
         Analyze satellite imagery to understand field layout, crop patterns, and infrastructure
         
         Args:
             ndvi_image_bytes: NDVI satellite image as bytes
             field_info: Basic field information (name, area, coordinates)
+            rgb_image_bytes: Optional RGB true color satellite image as bytes
             
         Returns:
             Dictionary containing visual analysis results
