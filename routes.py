@@ -162,15 +162,21 @@ def save_field():
         
         logging.info(f"Field '{field.name}' saved successfully with ID {field.id}")
         
-        # Schedule NDVI processing in background (faster user experience)
+        # Schedule both NDVI and RGB processing in background (faster user experience)
         try:
-            # Quick NDVI fetch for immediate feedback
+            # Fetch both NDVI and RGB satellite images
             ndvi_image_bytes = ndvi_fetcher.fetch_vegetation_index_image(bbox, 'ndvi', geometry=geometry)
+            rgb_image_bytes = ndvi_fetcher.fetch_vegetation_index_image(bbox, 'true_color', geometry=geometry)
             
             if ndvi_image_bytes:
-                # Basic validation - just check if we got data
+                # Cache NDVI image
                 field.cache_ndvi_image(ndvi_image_bytes)
                 field.last_analyzed = datetime.utcnow()
+                
+            if rgb_image_bytes:
+                # Cache RGB satellite image
+                field.cache_rgb_image(rgb_image_bytes)
+                logging.info(f"RGB satellite image cached for field {field.id}")
                 
                 # Quick analysis for basic validation
                 analysis_results = analyze_field_ndvi(ndvi_image_bytes, geometry)
@@ -1012,6 +1018,23 @@ def get_cached_ndvi(field_id):
         mimetype='image/png',
         headers={
             'Content-Disposition': f'inline; filename="ndvi_{field.name}.png"',
+            'Cache-Control': 'public, max-age=86400'
+        }
+    )
+
+@app.route('/field/<int:field_id>/cached_rgb')
+def get_cached_rgb(field_id):
+    """Serve cached RGB satellite image for a field"""
+    field = Field.query.get_or_404(field_id)
+    
+    if not field.has_cached_rgb():
+        return jsonify({"error": "No cached RGB image available"}), 404
+    
+    return Response(
+        field.get_cached_rgb_image(),
+        mimetype='image/png',
+        headers={
+            'Content-Disposition': f'inline; filename="rgb_{field.name}.png"',
             'Cache-Control': 'public, max-age=86400'
         }
     )
