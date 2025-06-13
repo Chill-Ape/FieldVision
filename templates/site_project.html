@@ -366,7 +366,8 @@ async function generateVegetationIndex(indexType, fieldId) {
                         result.bbox[0], result.bbox[1], result.bbox[2], result.bbox[3]
                     ],
                     index_type: indexType,
-                    geometry: result.geometry
+                    geometry: result.geometry,
+                    field_id: fieldId  // Include field ID for caching
                 })
             });
             
@@ -514,13 +515,33 @@ document.addEventListener('DOMContentLoaded', function() {
 async function switchToIndexType(indexType, fieldId) {
     const contentDiv = document.getElementById('shared-image-content');
     
+    // Map of cached image availability (updated from server)
+    const cachedImages = {
+        'ndvi': {{ 'true' if field.has_cached_ndvi() else 'false' }},
+        'true_color': {{ 'true' if field.has_cached_rgb() else 'false' }},
+        'ndre': {{ 'true' if field.has_cached_vegetation_index('ndre') else 'false' }},
+        'moisture': {{ 'true' if field.has_cached_vegetation_index('moisture') else 'false' }},
+        'evi': {{ 'true' if field.has_cached_vegetation_index('evi') else 'false' }},
+        'ndwi': {{ 'true' if field.has_cached_vegetation_index('ndwi') else 'false' }},
+        'chlorophyll': {{ 'true' if field.has_cached_vegetation_index('chlorophyll') else 'false' }}
+    };
+    
     // Check if we have a cached image for this type
-    if (indexType === 'ndvi' && {{ 'true' if field.has_cached_ndvi() else 'false' }}) {
-        // Show cached NDVI
-        showCachedImage(indexType, '/field/{{ field.id }}/cached_ndvi', 'NDVI Analysis');
-    } else if (indexType === 'true_color' && {{ 'true' if field.has_cached_rgb() else 'false' }}) {
-        // Show cached RGB
-        showCachedImage(indexType, '/field/{{ field.id }}/cached_rgb', 'True Color Satellite Image');
+    if (cachedImages[indexType]) {
+        let imageUrl, altText;
+        
+        if (indexType === 'ndvi') {
+            imageUrl = '/field/{{ field.id }}/cached_ndvi';
+            altText = 'NDVI Analysis';
+        } else if (indexType === 'true_color') {
+            imageUrl = '/field/{{ field.id }}/cached_rgb';
+            altText = 'True Color Satellite Image';
+        } else {
+            imageUrl = `/field/{{ field.id }}/cached_${indexType}`;
+            altText = `${indexType.toUpperCase()} Analysis`;
+        }
+        
+        showCachedImage(indexType, imageUrl, altText);
     } else {
         // Generate new image for this type
         generateVegetationIndex(indexType, fieldId);
