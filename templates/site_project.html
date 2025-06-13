@@ -34,10 +34,45 @@
     transform: scale(1.02);
 }
 
+/* Analytics dashboard styling */
+.analytics-chart-container {
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.analytics-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.chart-canvas {
+    max-height: 400px;
+    width: 100%;
+}
+
+.export-controls {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
 /* Responsive behavior for comparison mode */
 @media (max-width: 768px) {
     .comparison-mode {
         grid-template-columns: 1fr;
+    }
+    
+    .analytics-controls {
+        flex-direction: column;
+    }
+    
+    .export-controls {
+        flex-direction: column;
     }
 }
 </style>
@@ -318,6 +353,133 @@
                 </div>
                 <div class="card-body" id="ai-analysis-content">
                     <!-- AI analysis content will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced Analytics Dashboard -->
+    <div class="row mt-4" id="analytics-section">
+        <div class="col-12">
+            <div class="card bg-dark border-secondary">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2 text-success"></i>Field Analytics Dashboard
+                    </h5>
+                    <div class="export-controls">
+                        <button class="btn btn-sm btn-outline-success export-btn" data-format="csv">
+                            <i class="fas fa-file-csv me-1"></i>CSV
+                        </button>
+                        <button class="btn btn-sm btn-outline-info export-btn" data-format="pdf">
+                            <i class="fas fa-file-pdf me-1"></i>PDF
+                        </button>
+                        <button class="btn btn-sm btn-outline-warning export-btn" data-format="json">
+                            <i class="fas fa-file-code me-1"></i>JSON
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Analytics Controls -->
+                    <div class="analytics-controls">
+                        <button class="btn btn-primary analytics-view-btn" data-view="temporal">
+                            <i class="fas fa-chart-line me-1"></i>Temporal Trends
+                        </button>
+                        <button class="btn btn-outline-primary analytics-view-btn" data-view="zones">
+                            <i class="fas fa-th me-1"></i>Zone Analysis
+                        </button>
+                        <button class="btn btn-outline-primary analytics-view-btn" data-view="comparison">
+                            <i class="fas fa-balance-scale me-1"></i>Historical Comparison
+                        </button>
+                    </div>
+
+                    <!-- Chart Containers -->
+                    <div id="temporal-container" class="analytics-chart-container">
+                        <h6 class="text-light mb-3">
+                            <i class="fas fa-calendar-alt me-2"></i>Vegetation Health Over Time
+                        </h6>
+                        <canvas id="temporal-chart" class="chart-canvas"></canvas>
+                    </div>
+
+                    <div id="zones-container" class="analytics-chart-container" style="display: none;">
+                        <h6 class="text-light mb-3">
+                            <i class="fas fa-map me-2"></i>Field Zone Health Distribution
+                        </h6>
+                        <canvas id="zone-chart" class="chart-canvas"></canvas>
+                    </div>
+
+                    <div id="comparison-container" class="analytics-chart-container" style="display: none;">
+                        <h6 class="text-light mb-3">
+                            <i class="fas fa-chart-radar me-2"></i>Current vs Previous Analysis
+                        </h6>
+                        <canvas id="comparison-chart" class="chart-canvas"></canvas>
+                    </div>
+
+                    <!-- Analytics Summary Cards -->
+                    <div class="row mt-4">
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="card bg-success bg-opacity-10 border-success">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-seedling fa-2x text-success mb-2"></i>
+                                    <h6 class="text-success">NDVI Trend</h6>
+                                    <p class="text-light mb-0" id="ndvi-trend">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="card bg-info bg-opacity-10 border-info">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-tint fa-2x text-info mb-2"></i>
+                                    <h6 class="text-info">Moisture Status</h6>
+                                    <p class="text-light mb-0" id="moisture-status">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="card bg-warning bg-opacity-10 border-warning">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-leaf fa-2x text-warning mb-2"></i>
+                                    <h6 class="text-warning">Chlorophyll</h6>
+                                    <p class="text-light mb-0" id="chlorophyll-level">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="card bg-primary bg-opacity-10 border-primary">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-chart-bar fa-2x text-primary mb-2"></i>
+                                    <h6 class="text-primary">Overall Health</h6>
+                                    <p class="text-light mb-0" id="overall-health">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Field Statistics Table -->
+                    <div class="mt-4">
+                        <h6 class="text-light mb-3">
+                            <i class="fas fa-table me-2"></i>Recent Analysis Summary
+                        </h6>
+                        <div class="table-responsive">
+                            <table class="table table-dark table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>NDVI Avg</th>
+                                        <th>Health Score</th>
+                                        <th>Weather</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="analytics-table-body">
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">
+                                            <i class="fas fa-spinner fa-spin me-2"></i>Loading analytics data...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1016,6 +1178,10 @@ function getIndexDescription(indexType) {
 function runAIAnalysis(fieldId) {
     runComprehensiveAIAnalysis(fieldId);
 }
+</script>
+
+<!-- Include Analytics Dashboard JavaScript -->
+<script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
 
 // Analysis storage and history functions
 function saveAnalysisToHistory(fieldId, analysisData) {
