@@ -98,6 +98,8 @@ class GeospatialContextAnalyzer:
                         })
                 
                 return roads
+            else:
+                return []
                 
         except Exception as e:
             self.logger.warning(f"Road network query failed: {str(e)}")
@@ -133,6 +135,8 @@ class GeospatialContextAnalyzer:
                         })
                 
                 return buildings
+            else:
+                return []
                 
         except Exception as e:
             self.logger.warning(f"Building footprint query failed: {str(e)}")
@@ -168,6 +172,8 @@ class GeospatialContextAnalyzer:
                         })
                 
                 return water_bodies
+            else:
+                return []
                 
         except Exception as e:
             self.logger.warning(f"Water body query failed: {str(e)}")

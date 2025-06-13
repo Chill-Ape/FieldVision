@@ -280,6 +280,7 @@ def comprehensive_ai_analysis(field_id):
         
         # Prepare data for AI analysis
         analysis_context = {
+            "field_id": field.id,  # Add field ID for geospatial context analysis
             "field_name": field.name,
             "field_area_acres": round(field_area, 1),
             "total_vegetation_indices": total_indices,
