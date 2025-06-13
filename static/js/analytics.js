@@ -31,6 +31,42 @@ class FieldAnalytics {
         }
     }
 
+    async createDefaultCharts() {
+        console.log('Creating default charts for field:', this.fieldId);
+        
+        try {
+            await this.createTemporalChart();
+            await this.createZoneAnalysisChart();
+            await this.loadSummaryCards();
+            await this.loadAnalyticsTable();
+            
+            // Hide loading indicators
+            this.hideLoadingIndicators();
+        } catch (error) {
+            console.error('Error creating charts:', error);
+            this.showErrorMessage('Failed to load analytics data');
+        }
+    }
+    
+    hideLoadingIndicators() {
+        const loadingElements = document.querySelectorAll('.analytics-loading');
+        loadingElements.forEach(el => {
+            el.style.display = 'none';
+        });
+    }
+    
+    showErrorMessage(message) {
+        const analyticsContent = document.querySelector('.analytics-dashboard');
+        if (analyticsContent) {
+            analyticsContent.innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    ${message}
+                </div>
+            `;
+        }
+    }
+
     setupEventHandlers() {
         // Analytics view switcher
         document.addEventListener('click', (e) => {
@@ -52,10 +88,12 @@ class FieldAnalytics {
         try {
             const response = await fetch(`/field/${this.fieldId}/history`);
             if (!response.ok) throw new Error('Failed to load field history');
-            return await response.json();
+            const data = await response.json();
+            console.log('Field history loaded:', data);
+            return data;
         } catch (error) {
             console.error('Error loading field history:', error);
-            return { analyses: [] };
+            return { field_name: 'Unknown Field', analyses: [] };
         }
     }
 
