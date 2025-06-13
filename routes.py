@@ -278,6 +278,32 @@ def comprehensive_ai_analysis(field_id):
         except Exception as e:
             logging.warning(f"Failed to fetch weather data: {e}")
         
+        # Perform visual field analysis using both RGB and NDVI satellite imagery
+        visual_analysis = None
+        if field.has_cached_ndvi():
+            try:
+                from utils.visual_field_analyzer import VisualFieldAnalyzer
+                visual_analyzer = VisualFieldAnalyzer()
+                
+                field_info = {
+                    'name': field.name,
+                    'area_acres': field.calculate_area_acres(),
+                    'coordinates': field.get_polygon_coordinates()
+                }
+                
+                ndvi_image_bytes = field.get_cached_ndvi_image()
+                rgb_image_bytes = field.get_cached_rgb_image() if field.has_cached_rgb() else None
+                
+                visual_analysis = visual_analyzer.analyze_field_imagery(
+                    ndvi_image_bytes, 
+                    field_info, 
+                    rgb_image_bytes
+                )
+                
+                logging.info(f"Visual field analysis completed for field {field_id} (RGB: {'Yes' if rgb_image_bytes else 'No'})")
+            except Exception as e:
+                logging.warning(f"Visual field analysis failed for field {field_id}: {e}")
+
         # Prepare data for AI analysis
         analysis_context = {
             "field_id": field.id,  # Add field ID for geospatial context analysis
@@ -292,7 +318,8 @@ def comprehensive_ai_analysis(field_id):
             "field_coordinates": {
                 "center_lat": field.center_lat,
                 "center_lng": field.center_lng
-            }
+            },
+            "visual_analysis": visual_analysis
         }
         
         # Generate AI insights using OpenAI
@@ -418,10 +445,10 @@ def generate_field_ai_insights(analysis_context):
         {weather_info}"""
         
         # Add visual analysis results to prompt
-        if visual_analysis:
+        if analysis_context.get('visual_analysis'):
             from utils.visual_field_analyzer import VisualFieldAnalyzer
             visual_analyzer = VisualFieldAnalyzer()
-            visual_prompt = visual_analyzer.integrate_visual_analysis_into_prompt(visual_analysis)
+            visual_prompt = visual_analyzer.integrate_visual_analysis_into_prompt(analysis_context['visual_analysis'])
             prompt += visual_prompt
         
         # Add geospatial context to prompt if available
