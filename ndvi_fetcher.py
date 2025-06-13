@@ -50,6 +50,8 @@ class NDVIFetcher:
             return self.get_ndwi_evalscript()
         elif index_type == 'chlorophyll':
             return self.get_chlorophyll_evalscript()
+        elif index_type == 'true_color':
+            return self.get_true_color_evalscript()
         else:
             return self.get_ndvi_evalscript()  # Default to NDVI
     

@@ -353,16 +353,36 @@ def generate_field_ai_insights(analysis_context):
         season_context = "mid-June growing season" if "2025-06" in analysis_context['analysis_date'] else "growing season"
         region_hint = "Northern California wine country" if analysis_context['field_coordinates']['center_lat'] > 38 else "California Central Valley"
         
-        # Get geospatial context for accurate land use analysis
+        # Get visual satellite imagery analysis and geospatial context
+        visual_analysis = {}
         geospatial_context = {}
         field_object = None
         
-        # Try to get field object for geospatial analysis
+        # Try to get field object for analysis
         try:
             field_id = analysis_context.get('field_id')
             if field_id:
                 field_object = Field.query.get(field_id)
                 if field_object:
+                    # Visual analysis of satellite imagery
+                    cached_ndvi = field_object.get_cached_ndvi_image()
+                    if cached_ndvi:
+                        from utils.visual_field_analyzer import VisualFieldAnalyzer
+                        visual_analyzer = VisualFieldAnalyzer()
+                        
+                        field_info = {
+                            'name': field_object.name,
+                            'area_acres': field_object.calculate_area_acres(),
+                            'coordinates': {
+                                'lat': field_object.center_lat,
+                                'lng': field_object.center_lng
+                            }
+                        }
+                        
+                        visual_analysis = visual_analyzer.analyze_field_imagery(cached_ndvi, field_info)
+                        app.logger.info(f"Visual analysis completed: {len(visual_analysis.get('detailed_field_inventory', []))} field sections identified")
+                    
+                    # Geospatial context analysis
                     from utils.geospatial_context import GeospatialContextAnalyzer
                     analyzer = GeospatialContextAnalyzer()
                     field_coords = field_object.get_polygon_coordinates()
@@ -375,7 +395,7 @@ def generate_field_ai_insights(analysis_context):
                         geospatial_context = analyzer.analyze_field_context(field_coords, bbox)
                         app.logger.info(f"Geospatial analysis: {geospatial_context['contextual_description']}")
         except Exception as e:
-            app.logger.warning(f"Geospatial context analysis failed: {str(e)}")
+            app.logger.warning(f"Field analysis failed: {str(e)}")
 
         prompt = f"""
         You are Dr. Sarah Martinez, a leading agricultural consultant with 20+ years experience in precision farming, satellite imagery analysis, and crop management. You specialize in translating complex vegetation index data into actionable farming strategies.
@@ -395,12 +415,21 @@ def generate_field_ai_insights(analysis_context):
         ✓ Available: {', '.join(analysis_context['successful_indices']).upper()}
         ✗ Failed: {', '.join(analysis_context['failed_indices']).upper() if analysis_context['failed_indices'] else 'None'}
 
-        {weather_info}
+        {weather_info}"""
+        
+        # Add visual analysis results to prompt
+        if visual_analysis:
+            from utils.visual_field_analyzer import VisualFieldAnalyzer
+            visual_analyzer = VisualFieldAnalyzer()
+            visual_prompt = visual_analyzer.integrate_visual_analysis_into_prompt(visual_analysis)
+            prompt += visual_prompt
+        
+        # Add geospatial context to prompt if available
+        prompt += f"""
 
         GEOSPATIAL LAND USE CONTEXT:
         ═══════════════════════════"""
         
-        # Add geospatial context to prompt if available
         if geospatial_context:
             prompt += f"""
         Land Use Analysis: {geospatial_context['contextual_description']}
@@ -439,21 +468,21 @@ def generate_field_ai_insights(analysis_context):
         - NDWI: Water stress and drought monitoring
         - CHLOROPHYLL: Photosynthetic activity and plant health
 
-        CRITICAL REQUIREMENTS FOR UNIQUE, DETAILED ANALYSIS:
+        CRITICAL REQUIREMENTS FOR SPATIALLY-SPECIFIC ANALYSIS:
         ═══════════════════════════════════════════════════
-        1. ZONE-SPECIFIC ANALYSIS: Analyze field in zones (northeast, northwest, southeast, southwest, center, edges, etc.) and provide specific findings for each zone that shows variation.
+        1. USE VISUAL SATELLITE ANALYSIS: Base all spatial descriptions on the actual satellite imagery analysis provided above. Reference specific field shapes, positions, and arrangements visible in the imagery.
 
-        2. VEGETATION INDEX SPECIFICITY: Reference actual index findings by zone (e.g., "Northeast corner NDWI shows 0.15 indicating moisture stress", "Southern edge EVI values at 0.45 suggest canopy stress").
+        2. PRECISE SPATIAL REFERENCES: Instead of generic "northern area," use specific descriptions like "the large circular field in the northwest," "the rectangular plot adjacent to the buildings," or "the third pivot field from the southern boundary."
 
-        3. SEASONAL & TIMING CONTEXT: Consider current date ({analysis_context['analysis_date']}) and seasonal farming activities.
+        3. INFRASTRUCTURE-AWARE NAVIGATION: Use visible buildings, roads, and structures as navigation landmarks (e.g., "the circular field east of the farmhouse," "irrigate the rectangular plots near the main access road").
 
-        4. WEATHER INTEGRATION: Connect current weather conditions to field observations and timing recommendations.
+        4. FIELD-BY-FIELD ANALYSIS: Analyze each distinct field section identified in the visual analysis separately, using their specific shapes, sizes, and positions.
 
-        5. ECONOMIC PRECISION: Include specific costs, ROI calculations, and budget considerations for each recommendation.
+        5. VEGETATION HEALTH BY LOCATION: Reference actual vegetation patterns seen in the satellite imagery for each specific field section.
 
-        6. EQUIPMENT & INPUT SPECIFICITY: Mention specific fertilizer types, application rates, irrigation settings, machinery needs.
+        6. OPERATIONAL LOGISTICS: Consider the field layout and infrastructure when making recommendations (equipment access, irrigation infrastructure, etc.).
 
-        7. AVOID GENERIC RESPONSES: Each analysis must be unique to this field's actual conditions, size ({analysis_context['field_area_acres']} acres), and current situation.
+        7. AVOID GENERIC ZONES: Never use vague directional descriptions when specific field locations and shapes are available from visual analysis.
 
         REQUIRED ANALYSIS DEPTH:
         ═══════════════════════
